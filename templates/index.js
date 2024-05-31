@@ -33,12 +33,13 @@ var map = new maplibregl.Map({
 });
 
 map.addControl(new maplibregl.NavigationControl());
-map.addControl(new maplibregl.GeolocateControl({
+let geolocate = new maplibregl.GeolocateControl({
     positionOptions: {
         enableHighAccuracy: true
     },
     trackUserLocation: true
-}));
+});
+map.addControl(geolocate);
 
 map.on("load", () => {
     const bounds = map.getBounds();

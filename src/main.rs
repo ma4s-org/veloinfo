@@ -14,7 +14,6 @@ use crate::component::segment_panel::segment_panel_get;
 use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
-use crate::node::route;
 use crate::score_selector_controler::score_bounds_controler;
 use askama::Template;
 use axum::extract::DefaultBodyLimit;
@@ -23,6 +22,8 @@ use axum::http::HeaderValue;
 use axum::http::Request;
 use axum::routing::post;
 use axum::routing::{get, Router};
+use component::follow_panel::follow;
+use component::route_panel::route;
 use component::style::style;
 use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
@@ -39,7 +40,6 @@ use tracing_subscriber::util::SubscriberInitExt;
 mod auth;
 mod component;
 mod db;
-mod node;
 mod score_selector_controler;
 
 lazy_static! {
@@ -111,6 +111,7 @@ async fn main() {
         .route("/menu/open/:lng/:lat/:zoom", get(menu_open))
         .route("/menu/closed", get(menu_close))
         .route("/route/:start_lng/:start_lat/:end_lgt/:end_lat", get(route))
+        .route("/follow", post(follow))
         .route(
             "/cyclability_score/geom/:cyclability_score_id",
             get(score_bounds_controler),

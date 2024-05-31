@@ -27,16 +27,16 @@
 
 </div>
 <script type="text/javascript">
-    {% if coordonates != "" %}
-    var coordonates = {{ coordonates }};
-    display_segment_geom([coordonates]);
-    var bounds = fitBounds(coordonates);
-    map.fitBounds(bounds, { padding: 200, duration: 1000 });
+    {% if route_json != "" %}
+    var route_json = {{ route_json }};
+    var bounds = fitBounds(route_json);
+    map.fitBounds(bounds, { padding: 100 });
+    display_segment_geom([route_json]);
     var bearing = calculateBearing(
-        coordonates[0][0],
-        coordonates[0][1],
-        coordonates[coordonates.length - 1][0],
-        coordonates[coordonates.length - 1][1]);
+        route_json[0][0],
+        route_json[0][1],
+        route_json[route_json.length - 1][0],
+        route_json[route_json.length - 1][1]);
     map.bearing = bearing;
     setTimeout(() => {
         map.flyTo({ bearing: bearing });
@@ -51,14 +51,4 @@
             console.log(`${err.name}, ${err.message}`);
         }
     })();
-
-    function follow_route() {
-        geolocate.trigger();
-        geolocate.trackUserLocation = true;
-        htmx.ajax('POST', '/follow', {
-            target: "#info",
-            values: { route: JSON.stringify({{ route }})
-    }
-    });
-    }
 </script>
