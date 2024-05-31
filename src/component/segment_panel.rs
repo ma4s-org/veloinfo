@@ -158,7 +158,13 @@ pub async fn segment_panel_post(
     };
 
     if let Some(photo) = photo {
-        let img = image::load_from_memory(&photo).unwrap();
+        let img = match image::load_from_memory(&photo) {
+            Ok(img) => img,
+            Err(e) => libheif_rs::HeifContext::read_from_bytes(&photo)
+                .unwrap()
+                .decode_first_image()
+                .unwrap(),
+        };
         let img = img.resize(1500, 1500, image::imageops::FilterType::Lanczos3);
         img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
             .unwrap();
@@ -177,7 +183,6 @@ pub async fn segment_panel_edit(
 ) -> (CookieJar, SegmentPanel) {
     let user_name = match jar.get("uuid") {
         Some(uuid) => {
-            println!("uuid {:?}", uuid.value().to_string());
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
                 Ok(uuid) => uuid,
                 Err(e) => {
@@ -197,7 +202,6 @@ pub async fn segment_panel_edit(
             }
         }
         None => {
-            println!("uuid not found");
             let uuid = Uuid::now_v7();
             jar = jar.add(
                 Cookie::build(("uuid", uuid.to_string()))

@@ -5,8 +5,11 @@ RUN apt-get update && apt-get install -y \
     rustfmt \
     osm2pgsql \
     nodejs \
-    npm 
+    npm \
+    libheif-dev libheif1 pkg-config \
+    llvm-dev libclang-dev clang
 
+ENV PKG_CONFIG_PATH /usr/lib/x86_64-linux-gnu/pkgconfig
 RUN chsh -s $(which fish)
 
 RUN install -d tailwindcss
