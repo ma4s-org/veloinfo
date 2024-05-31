@@ -3056,7 +3056,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
- "vcpkg",
 ]
 
 [[package]]
