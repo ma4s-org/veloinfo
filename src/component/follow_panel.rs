@@ -1,5 +1,6 @@
 use askama::Template;
 use axum::{extract::State, Form};
+use axum_macros::debug_handler;
 
 use crate::{db::edge::Edge, VeloinfoState};
 
@@ -16,11 +17,11 @@ pub struct Values {
     pub route: Vec<(Edge, f64)>,
 }
 
-pub async fn follow(State(state): State<VeloinfoState>, Form(values): Form<Values>) -> FollowPanel {
-    println!("routes {:?}", values.route);
+#[debug_handler]
+pub async fn follow(State(state): State<VeloinfoState>) -> FollowPanel {
     FollowPanel {
         route_json: "[]".to_string(),
         total_length: 0.0,
-        error: "Error while fetching start node: {}".to_string(),
+        error: "".to_string(),
     }
 }

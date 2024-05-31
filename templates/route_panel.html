@@ -55,10 +55,8 @@
     function follow_route() {
         geolocate.trigger();
         geolocate.trackUserLocation = true;
-        htmx.ajax('POST', '/follow', {
-            target: "#info",
-            values: { route: JSON.stringify({{ route }})
-    }
-    });
-    }
+        htmx.ajax('GET', '/follow', {
+            target: "#info"
+        })
+    };
 </script>

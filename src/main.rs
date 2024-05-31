@@ -111,7 +111,7 @@ async fn main() {
         .route("/menu/open/:lng/:lat/:zoom", get(menu_open))
         .route("/menu/closed", get(menu_close))
         .route("/route/:start_lng/:start_lat/:end_lgt/:end_lat", get(route))
-        .route("/follow", post(follow))
+        .route("/follow", get(follow))
         .route(
             "/cyclability_score/geom/:cyclability_score_id",
             get(score_bounds_controler),

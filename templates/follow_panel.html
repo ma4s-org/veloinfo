@@ -1,48 +1,16 @@
 <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
     <div class="">
         <div>
-            Route panel
+            Suivre le trajet
         </div>
         <div>
-            <div>
-                Longueur: {{ total_length }} km
-            </div>
-            <div>
-                <div>
-                    {% let total_duration = total_length / 15.0 %}
-                    {% let hours = total_duration.floor() %}
-                    {% let minutes = ((total_duration - hours) * 60.0).round() %}
-                    Durée:
-                    {% if hours >= 1.0 %}
-                    {{ hours }} heures et
-                    {% endif %}
-                    {{ minutes }} minutes à 15 km/h
-                </div>
-            </div>
             {{ error }}
         </div>
-        <button hx-on:click="follow_route()" hx-target="#info" class="bg-teal-300 rounded uppercase p-2">suivre</button>
         <button hx-on:click="clear()" hx-target="#info" class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</button>
     </div>
 
 </div>
 <script type="text/javascript">
-    {% if route_json != "" %}
-    var route_json = {{ route_json }};
-    var bounds = fitBounds(route_json);
-    map.fitBounds(bounds, { padding: 100 });
-    display_segment_geom([route_json]);
-    var bearing = calculateBearing(
-        route_json[0][0],
-        route_json[0][1],
-        route_json[route_json.length - 1][0],
-        route_json[route_json.length - 1][1]);
-    map.bearing = bearing;
-    setTimeout(() => {
-        map.flyTo({ bearing: bearing });
-    }, 1000);
-    {% else %}
-    {% endif %}
     (async () => {
         try {
             const wakeLock = await navigator.wakeLock.request("screen");

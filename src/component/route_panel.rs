@@ -15,6 +15,17 @@ pub struct RoutePanel {
     pub error: String,
 }
 
+impl RoutePanel {
+    pub fn error(error: String) -> RoutePanel {
+        RoutePanel {
+            coordonates: "[]".to_string(),
+            route: "[]".to_string(),
+            total_length: 0.0,
+            error,
+        }
+    }
+}
+
 pub async fn route(
     State(state): State<VeloinfoState>,
     Path((start_lng, start_lat, end_lng, end_lat)): Path<(f64, f64, f64, f64)>,
@@ -22,23 +33,13 @@ pub async fn route(
     let start = match Edge::find_closest_node(&start_lng, &start_lat, &state.conn).await {
         Ok(start) => start,
         Err(e) => {
-            return RoutePanel {
-                coordonates: "[]".to_string(),
-                route: "[]".to_string(),
-                total_length: 0.0,
-                error: format!("Error while fetching start node: {}", e),
-            };
+            return RoutePanel::error(format!("Error while fetching start node: {}", e));
         }
     };
     let end = match Edge::find_closest_node(&end_lng, &end_lat, &state.conn).await {
         Ok(end) => end,
         Err(e) => {
-            return RoutePanel {
-                coordonates: "[]".to_string(),
-                route: "[]".to_string(),
-                total_length: 0.0,
-                error: format!("Error while fetching end node: {}", e),
-            };
+            return RoutePanel::error(format!("Error while fetching end node: {}", e));
         }
     };
     let edges = Edge::route(&start, &end, &state.conn).await;
@@ -58,13 +59,7 @@ pub async fn route(
         }
     });
     if let 0 = edges.len() {
-        println!("No route found");
-        return RoutePanel {
-            coordonates: "[]".to_string(),
-            route: "[]".to_string(),
-            total_length: 0.0,
-            error: format!("No route found from {start:?} to {end:?}"),
-        };
+        return RoutePanel::error(format!("No route found from {start:?} to {end:?}"));
     };
 
     let mut points: Vec<Point> = edges
@@ -96,28 +91,17 @@ pub async fn route(
     });
     let edges_coordinate: Vec<(f64, f64)> = points.iter().map(|point| (point.x, point.y)).collect();
     let total_length: f64 = points.iter().map(|point| point.length).sum();
-    let coordonates = match serde_json::to_string(&edges_coordinate) {
-        Ok(edges_coordinate) => edges_coordinate,
-        Err(e) => {
-            return RoutePanel {
-                coordonates: "[]".to_string(),
-                route: "[]".to_string(),
-                total_length: 0.0,
-                error: format!("Error while serializing edges: {}", e),
-            };
-        }
-    };
     RoutePanel {
-        coordonates,
+        coordonates: match serde_json::to_string(&edges_coordinate) {
+            Ok(edges_coordinate) => edges_coordinate,
+            Err(e) => {
+                return RoutePanel::error(format!("Error while serializing edges: {}", e));
+            }
+        },
         route: match serde_json::to_string(&route) {
             Ok(route) => route,
             Err(e) => {
-                return RoutePanel {
-                    coordonates: "[]".to_string(),
-                    route: "[]".to_string(),
-                    total_length: 0.0,
-                    error: format!("Error while serializing route: {}", e),
-                };
+                return RoutePanel::error(format!("Error while serializing route: {}", e));
             }
         },
         total_length: (total_length / 10.0).round() / 100.0,
