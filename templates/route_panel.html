@@ -37,10 +37,9 @@
         coordonates[0][1],
         coordonates[coordonates.length - 1][0],
         coordonates[coordonates.length - 1][1]);
-    map.bearing = bearing;
     setTimeout(() => {
         map.flyTo({ bearing: bearing });
-    }, 1000);
+    }, 1050);
     {% else %}
     {% endif %}
     (async () => {
