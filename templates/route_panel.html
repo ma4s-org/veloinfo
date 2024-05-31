@@ -53,8 +53,6 @@
     })();
 
     function follow_route() {
-        geolocate.trigger();
-        geolocate.trackUserLocation = true;
         htmx.ajax('GET', '/follow', {
             target: "#info"
         })

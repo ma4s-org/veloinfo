@@ -11,6 +11,9 @@
 
 </div>
 <script type="text/javascript">
+    geolocate.trigger();
+    geolocate.trackUserLocation = true;
+
     (async () => {
         try {
             const wakeLock = await navigator.wakeLock.request("screen");
