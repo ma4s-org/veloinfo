@@ -44,6 +44,7 @@ mod score_selector_controler;
 
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
+    static ref MATOMO_SERVER: String = env::var("MATOMO_SERVER").unwrap();
 }
 
 #[derive(Clone, Debug)]
@@ -141,10 +142,14 @@ fn not_htmx_predicate<T>(req: &Request<T>) -> bool {
 
 #[derive(Template)]
 #[template(path = "index.html", escape = "none")]
-pub struct IndexTemplate {}
+pub struct IndexTemplate {
+    pub matomo_server: String,
+}
 
 pub async fn index() -> (HeaderMap, IndexTemplate) {
-    let template = IndexTemplate {};
+    let template = IndexTemplate {
+        matomo_server: MATOMO_SERVER.clone(),
+    };
     let mut headers = HeaderMap::new();
     headers.insert(
         "Content-Type",
