@@ -21,21 +21,25 @@
             </div>
             {{ error }}
         </div>
+        <button hx-on:click="follow_route()" hx-target="#info" class="bg-teal-300 rounded uppercase p-2">suivre</button>
         <button hx-on:click="clear()" hx-target="#info" class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</button>
     </div>
 
 </div>
 <script type="text/javascript">
-    {% if route_json != "" %}
-    var route_json = {{ route_json }};
-    display_segment_geom([route_json]);
+    {% if coordonates != "" %}
+    var coordonates = {{ coordonates }};
+    display_segment_geom([coordonates]);
+    var bounds = fitBounds(coordonates);
+    map.fitBounds(bounds, { padding: 200, duration: 1000 });
     var bearing = calculateBearing(
-        route_json[0][0],
-        route_json[0][1],
-        route_json[route_json.length - 1][0],
-        route_json[route_json.length - 1][1]);
-    map.bearing = bearing;
-    map.flyTo({ bearing: bearing, center: route_json[0], zoom: 15 });
+        coordonates[0][0],
+        coordonates[0][1],
+        coordonates[coordonates.length - 1][0],
+        coordonates[coordonates.length - 1][1]);
+    setTimeout(() => {
+        map.flyTo({ bearing: bearing });
+    }, 1050);
     {% else %}
     {% endif %}
     (async () => {
@@ -46,4 +50,10 @@
             console.log(`${err.name}, ${err.message}`);
         }
     })();
+
+    function follow_route() {
+        htmx.ajax('GET', '/follow', {
+            target: "#info"
+        })
+    };
 </script>

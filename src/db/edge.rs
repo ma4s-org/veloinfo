@@ -14,15 +14,15 @@ pub struct Point {
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Edge {
-    seq: i32,
-    path_seq: i32,
-    node: i64,
+    pub source: i64,
+    pub target: i64,
     edge: i64,
     cost: f64,
-    agg_cost: f64,
     pub x1: f64,
     pub y1: f64,
     pub way_id: i64,
+    pub name: Option<String>,
+    pub length: f64,
 }
 
 impl Edge {
@@ -30,18 +30,22 @@ impl Edge {
         start_node: &Node,
         end_node: &Node,
         conn: &sqlx::Pool<Postgres>,
-    ) -> Vec<Point> {
+    ) -> Vec<Edge> {
         let biggest_lng = start_node.lng.max(end_node.lng) + 0.16;
         let biggest_lat = start_node.lat.max(end_node.lat) + 0.16;
         let smallest_lng = start_node.lng.min(end_node.lng) - 0.16;
         let smallest_lat = start_node.lat.min(end_node.lat) - 0.16;
 
         let request = r#"SELECT distinct on (pa.path_seq)
-                                    e.x1 as x,
-                                    e.y1 as y,
-                                    way_id,
-                                    st_length(st_transform(geom ,4326)::geography) as length,
-                                    node as node_id
+                                    e.id as edge,
+                                    e.x1,
+                                    e.y1,
+                                    e.way_id,
+                                    st_length(st_transform(e.geom ,4326)::geography) as length,
+                                    w.name as name,
+                                    e.source,
+                                    e.target,
+                                    e.cost
                                         FROM pgr_astar(
                                             FORMAT(
                                                 $FORMAT$
@@ -60,9 +64,10 @@ impl Edge {
                                         epsilon => 1
                                         ) as pa
                                     join edge e on pa.edge = e.id 
+                                    join all_way w on e.way_id = w.way_id
                                     ORDER BY pa.path_seq ASC"#;
 
-        let response: Vec<Point> = match sqlx::query_as(request)
+        let response: Vec<Edge> = match sqlx::query_as(request)
             .bind(start_node.node_id)
             .bind(end_node.node_id)
             .bind(biggest_lng)

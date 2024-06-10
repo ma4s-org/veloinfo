@@ -21,6 +21,7 @@ services:
       - KEYCLOAK_SERVER_URL=https://keycloak.veloinfo.ca/realms/master
       - VELOINFO_URL=http://localhost:3000
       - ENV=dev
+      - MATOMO_SERVER=localhost:8080
     depends_on:
       - db
       - martin
@@ -47,9 +48,36 @@ services:
       - db:/var/lib/postgresql/data:z
     ports:
       - 5432:5432
+  matomo:
+    image: matomo
+    volumes:
+      - matomo:/var/www/html:Z
+    environment:
+      - MATOMO_DATABASE_HOST=matomo-db
+      - PHP_MEMORY_LIMIT=2048MMYSQL_PASSWORD=
+      - MATOMO_DATABASE_ADAPTER=mysql
+      - MATOMO_DATABASE_TABLES_PREFIX=matomo_
+      - MATOMO_DATABASE_USERNAME=matomo
+      - MATOMO_DATABASE_PASSWORD=matomo
+      - MATOMO_DATABASE_DBNAME=matomo
+    ports:
+      - 8080:80
+  matomo-db:
+    image: mariadb:10.11
+    command: --max-allowed-packet=64MB
+    restart: always
+    volumes:
+      - matomo-db:/var/lib/mysql:Z
+    environment:
+      - MARIADB_DATABASE=matomo
+      - MARIADB_USER=matomo
+      - MARIADB_PASSWORD=matomo
+      - MARIADB_ROOT_PASSWORD=matomo
 volumes:
   root:
   db:
+  matomo-db:
+  matomo:
   target:
   node_modules:
   images:

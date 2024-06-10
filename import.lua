@@ -411,7 +411,7 @@ function osm2pgsql.process_way(object)
         })
     end
 
-    if object.tags.building then
+    if object.tags.building and object.tags.location ~= "underground" then
         building:insert({
             name = object.tags.name,
             geom = object:as_polygon(),

@@ -56,6 +56,7 @@ psql -h db -U postgres -d carte -c "
                                             aw.tags,
                                             case
                                                 when tags->>'bicycle' = 'no' then 1 / 0.0001
+                                                when tags->>'highway' = 'steps' then 1 / 0.05
                                                 when tags->>'bicycle' = 'discouraged' then 1 / 0.1
                                                 when tags->>'bicycle' = 'dismount' then 1 / 0.3
                                                 when tags->>'highway' = 'cycleway' then 1 / 1
@@ -71,12 +72,13 @@ psql -h db -U postgres -d carte -c "
                                                 when tags->>'cycleway:both' = 'shared_lane' then 1 / 0.7
                                                 when tags->>'cycleway:left' = 'shared_lane' then 1 / 0.7
                                                 when tags->>'cycleway:right' = 'shared_lane' then 1 / 0.7
+                                                when tags->>'highway' = 'footway' and tags->>'bicycle' = 'yes' then 1 / 0.65
                                                 when tags->>'highway' = 'residential' then 1 / 0.6
-                                                when tags->>'highway' = 'tertiary' then 1 / 0.55
-                                                when tags->>'highway' = 'tertiary_link' then 1 / 0.55
                                                 when tags->>'bicycle' = 'designated' then 1 / 0.5
-                                                when tags->>'highway' = 'secondary' then 1 / 0.5
-                                                when tags->>'highway' = 'secondary_link' then 1 / 0.5
+                                                when tags->>'highway' = 'tertiary' then 1 / 0.45
+                                                when tags->>'highway' = 'tertiary_link' then 1 / 0.45
+                                                when tags->>'highway' = 'secondary' then 1 / 0.3
+                                                when tags->>'highway' = 'secondary_link' then 1 / 0.3
                                                 when tags->>'bicycle' = 'yes' then 1 / 0.3
                                                 when tags->>'highway' = 'service' then 1 / 0.3
                                                 when tags->>'cycleway' = 'separate' then 1 / 0.2
@@ -86,7 +88,6 @@ psql -h db -U postgres -d carte -c "
                                                 when tags->>'highway' = 'primary' then 1 / 0.1
                                                 when tags->>'highway' = 'trunk' then 1 / 0.1
                                                 when tags->>'highway' = 'footway' then 1 / 0.1
-                                                when tags->>'highway' = 'steps' then 1 / 0.05
                                                 when tags->>'highway' = 'proposed' then 1 / 0.001
                                                 when tags->>'highway' is not null then 1 / 0.01
                                                 else 1 / 0.25

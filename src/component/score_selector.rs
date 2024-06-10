@@ -19,9 +19,9 @@ impl ScoreSelector {
     pub fn get_score_selector(score: f64) -> ScoreSelector {
         let category = if score == 0.0 {
             Category::Closed
-        } else if score <= 0.34 {
+        } else if score <= 0.35 && score > 0.0 {
             Category::Dangerous
-        } else if score <= 0.67 {
+        } else if score <= 0.68 && score > 0.35 {
             Category::Problems
         } else {
             Category::Good
