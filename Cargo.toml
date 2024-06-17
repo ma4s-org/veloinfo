@@ -17,6 +17,7 @@ chrono-tz = "0.8.6"
 futures = "0.3.30"
 image = "0.24.8"
 lazy_static = "1.4.0"
+libheif-rs = "1.0.2"
 regex = "1.10.2"
 reqwest = { version = "0.11.23", features = ["json"] }
 serde = "1.0.195"

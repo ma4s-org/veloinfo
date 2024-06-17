@@ -1,12 +1,21 @@
-FROM rust:1.78 as dev
+FROM rust:1.79 as dev
+
+RUN apt-get update && apt-get install -y \
+    software-properties-common
 
 RUN apt-get update && apt-get install -y \
     fish \
     rustfmt \
     osm2pgsql \
     nodejs \
-    npm 
+    npm \
+    cmake make libclang-dev libssl-dev pkg-config 
 
+RUN cd
+RUN git clone https://github.com/strukturag/libheif.git
+RUN mkdir build
+RUN cd build && cmake --preset=release ../libheif && make && make install
+        
 RUN chsh -s $(which fish)
 
 RUN install -d tailwindcss
@@ -28,7 +37,13 @@ RUN apt-get update && apt-get install -y \
     fish \
     rustfmt \
     osm2pgsql \
-    nodejs npm  
+    nodejs npm \
+    cmake make libclang-dev libssl-dev pkg-config  
+
+RUN cd
+RUN git clone https://github.com/strukturag/libheif.git
+RUN mkdir build
+RUN cd build && cmake --preset=release ../libheif && make && make install    
 
 RUN install -d tailwindcss
 
@@ -47,6 +62,7 @@ COPY --from=build /app/migrations /app/migrations
 COPY --from=build /app/pub /app/pub
 COPY --from=build /app/import.sh /app/import.sh
 COPY --from=build /app/import.lua /app/import.lua
+COPY --from=build /usr/local/lib/libheif /usr/local/lib/libheif
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
 RUN chmod 0600 /root/.pgpass
 

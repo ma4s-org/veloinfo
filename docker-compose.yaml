@@ -24,7 +24,6 @@ services:
       - MATOMO_SERVER=localhost:8080
     depends_on:
       - db
-      - martin
   martin:
     image: ghcr.io/maplibre/martin:v0.11.2
     volumes:

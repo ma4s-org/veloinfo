@@ -12,12 +12,14 @@ use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use axum_macros::debug_handler;
 use futures::future::join_all;
+use image::DynamicImage;
 use lazy_static::lazy_static;
+use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
 use std::env;
-use uuid::{uuid, Uuid};
+use uuid::Uuid;
 
 #[derive(Template)]
 #[template(path = "segment_panel.html", escape = "none")]
@@ -156,9 +158,24 @@ pub async fn segment_panel_post(
             );
         }
     };
-
     if let Some(photo) = photo {
-        let img = image::load_from_memory(&photo).unwrap();
+        let img = match image::load_from_memory(&photo) {
+            Ok(img) => img,
+            Err(_) => {
+                let lib_heif = LibHeif::new();
+                let context = HeifContext::read_from_bytes(&photo).unwrap();
+                let handle = context.primary_image_handle().unwrap();
+                let decoded_image = lib_heif
+                    .decode(&handle, ColorSpace::Rgb(RgbChroma::Rgb), None)
+                    .unwrap();
+                let rgb_data = decoded_image.planes().interleaved.unwrap().data;
+                let width = decoded_image.width();
+                let height = decoded_image.height();
+                DynamicImage::ImageRgb8(
+                    image::RgbImage::from_raw(width, height, rgb_data.into()).unwrap(),
+                )
+            }
+        };
         let img = img.resize(1500, 1500, image::imageops::FilterType::Lanczos3);
         img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
             .unwrap();
@@ -177,7 +194,6 @@ pub async fn segment_panel_edit(
 ) -> (CookieJar, SegmentPanel) {
     let user_name = match jar.get("uuid") {
         Some(uuid) => {
-            println!("uuid {:?}", uuid.value().to_string());
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
                 Ok(uuid) => uuid,
                 Err(e) => {
@@ -197,7 +213,6 @@ pub async fn segment_panel_edit(
             }
         }
         None => {
-            println!("uuid not found");
             let uuid = Uuid::now_v7();
             jar = jar.add(
                 Cookie::build(("uuid", uuid.to_string()))
