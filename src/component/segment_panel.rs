@@ -13,11 +13,13 @@ use axum_extra::extract::CookieJar;
 use axum_macros::debug_handler;
 use futures::future::join_all;
 use lazy_static::lazy_static;
+use libheif_rs::Channel;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
 use std::env;
-use uuid::{uuid, Uuid};
+use tokio::io::AsyncWriteExt;
+use uuid::Uuid;
 
 #[derive(Template)]
 #[template(path = "segment_panel.html", escape = "none")]
@@ -156,14 +158,38 @@ pub async fn segment_panel_post(
             );
         }
     };
-
     if let Some(photo) = photo {
         let img = match image::load_from_memory(&photo) {
             Ok(img) => img,
-            Err(e) => libheif_rs::HeifContext::read_from_bytes(&photo)
-                .unwrap()
-                .decode_first_image()
-                .unwrap(),
+            Err(_) => {
+                let image = libheif_rs::HeifContext::read_from_bytes(&photo)
+                    .unwrap()
+                    .primary_image_handle()
+                    .unwrap()
+                    .;
+                match image::load_from_memory(&image) {
+                    Ok(img) => img,
+                    Err(e) => {
+                        eprintln!("Error while loading image: {}", e);
+                        return (
+                            jar,
+                            SegmentPanel {
+                                way_ids: way_ids.clone(),
+                                score_circle: ScoreCircle { score },
+                                segment_name: "".to_string(),
+                                score_selector: ScoreSelector::get_score_selector(score),
+                                comment: "".to_string(),
+                                edit: false,
+                                history: vec![],
+                                photo_ids: vec![],
+                                geom_json: "".to_string(),
+                                fit_bounds: false,
+                                user_name,
+                            },
+                        );
+                    }
+                }
+            }
         };
         let img = img.resize(1500, 1500, image::imageops::FilterType::Lanczos3);
         img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")

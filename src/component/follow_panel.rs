@@ -1,5 +1,5 @@
 use askama::Template;
-use axum::{extract::State, Form};
+use axum::extract::State;
 use axum_macros::debug_handler;
 
 use crate::{db::edge::Edge, VeloinfoState};
@@ -18,7 +18,7 @@ pub struct Values {
 }
 
 #[debug_handler]
-pub async fn follow(State(state): State<VeloinfoState>) -> FollowPanel {
+pub async fn follow(State(_state): State<VeloinfoState>) -> FollowPanel {
     FollowPanel {
         route_json: "[]".to_string(),
         total_length: 0.0,

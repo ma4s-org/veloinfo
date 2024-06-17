@@ -1,4 +1,7 @@
-FROM rust:1.78 as dev
+FROM rust:1.79 as dev
+
+RUN apt-get update && apt-get install -y \
+    software-properties-common
 
 RUN apt-get update && apt-get install -y \
     fish \
@@ -6,10 +9,13 @@ RUN apt-get update && apt-get install -y \
     osm2pgsql \
     nodejs \
     npm \
-    libheif-dev libheif1 pkg-config \
-    llvm-dev libclang-dev clang
+    cmake make libclang-dev libssl-dev pkg-config 
 
-ENV PKG_CONFIG_PATH /usr/lib/x86_64-linux-gnu/pkgconfig
+RUN cd
+RUN git clone https://github.com/strukturag/libheif.git
+RUN mkdir build
+RUN cd build && cmake --preset=release ../libheif && make && make install
+        
 RUN chsh -s $(which fish)
 
 RUN install -d tailwindcss
