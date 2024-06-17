@@ -12,13 +12,13 @@ use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use axum_macros::debug_handler;
 use futures::future::join_all;
+use image::DynamicImage;
 use lazy_static::lazy_static;
-use libheif_rs::Channel;
+use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
 use std::env;
-use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 #[derive(Template)]
@@ -162,33 +162,18 @@ pub async fn segment_panel_post(
         let img = match image::load_from_memory(&photo) {
             Ok(img) => img,
             Err(_) => {
-                let image = libheif_rs::HeifContext::read_from_bytes(&photo)
-                    .unwrap()
-                    .primary_image_handle()
-                    .unwrap()
-                    .;
-                match image::load_from_memory(&image) {
-                    Ok(img) => img,
-                    Err(e) => {
-                        eprintln!("Error while loading image: {}", e);
-                        return (
-                            jar,
-                            SegmentPanel {
-                                way_ids: way_ids.clone(),
-                                score_circle: ScoreCircle { score },
-                                segment_name: "".to_string(),
-                                score_selector: ScoreSelector::get_score_selector(score),
-                                comment: "".to_string(),
-                                edit: false,
-                                history: vec![],
-                                photo_ids: vec![],
-                                geom_json: "".to_string(),
-                                fit_bounds: false,
-                                user_name,
-                            },
-                        );
-                    }
-                }
+                let lib_heif = LibHeif::new();
+                let context = HeifContext::read_from_bytes(&photo).unwrap();
+                let handle = context.primary_image_handle().unwrap();
+                let decoded_image = lib_heif
+                    .decode(&handle, ColorSpace::Rgb(RgbChroma::Rgb), None)
+                    .unwrap();
+                let rgb_data = decoded_image.planes().interleaved.unwrap().data;
+                let width = decoded_image.width();
+                let height = decoded_image.height();
+                DynamicImage::ImageRgb8(
+                    image::RgbImage::from_raw(width, height, rgb_data.into()).unwrap(),
+                )
             }
         };
         let img = img.resize(1500, 1500, image::imageops::FilterType::Lanczos3);
