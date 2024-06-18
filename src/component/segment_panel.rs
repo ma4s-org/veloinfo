@@ -159,29 +159,40 @@ pub async fn segment_panel_post(
         }
     };
     if let Some(photo) = photo {
-        let img = match image::load_from_memory(&photo) {
-            Ok(img) => img,
-            Err(_) => {
-                let lib_heif = LibHeif::new();
-                let context = HeifContext::read_from_bytes(&photo).unwrap();
-                let handle = context.primary_image_handle().unwrap();
-                let decoded_image = lib_heif
-                    .decode(&handle, ColorSpace::Rgb(RgbChroma::Rgb), None)
+        let img = (|| -> Result<DynamicImage, Box<dyn std::error::Error>> {
+            let img = match image::load_from_memory(&photo) {
+                Ok(img) => img,
+                Err(_) => {
+                    let lib_heif = LibHeif::new();
+                    let context = HeifContext::read_from_bytes(&photo)?;
+                    let handle = context.primary_image_handle()?;
+                    let decoded_image =
+                        lib_heif.decode(&handle, ColorSpace::Rgb(RgbChroma::Rgb), None)?;
+                    let rgb_data = decoded_image
+                        .planes()
+                        .interleaved
+                        .ok_or("Erreur lors de l'accès aux données de l'image")?
+                        .data;
+                    let width = decoded_image.width();
+                    let height = decoded_image.height();
+                    DynamicImage::ImageRgb8(
+                        image::RgbImage::from_raw(width, height, rgb_data.into())
+                            .ok_or("Erreur lors de la création de l'image RGB")?,
+                    )
+                }
+            };
+            Ok(img)
+        })();
+        match img {
+            Ok(img) => {
+                img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
                     .unwrap();
-                let rgb_data = decoded_image.planes().interleaved.unwrap().data;
-                let width = decoded_image.width();
-                let height = decoded_image.height();
-                DynamicImage::ImageRgb8(
-                    image::RgbImage::from_raw(width, height, rgb_data.into()).unwrap(),
-                )
+                let img = img.resize(300, 300, image::imageops::FilterType::Lanczos3);
+                img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg")
+                    .unwrap();
             }
-        };
-        let img = img.resize(1500, 1500, image::imageops::FilterType::Lanczos3);
-        img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
-            .unwrap();
-        let img = img.resize(300, 300, image::imageops::FilterType::Lanczos3);
-        img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg")
-            .unwrap();
+            Err(e) => eprintln!("Error while saving image: {}", e),
+        }
     }
 
     (jar, segment_panel(state, way_ids).await)
