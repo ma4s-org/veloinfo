@@ -59,7 +59,6 @@ pub async fn segment_panel_post(
     jar: CookieJar,
     mut multipart: Multipart,
 ) -> (CookieJar, SegmentPanel) {
-    jar.iter().for_each(|c| println!("cookie {:?}", c));
     let user_id = match jar.get("uuid") {
         Some(uuid) => {
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
