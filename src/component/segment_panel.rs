@@ -170,13 +170,13 @@ pub async fn segment_panel_post(
                     let rgb_data = decoded_image
                         .planes()
                         .interleaved
-                        .ok_or("Erreur lors de l'accès aux données de l'image")?
+                        .ok_or("Error accessing image data")?
                         .data;
                     let width = decoded_image.width();
                     let height = decoded_image.height();
                     DynamicImage::ImageRgb8(
                         image::RgbImage::from_raw(width, height, rgb_data.into())
-                            .ok_or("Erreur lors de la création de l'image RGB")?,
+                            .ok_or("Error creating image RGB")?,
                     )
                 }
             };
