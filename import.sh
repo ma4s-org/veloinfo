@@ -82,6 +82,7 @@ psql -h db -U postgres -d carte -c "
                                                 when tags->>'highway' = 'secondary_link' then 1 / 0.3
                                                 when tags->>'bicycle' = 'yes' then 1 / 0.3
                                                 when tags->>'highway' = 'service' then 1 / 0.3
+                                                when tags->>'highway' = 'path' then 1 / 0.3
                                                 when tags->>'cycleway' = 'separate' then 1 / 0.2
                                                 when tags->>'cycleway:both' = 'separate' then 1 / 0.2
                                                 when tags->>'cycleway:left' = 'separate' then 1 / 0.2
