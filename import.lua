@@ -445,8 +445,7 @@ function osm2pgsql.process_way(object)
 
     if object.tags.highway and not (object.tags.highway == "footway" and
         not (object.tags.bicycle == "yes" or object.tags.bicycle == "designated" or object.tags.bicycle == "dismount" or
-            object.tags.footway == "crossing")) and object.tags.service ~= "parking_aisle" and object.tags.highway ~=
-        "path" then
+            object.tags.footway == "crossing")) and object.tags.service ~= "parking_aisle" then
         all_way:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
