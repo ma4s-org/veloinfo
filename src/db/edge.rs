@@ -1,7 +1,5 @@
 use super::cycleway::{Node, NodeDb};
 use lazy_static::lazy_static;
-use pathfinding::directed::astar::astar;
-use postgres::{Client, NoTls};
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
 use std::collections::HashMap;
