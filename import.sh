@@ -56,9 +56,11 @@ psql -h db -U postgres -d carte -c "
                                             aw.tags,
                                             case
                                                 when tags->>'bicycle' = 'no' then 1 / 0.0001
+                                                when tags->>'informal' = 'yes' then 1 / 0.08
+                                                when tags->>'highway' = 'steps' and tags->>'bicycle' = 'yes' then 1 / 0.05
                                                 when tags->>'highway' = 'steps' then 1 / 0.05
                                                 when tags->>'bicycle' = 'discouraged' then 1 / 0.1
-                                                when tags->>'bicycle' = 'dismount' then 1 / 0.3
+                                                when tags->>'bicycle' = 'dismount' then 1 / 0.2
                                                 when tags->>'highway' = 'cycleway' then 1 / 1
                                                 when tags->>'cycleway' = 'track' then 1 / 0.9
                                                 when tags->>'cycleway:both' = 'track' then 1 / 0.9
@@ -111,6 +113,7 @@ psql -h db -U postgres -d carte -c "
                                         st_x(st_transform(ST_PointN((segment).geom, 2), 4326)) as x2,
                                         st_y(st_transform(ST_PointN((segment).geom, 2), 4326)) as y2,
                                         awe.way_id,
+                                        awe.tags,
                                         score,
                                         (segment).geom,
                                         cost_road,
