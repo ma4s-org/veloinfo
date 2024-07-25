@@ -1,7 +1,16 @@
+use super::cycleway::{Node, NodeDb};
+use lazy_static::lazy_static;
+use pathfinding::directed::astar::astar;
+use postgres::{Client, NoTls};
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
+use std::collections::HashMap;
 
-use super::cycleway::{Node, NodeDb};
+lazy_static! {
+    pub static ref HOST: String = std::env::var("HOST").unwrap();
+    pub static ref USER: String = std::env::var("USER").unwrap();
+    pub static ref PASSWORD: String = std::env::var("PASSWORD").unwrap();
+}
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Point {
@@ -25,7 +34,19 @@ pub struct Edge {
     pub length: f64,
 }
 
+lazy_static! {
+    pub static ref SUCCESSORS: HashMap<i64, Vec<Edge>> = HashMap::new();
+}
+
 impl Edge {
+    pub async fn fast_route(
+        start_node: &i64,
+        end_node: &i64,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Vec<Edge> {
+        Vec::new()
+    }
+
     pub async fn route(
         start_node: &Node,
         end_node: &Node,
@@ -177,6 +198,7 @@ impl Edge {
                 FROM edge e
 	            WHERE 
                     ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) and
+                    tags->>'highway' != 'footway' and
                     cost_road < 20
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
@@ -191,5 +213,19 @@ impl Edge {
             Err(e) => return Err(e),
         };
         Ok(response.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::env;
+
+    #[tokio::test]
+    async fn test_fast_route() {
+        let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
+            .await
+            .unwrap();
+        let edges = crate::db::edge::Edge::fast_route(&321801851, &8641881046, &conn).await;
+        assert_eq!(1, 0);
     }
 }
