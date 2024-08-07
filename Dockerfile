@@ -1,4 +1,4 @@
-FROM rust:1.80 as dev
+FROM rust:1.79 as dev
 
 RUN apt-get update && apt-get install -y \
     software-properties-common
@@ -32,7 +32,7 @@ RUN chmod 0600 /root/.pgpass
 WORKDIR /app
 CMD cargo watch -x run
 
-FROM rust:1.80 as build
+FROM rust:1.79 as build
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
