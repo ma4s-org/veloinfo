@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN cd
 RUN git clone https://github.com/strukturag/libheif.git
-RUN cd libheif && git checkout tags/v1.17.6 -b v1.17.6
-run cd ..
+RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
+run cd 
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
         
