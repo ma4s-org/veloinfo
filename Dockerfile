@@ -32,7 +32,7 @@ RUN chmod 0600 /root/.pgpass
 WORKDIR /app
 CMD cargo watch -x run
 
-FROM rust as build
+FROM rust:1.80 as build
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -44,6 +44,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN cd
 RUN git clone https://github.com/strukturag/libheif.git
+RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
+RUN cd 
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install    
 
