@@ -1,4 +1,4 @@
-FROM rust:1.79 as dev
+FROM rust:1.80 as dev
 
 RUN apt-get update && apt-get install -y \
     software-properties-common
