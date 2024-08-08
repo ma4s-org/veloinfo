@@ -41,7 +41,8 @@ setInterval(() => {
         speed = position.coords.speed;
     });
     speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(1) || 0;
-    if (speed == 0) {
+
+    if (speed == 0 || speed == null) {
         document.getElementById("speed_value").parentElement.style.display = "none";
     } else {
         document.getElementById("speed_value").parentElement.style.display = "block";
