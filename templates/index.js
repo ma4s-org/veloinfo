@@ -40,7 +40,7 @@ setInterval(() => {
     navigator.geolocation.getCurrentPosition((position) => {
         speed = position.coords.speed;
     });
-    speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(1) || 0;
+    speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
 
     if (speed == 0 || speed == null) {
         document.getElementById("speed_value").parentElement.style.display = "none";
