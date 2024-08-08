@@ -20,14 +20,16 @@
                     <label for="photo">Choisissez une photo :</label>
                     <input type="file" id="photo" name="photo">
                 </div>
-                <button hx-post="/segment_panel" hx-encoding="multipart/form-data" hx-target="#info"
-                    class="ml-2 bg-teal-300 rounded uppercase p-2">Enregistrer</button>
-                <button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info"
-                    class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</button>
+                <div class="flex justify-center">
+                    <button hx-post="/segment_panel" hx-encoding="multipart/form-data" hx-target="#info"
+                        class="ml-2 bg-teal-300 rounded uppercase p-2">Enregistrer</button>
+                    <button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info"
+                        class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</button>
+                </div>
             </form>
             {% else %}
             <div class="">
-                <div class="flex flex-row">
+                <div class="flex flex-row justify-center">
                     <button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"
                         class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/edit.png"
                             class="w-4 h-4 mr-1">
@@ -39,7 +41,7 @@
                         class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/bigger.png"
                             class="w-4 h-4 mr-1">Agrandir</button>
                 </div>
-                <div class="flex flex-row">
+                <div class="flex flex-row justify-center">
                     <button hx-on:click="clear()" class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</button>
                 </div>
             </div>
