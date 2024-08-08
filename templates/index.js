@@ -38,7 +38,7 @@ setInterval(() => {
 let speed = 0;
 setInterval(() => {
     navigator.geolocation.getCurrentPosition((position) => {
-        speed = position.coords.speed;
+        speed = position.coords.speed * 3.6;
     });
     speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
 
