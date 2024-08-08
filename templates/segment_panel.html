@@ -30,13 +30,13 @@
             {% else %}
             <div class="">
                 <div class="flex flex-row justify-center">
+                    <button id="route_button" hx-on:click="route()"
+                        class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/directions.png"
+                            class="w-4 h-4 mr-1">itinéraire</button>
                     <button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"
                         class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/edit.png"
                             class="w-4 h-4 mr-1">
                         Modifier</button>
-                    <button id="route_button" hx-on:click="route()"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/directions.png"
-                            class="w-4 h-4 mr-1">itinéraire</button>
                     <button hx-get="/segment_panel_bigger" hx-target="#info"
                         class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/bigger.png"
                             class="w-4 h-4 mr-1">Agrandir</button>
