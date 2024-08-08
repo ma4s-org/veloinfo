@@ -35,11 +35,8 @@ setInterval(() => {
 }, 60000);
 
 // Speed
-let speed = 0;
-setInterval(() => {
-    navigator.geolocation.getCurrentPosition((position) => {
-        speed = position.coords.speed * 3.6;
-    });
+navigator.geolocation.watchPosition((position) => {
+    speed = position.coords.speed * 3.6;
     speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
 
     if (speed == 0 || speed == null) {
@@ -47,7 +44,7 @@ setInterval(() => {
     } else {
         document.getElementById("speed_value").parentElement.style.display = "block";
     }
-}, 1000);
+});
 
 var map = new maplibregl.Map({
     container: 'map',
