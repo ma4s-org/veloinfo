@@ -35,7 +35,7 @@
     var coordonates = {{ coordonates }};
     display_segment_geom([coordonates]);
     var bounds = fitBounds(coordonates);
-    map.fitBounds(bounds, { padding: 200, duration: 1000 });
+    map.fitBounds(bounds, { duration: 1000 });
     var bearing = calculateBearing(
         coordonates[0][0],
         coordonates[0][1],
