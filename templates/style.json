@@ -5,7 +5,13 @@
     "sources": {
         "veloinfo": {
             "type": "vector",
-            "url": "{{martin_url}}/bike_path"
+            "url": "{{martin_url}}/bike_path",
+            "minzoom": 12
+        },
+        "veloinfo_far": {
+            "type": "vector",
+            "url": "{{martin_url}}/bike_path_far",
+            "maxzoom": 12
         },
         "landuse": {
             "type": "vector",
@@ -2456,7 +2462,7 @@
             "source": "veloinfo",
             "source-layer": "bike_path",
             "type": "line",
-            "maxzoom": 12,
+            "minzoom": 12,
             "paint": {
                 "line-color": [
                     "case",
@@ -2538,10 +2544,10 @@
         },
         {
             "id": "cycleway-zoom",
-            "source": "veloinfo",
-            "source-layer": "bike_path",
+            "source": "veloinfo_far",
+            "source-layer": "bike_path_far",
             "type": "line",
-            "minzoom": 12,
+            "maxzoom": 12,
             "paint": {
                 "line-color": [
                     "case",
@@ -2592,20 +2598,7 @@
                     "hsl(141, 100%, 17%)",
                     "hsl(141, 100%, 17%)"
                 ],
-                "line-width": [
-                    "match",
-                    [
-                        "get",
-                        "kind"
-                    ],
-                    "cycleway",
-                    5,
-                    "designated",
-                    3,
-                    "shared_line",
-                    2,
-                    1
-                ]
+                "line-width": 2
             }
         },
         {

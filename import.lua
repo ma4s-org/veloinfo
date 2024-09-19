@@ -26,6 +26,34 @@ local cycleway = osm2pgsql.define_way_table("cycleway_way", {{
     sql_type = 'int8[] NOT NULL'
 }})
 
+local cycleway_far = osm2pgsql.define_way_table("cycleway_way_far", {{
+    column = 'name',
+    type = 'text'
+}, {
+    column = 'geom',
+    type = 'LineString',
+    not_null = true
+}, {
+    column = 'source',
+    type = 'int8',
+    not_null = true
+}, {
+    column = 'target',
+    type = 'int8',
+    not_null = true
+}, {
+    column = 'kind',
+    type = 'text',
+    not_null = true
+}, {
+    column = 'tags',
+    type = 'jsonb',
+    not_null = true
+}, {
+    column = 'nodes',
+    sql_type = 'int8[] NOT NULL'
+}})
+
 local all_way = osm2pgsql.define_way_table("all_way", {{
     column = 'name',
     type = 'text'
@@ -398,14 +426,29 @@ function osm2pgsql.process_way(object)
             nodes = " {" .. table.concat(object.nodes, ",") .. "}"
         })
     elseif (object.tags.cycleway == "shared_lane" or object.tags.cycleway == "lane" or object.tags["cycleway:left"] ==
-        "shared_lane" or object.tags["cycleway:right"] == "shared_lane" or object.tags["cycleway:both"] == "shared_lane") and
-        object.tags.footway ~= "sidewalk" and object.tags.service ~= "parking_aisle" then
+        "shared_lane" or object.tags["cycleway:left"] == "opposite_lane" or object.tags["cycleway:right"] ==
+        "shared_lane" or object.tags["cycleway:right"] == "opposite_lane" or object.tags["cycleway:both"] ==
+        "shared_lane") and object.tags.footway ~= "sidewalk" and object.tags.service ~= "parking_aisle" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
             source = object.nodes[1],
             target = object.nodes[#object.nodes],
             kind = 'shared_lane',
+            tags = object.tags,
+            nodes = "{" .. table.concat(object.nodes, ",") .. "}"
+        })
+    end
+
+    if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] ==
+        "track" or object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and
+        object.tags.footway ~= "sidewalk" and object.tags.service ~= "parking_aisle" then
+        cycleway_far:insert({
+            name = object.tags.name,
+            geom = object:as_linestring(),
+            source = object.nodes[1],
+            target = object.nodes[#object.nodes],
+            kind = 'cycleway',
             tags = object.tags,
             nodes = "{" .. table.concat(object.nodes, ",") .. "}"
         })
@@ -469,22 +512,6 @@ function osm2pgsql.process_way(object)
         })
     end
 
-    if object.as_polygon():area() > 1e-3 and
-        (object.tags.landuse == "forest" or object.tags.landuse == "cemetery" or object.tags.natural == "wood" or
-            object.tags.natural == "water" or object.tags.waterway or object.tags.leisure == "park" or
-            object.tags.landuse == "residential") then
-        landcover_far:insert({
-            name = object.tags.name,
-            geom = object:as_polygon(),
-            tags = object.tags,
-            landuse = object.tags.landuse,
-            natural = object.tags.natural,
-            leisure = object.tags.leisure,
-            landcover = object.tags.landcover,
-            waterway = object.tags.waterway
-        })
-    end
-
     if object.tags["addr:interpolation"] then
         address:insert({
             geom = object:as_linestring(),
@@ -510,8 +537,8 @@ function osm2pgsql.process_relation(object)
         })
     end
     if object:as_multipolygon():area() > 1e-3 and
-        (object.tags.landuse == "forest" or object.tags.landuse == "cemetery" or object.tags.natural == "wood" or
-            object.tags.natural == "water" or object.tags.leisure == "park" or object.tags.landuse == "residential") then
+        (
+            object.tags.natural == "water" or object.tags.landuse == "forest" ) then
         landcover_far:insert({
             name = object.tags.name,
             geom = object:as_multipolygon(),
