@@ -103,7 +103,7 @@ async function select(event) {
         [
             [event.point.x - width / 2, event.point.y - width / 2],
             [event.point.x + width / 2, event.point.y + width / 2]
-        ], { layers: ['cycleway-zoom'] });
+        ], { layers: ['cycleway'] });
 
     if (features.length) {
         var feature = features[0];
