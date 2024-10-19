@@ -7,7 +7,6 @@ use axum::extract::{Path, State};
 use chrono::Locale;
 use chrono_tz::America::Montreal;
 use futures::future::join_all;
-use serde::Deserialize;
 use sqlx::types::chrono::Local;
 use sqlx::Postgres;
 use timeago;
@@ -169,12 +168,6 @@ pub async fn info_panel_down() -> InfoPanelTemplate {
         arrow: "▲".to_string(),
         contributions: Vec::new(),
     }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct LatLng {
-    pub lat: f64,
-    pub lng: f64,
 }
 
 pub async fn info_panel_up(

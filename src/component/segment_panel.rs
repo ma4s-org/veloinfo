@@ -63,10 +63,9 @@ pub async fn segment_panel_post(
         Some(uuid) => {
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
                 Ok(uuid) => {
-                    let mut user = User::get(&uuid, &state.conn).await;
+                    let user = User::get(&uuid, &state.conn).await;
                     if let None = user {
                         User::insert(&uuid, &"".to_string(), &state.conn).await;
-                        user = User::get(&uuid, &state.conn).await;
                     }
                     Some(uuid)
                 }
@@ -435,7 +434,6 @@ async fn segment_panel_score_id(conn: &sqlx::Pool<Postgres>, id: i32, edit: bool
                 comment: None,
                 way_ids: vec![],
                 created_at: chrono::DateTime::from_timestamp(0, 0).unwrap().into(),
-                photo_path: None,
                 photo_path_thumbnail: None,
                 geom: vec![],
                 user_id: None,
@@ -560,17 +558,4 @@ pub async fn select_score_id(
     Path(id): Path<i32>,
 ) -> SegmentPanel {
     segment_panel_score_id(&state.conn, id, false).await
-}
-
-#[derive(Template)]
-#[template(
-    source = r#"<option value="{{score}}" {{selected}} {{disabled}}>{{color}}</option>"#,
-    escape = "none",
-    ext = "txt"
-)]
-struct ScoreOption {
-    score: f64,
-    selected: String,
-    color: String,
-    disabled: String,
 }

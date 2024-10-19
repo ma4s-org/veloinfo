@@ -31,20 +31,19 @@
 
 </div>
 <script type="text/javascript">
-    {% if coordonates != "" %}
-    var coordonates = {{ coordonates }};
-    display_segment_geom([coordonates]);
-    var bounds = fitBounds(coordonates);
+    {% if coordinates != "" %}
+    var coordinates = {{ coordinates }};
+    display_segment_geom([coordinates]);
+    var bounds = fitBounds(coordinates);
     map.fitBounds(bounds, { duration: 1000 });
     var bearing = calculateBearing(
-        coordonates[0][0],
-        coordonates[0][1],
-        coordonates[coordonates.length - 1][0],
-        coordonates[coordonates.length - 1][1]);
+        coordinates[0][0],
+        coordinates[0][1],
+        coordinates[coordinates.length - 1][0],
+        coordinates[coordinates.length - 1][1]);
     setTimeout(() => {
         map.flyTo({ bearing: bearing });
     }, 1050);
-    {% else %}
     {% endif %}
     (async () => {
         try {

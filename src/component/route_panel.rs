@@ -1,5 +1,6 @@
 use askama::Template;
 use axum::extract::{Path, State};
+use axum_macros::debug_handler;
 
 use crate::{
     db::edge::{Edge, Point},
@@ -9,8 +10,7 @@ use crate::{
 #[derive(Template)]
 #[template(path = "route_panel.html", escape = "none")]
 pub struct RoutePanel {
-    pub coordonates: String,
-    route: String,
+    pub coordinates: String,
     pub total_length: f64,
     pub error: String,
 }
@@ -18,14 +18,14 @@ pub struct RoutePanel {
 impl RoutePanel {
     pub fn error(error: String) -> RoutePanel {
         RoutePanel {
-            coordonates: "[]".to_string(),
-            route: "[]".to_string(),
+            coordinates: "[]".to_string(),
             total_length: 0.0,
             error,
         }
     }
 }
 
+#[debug_handler]
 pub async fn route(
     State(state): State<VeloinfoState>,
     Path((start_lng, start_lat, end_lng, end_lat)): Path<(f64, f64, f64, f64)>,
@@ -42,66 +42,43 @@ pub async fn route(
             return RoutePanel::error(format!("Error while fetching end node: {}", e));
         }
     };
-    let edges = Edge::route(&start, &end, &state.conn).await;
+    let mut points = Edge::fast_route(
+        start.node_id,
+        end.node_id,
+        Edge::make_h(end.node_id, &state.conn).await,
+        &state.conn,
+    )
+    .await;
 
-    // the route is the edges that are not the same as the previous one
-    let mut route: Vec<(Edge, f64)> = vec![(edges[0].clone(), 0.)];
-    let mut distance: f64 = 0.;
-    edges.iter().for_each(|edge| {
-        distance += edge.length;
-        match route.last() {
-            Some(last) => {
-                if last.0.name != edge.name && edge.name != None {
-                    route.push((edge.clone(), distance));
-                }
-            }
-            None => {}
-        }
-    });
-    if let 0 = edges.len() {
+    if let 0 = points.len() {
         return RoutePanel::error(format!("No route found from {start:?} to {end:?}"));
     };
 
-    let mut points: Vec<Point> = edges
-        .iter()
-        .map(|edge| Point {
-            x: edge.x1,
-            y: edge.y1,
-            length: edge.length,
-            way_id: edge.way_id,
-            node_id: edge.source,
-        })
-        .collect();
     points.insert(
         0,
         Point {
-            x: start_lng,
-            y: start_lat,
+            lng: start_lng,
+            lat: start_lat,
             length: 0.0,
             way_id: 0,
             node_id: 0,
         },
     );
     points.push(Point {
-        x: end_lng,
-        y: end_lat,
+        lng: end_lng,
+        lat: end_lat,
         length: 0.0,
         way_id: 0,
         node_id: 0,
     });
-    let edges_coordinate: Vec<(f64, f64)> = points.iter().map(|point| (point.x, point.y)).collect();
+    let edges_coordinate: Vec<(f64, f64)> =
+        points.iter().map(|point| (point.lng, point.lat)).collect();
     let total_length: f64 = points.iter().map(|point| point.length).sum();
     RoutePanel {
-        coordonates: match serde_json::to_string(&edges_coordinate) {
+        coordinates: match serde_json::to_string(&edges_coordinate) {
             Ok(edges_coordinate) => edges_coordinate,
             Err(e) => {
                 return RoutePanel::error(format!("Error while serializing edges: {}", e));
-            }
-        },
-        route: match serde_json::to_string(&route) {
-            Ok(route) => route,
-            Err(e) => {
-                return RoutePanel::error(format!("Error while serializing route: {}", e));
             }
         },
         total_length: (total_length / 10.0).round() / 100.0,

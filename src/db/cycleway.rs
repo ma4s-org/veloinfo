@@ -43,6 +43,14 @@ pub struct Node {
     pub lat: f64,
 }
 
+impl Eq for Node {}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.node_id == other.node_id
+    }
+}
+
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct RouteDB {
     seq: i32,

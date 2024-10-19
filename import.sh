@@ -166,6 +166,8 @@ psql -h db -U postgres -d carte -c "
                                     CREATE INDEX edge_way_id_idx ON edge(way_id);
                                     CREATE INDEX edge_geom_idx ON edge using gist(geom);
                                     CREATE UNIQUE INDEX edge_id_idx ON edge(id);
+                                    CREATE INDEX edge_source_idx ON public.edge ("source");
+                                    CREATE INDEX edge_target_idx ON public.edge ("target");
 
                                     drop materialized view if exists address_range;
                                     create materialized view address_range as
