@@ -287,6 +287,9 @@ impl Edge {
                 let tentative_g_score = g_score.get(&current).expect("current should have a score")
                     + neighbor.length * neighbor.get_cost(neighbor_id);
                 let neignbourd_g_score = g_score.get(&neighbor_id);
+                println!("neighbor_id: {}", neighbor_id);
+                println!("tentative_g_score: {}", tentative_g_score);
+                println!("neignbourd_g_score: {:?}", neignbourd_g_score);
                 if neignbourd_g_score.is_none() || &tentative_g_score < neignbourd_g_score.unwrap()
                 {
                     came_from.insert(neighbor_id, current);
