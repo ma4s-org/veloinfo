@@ -82,99 +82,99 @@ impl Edge {
         } else if self.tags.get("highway") == Some(&"cycleway".to_string()) {
             1.
         } else if self.tags.get("cycleway") == Some(&"track".to_string()) {
-            1. / 0.95
+            1. / 0.9
         } else if self.tags.get("cycleway:both") == Some(&"track".to_string()) {
-            1. / 0.95
+            1. / 0.9
         } else if self.tags.get("cycleway:left") == Some(&"track".to_string())
             && target == self.source
         {
-            1. / 0.95
+            1. / 0.9
         } else if self.tags.get("cycleway:right") == Some(&"track".to_string())
             && target == self.target
         {
-            1. / 0.95
+            1. / 0.9
         } else if self.tags.get("cycleway") == Some(&"lane".to_string()) {
-            1. / 0.9
+            1. / 0.8
         } else if self.tags.get("cycleway:both") == Some(&"lane".to_string()) {
-            1. / 0.9
+            1. / 0.8
         } else if self.tags.get("cycleway:left") == Some(&"lane".to_string())
             && target == self.source
         {
-            1. / 0.9
+            1. / 0.8
         } else if self.tags.get("cycleway:right") == Some(&"lane".to_string())
             && target == self.target
         {
-            1. / 0.9
+            1. / 0.8
         } else if self.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
-            1. / 0.85
+            1. / 0.7
         } else if self.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
-            1. / 0.85
+            1. / 0.7
         } else if self.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
             && target == self.source
         {
-            1. / 0.85
+            1. / 0.7
         } else if self.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
             && target == self.target
         {
-            1. / 0.85
+            1. / 0.7
         } else if self.tags.get("highway") == Some(&"path".to_string()) {
             if self.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.8
+                1. / 0.6
             } else {
                 1. / 0.3
             }
         } else if self.tags.get("footway") == Some(&"path".to_string()) {
             if self.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.8
+                1. / 0.6
             } else {
                 1. / 0.2
             }
         } else if self.tags.get("highway") == Some(&"residential".to_string()) {
-            1. / 0.8
+            1. / 0.6
         } else if self.tags.get("highway") == Some(&"unclassified".to_string()) {
-            1. / 0.8
+            1. / 0.6
         } else if self.tags.get("bicycle") == Some(&"designated".to_string()) {
-            1. / 0.75
+            1. / 0.6
         } else if self.tags.get("highway") == Some(&"tertiary".to_string()) {
-            1. / 0.7
+            1. / 0.5
         } else if self.tags.get("higway") == Some(&"tertiary_link".to_string()) {
-            1. / 0.7
+            1. / 0.5
         } else if self.tags.get("higway") == Some(&"footway".to_string())
             && self.tags.get("footway") == Some(&"crossing".to_string())
         {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("highway") == Some(&"secondary".to_string()) {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("highway") == Some(&"secondary_link".to_string()) {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("bicycle") == Some(&"yes".to_string()) {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("bicycle") == Some(&"yes".to_string()) {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("highway") == Some(&"service".to_string()) {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("highway") == Some(&"path".to_string()) {
-            1. / 0.6
+            1. / 0.5
         } else if self.tags.get("cycleway") == Some(&"separate".to_string()) {
-            1. / 0.5
+            1. / 0.4
         } else if self.tags.get("cycleway:both") == Some(&"separate".to_string()) {
-            1. / 0.5
+            1. / 0.4
         } else if self.tags.get("cycleway:left") == Some(&"separate".to_string())
             && target == self.source
         {
-            1. / 0.5
+            1. / 0.4
         } else if self.tags.get("cycleway:right") == Some(&"separate".to_string())
             && target == self.target
         {
-            1. / 0.5
+            1. / 0.4
         } else if self.tags.get("higway") == Some(&"primary".to_string()) {
-            1. / 0.4
+            1. / 0.3
         } else if self.tags.get("higway") == Some(&"trunk".to_string()) {
-            1. / 0.4
+            1. / 0.3
         } else if self.tags.get("higway") == Some(&"footway".to_string()) {
-            1. / 0.4
+            1. / 0.3
         } else if self.tags.get("higway").is_some() {
-            1. / 0.4
+            1. / 0.3
         } else {
             1. / 0.025
         };
