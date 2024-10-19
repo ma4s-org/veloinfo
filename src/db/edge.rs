@@ -238,6 +238,7 @@ impl Edge {
                 .first_entry()
                 .expect("open set should not be empty");
             let current = first_min_entry.get().clone();
+            println!("current: {}", current);
             // if we are at the end, return the path
             if current == end_node {
                 let mut current = end_node;
