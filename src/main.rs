@@ -77,13 +77,22 @@ async fn main() {
         .add(
             Job::new("0 0 7 * * *", |_uuid, _l| {
                 tokio::spawn(async {
+                    let conn =
+                        PgPool::connect(format!("{}", env::var("DATABASE_URL").unwrap()).as_str())
+                            .await
+                            .unwrap();
                     println!("Importing data");
                     let output = Command::new("./import.sh")
                         .output()
                         .expect("failed to execute process");
                     println!("status: {}", output.status);
+
                     // clearing cache
                     NEIGHBORS_CACHE.lock().await.clear();
+
+                    // filling the cache from Sainte-Anne-de-Bellevue (98896591) To Quebec (1019190375)
+                    let h = crate::db::edge::Edge::make_h(1019190375, &conn).await;
+                    crate::db::edge::Edge::fast_route(98896591, 1019190375, h, &conn).await;
                 });
             })
             .unwrap(),
