@@ -25,6 +25,7 @@ use axum::routing::{get, Router};
 use component::follow_panel::follow;
 use component::route_panel::route;
 use component::style::style;
+use db::edge::NEIGHBORS_CACHE;
 use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
 use sqlx::PgPool;
@@ -75,11 +76,15 @@ async fn main() {
     sched
         .add(
             Job::new("0 0 7 * * *", |_uuid, _l| {
-                println!("Importing data");
-                let output = Command::new("./import.sh")
-                    .output()
-                    .expect("failed to execute process");
-                println!("status: {}", output.status);
+                tokio::spawn(async {
+                    println!("Importing data");
+                    let output = Command::new("./import.sh")
+                        .output()
+                        .expect("failed to execute process");
+                    println!("status: {}", output.status);
+                    // clearing cache
+                    NEIGHBORS_CACHE.lock().await.clear();
+                });
             })
             .unwrap(),
         )
