@@ -56,14 +56,13 @@ lazy_static! {
 impl Edge {
     pub fn get_cost(&self, target: i64) -> f64 {
         // if the target is the source we are reverse of the edge
-        if target == self.source {
-            if self.tags.get("oneway") == Some(&"yes".to_string())
-                && !self.tags.get("cycleway:both").is_some()
-                && !self.tags.get("cycleway:left").is_some()
-                || !(self.tags.get("oneway:bicycle") == Some(&"no".to_string()))
-            {
-                return 1. / 0.00001;
-            }
+        if target == self.source
+            && self.tags.get("oneway") == Some(&"yes".to_string())
+            && !self.tags.get("cycleway:both").is_some()
+            && !self.tags.get("cycleway:left").is_some()
+            && self.tags.get("oneway:bicycle") != Some(&"no".to_string())
+        {
+            return 1. / 0.00001;
         }
 
         let cost = if self.tags.get("bicycle") == Some(&"no".to_string()) {
@@ -79,7 +78,7 @@ impl Edge {
                 1. / 0.005
             }
         } else if self.tags.get("bicycle") == Some(&"discouraged".to_string()) {
-            1. / 0.01
+            1. / 0.1
         } else if self.tags.get("bicycle") == Some(&"dismount".to_string()) {
             1. / 0.3
         } else if self.tags.get("highway") == Some(&"cycleway".to_string()) {
