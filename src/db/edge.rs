@@ -58,9 +58,9 @@ impl Edge {
         // if the target is the source we are reverse of the edge
         if target == self.source {
             if self.tags.get("oneway") == Some(&"yes".to_string())
-                && !(self.tags.get("oneway:bicycle") == Some(&"no".to_string())
-                    && !self.tags.get("cycleway:both").is_some()
-                    && !self.tags.get("cycleway:left").is_some())
+                && !self.tags.get("cycleway:both").is_some()
+                && !self.tags.get("cycleway:left").is_some()
+                || !(self.tags.get("oneway:bicycle") == Some(&"no".to_string()))
             {
                 return 1. / 0.00001;
             }
