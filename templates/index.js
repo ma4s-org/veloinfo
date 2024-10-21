@@ -67,6 +67,9 @@ map.on("load", async () => {
     const bike_image = await map.loadImage('/pub/bicycle-parking.png');
     map.addImage('bike-parking', bike_image.data);
 
+    const drinking_water = await map.loadImage('/pub/drinking_water.png');
+    map.addImage('drinking-water', drinking_water.data);
+
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })
