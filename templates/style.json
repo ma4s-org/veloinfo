@@ -3137,7 +3137,7 @@
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
-            "minzoom": 15,
+            "minzoom": 14,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
