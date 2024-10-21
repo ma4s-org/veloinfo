@@ -98,6 +98,24 @@ async fn main() {
                         &conn,
                     )
                     .await;
+
+                    // filling the cache from Montreal (1016199248) To Sherbrooke (1870784004)
+                    crate::db::edge::Edge::fast_route(
+                        1016199248,
+                        1870784004,
+                        crate::db::edge::Edge::h,
+                        &conn,
+                    )
+                    .await;
+
+                    // filling the cache from Montreal (1016199248) To Mont-Tremblant (814688566)
+                    crate::db::edge::Edge::fast_route(
+                        1016199248,
+                        814688566,
+                        crate::db::edge::Edge::h,
+                        &conn,
+                    )
+                    .await;
                 });
             })
             .unwrap(),
