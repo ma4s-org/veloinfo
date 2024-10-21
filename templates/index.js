@@ -63,7 +63,10 @@ let geolocate = new maplibregl.GeolocateControl({
 });
 map.addControl(geolocate);
 
-map.on("load", () => {
+map.on("load", async () => {
+    const bike_image = await map.loadImage('/pub/bicycle-parking.png');
+    map.addImage('bike-parking', bike_image.data);
+
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })
@@ -167,7 +170,7 @@ function display_segment_geom(geom) {
                 "line-opacity": 0.50
             }
         },
-            "Road labels");
+            "Road labels")
     }
     if (!start_marker) {
         start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);

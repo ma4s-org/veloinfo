@@ -339,6 +339,15 @@ local all_node = osm2pgsql.define_node_table('all_node', {{
 }, {
     column = 'place',
     type = 'text'
+}, {
+    column = 'amenity',
+    type = 'text'
+}, {
+    column = 'bicycle_parking',
+    type = 'text'
+}, {
+    column = 'capacity',
+    type = 'integer'
 }})
 
 local address = osm2pgsql.define_table({
@@ -440,9 +449,9 @@ function osm2pgsql.process_way(object)
         })
     end
 
-    if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] ==
-        "track" or object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and
-        object.tags.footway ~= "sidewalk" and object.tags.service ~= "parking_aisle" then
+    if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] == "track" or
+        object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and object.tags.footway ~=
+        "sidewalk" and object.tags.service ~= "parking_aisle" then
         cycleway_far:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
@@ -536,9 +545,7 @@ function osm2pgsql.process_relation(object)
             landcover = object.tags.landcover
         })
     end
-    if object:as_multipolygon():area() > 1e-3 and
-        (
-            object.tags.natural == "water" or object.tags.landuse == "forest" ) then
+    if object:as_multipolygon():area() > 1e-3 and (object.tags.natural == "water" or object.tags.landuse == "forest") then
         landcover_far:insert({
             name = object.tags.name,
             geom = object:as_multipolygon(),
@@ -562,12 +569,15 @@ function osm2pgsql.process_relation(object)
 end
 
 function osm2pgsql.process_node(object)
-    if (object.tags.place) then
+    if object.tags.place or object.tags.amenity then
         all_node:insert({
             name = object.tags.name,
             geom = object:as_point(),
             tags = object.tags,
-            place = object.tags.place
+            place = object.tags.place,
+            amenity = object.tags.amenity,
+            bicycle_parking = object.tags["bicycle_parking"],
+            capacity = object.tags.capacity
         })
     end
 
