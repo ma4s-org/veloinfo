@@ -55,6 +55,7 @@ lazy_static! {
 
 impl Edge {
     pub fn get_cost(&self, target: i64) -> f64 {
+        // if the target is the source we are reverse of the edge
         if target == self.source {
             if self.tags.get("oneway") == Some(&"yes".to_string())
                 && !(self.tags.get("oneway:bicycle") == Some(&"no".to_string())
