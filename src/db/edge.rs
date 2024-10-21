@@ -57,7 +57,9 @@ impl Edge {
     pub fn get_cost(&self, target: i64) -> f64 {
         if target == self.source {
             if self.tags.get("oneway") == Some(&"yes".to_string())
-                && !(self.tags.get("oneway:bicycle") == Some(&"no".to_string()))
+                && !(self.tags.get("oneway:bicycle") == Some(&"no".to_string())
+                    && !self.tags.get("cycleway:both").is_some()
+                    && !self.tags.get("cycleway:left").is_some())
             {
                 return 1. / 0.00001;
             }
