@@ -91,8 +91,13 @@ async fn main() {
                     NEIGHBORS_CACHE.lock().await.clear();
 
                     // filling the cache from Sainte-Anne-de-Bellevue (98896591) To Quebec (1019190375)
-                    let h = crate::db::edge::Edge::make_h(1019190375, &conn).await;
-                    crate::db::edge::Edge::fast_route(98896591, 1019190375, h, &conn).await;
+                    crate::db::edge::Edge::fast_route(
+                        98896591,
+                        1019190375,
+                        crate::db::edge::Edge::h,
+                        &conn,
+                    )
+                    .await;
                 });
             })
             .unwrap(),

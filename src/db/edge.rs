@@ -195,44 +195,43 @@ impl Edge {
         cost * score
     }
 
-    pub async fn make_h(goal_id: i64, conn: &sqlx::Pool<Postgres>) -> impl Fn(&Edge, i64) -> f64 {
-        let goal = Edge::get(goal_id, conn).await.expect("goal not found");
-        let (goal_lon, goal_lat) = if goal_id == goal.source {
+    pub fn h(destination: &Edge, destination_id: i64, goal: &Edge, gaol_id: i64) -> f64 {
+        let (goal_lon, goal_lat) = if gaol_id == goal.source {
             (goal.lon1, goal.lat1)
         } else {
             (goal.lon2, goal.lat2)
         };
+        let (destination_lon, destination_lat) = if destination_id == destination.source {
+            (destination.lon1, destination.lat1)
+        } else {
+            (destination.lon2, destination.lat2)
+        };
+        let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
 
-        move |destination: &Edge, destination_id| {
-            let (destination_lon, destination_lat) = if destination_id == destination.source {
-                (destination.lon1, destination.lat1)
-            } else {
-                (destination.lon2, destination.lat2)
-            };
-            let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
-
-            distance * destination.get_cost(destination_id)
-        }
+        distance * destination.get_cost(destination_id)
     }
 
     pub async fn fast_route(
-        start_node: i64,
-        end_node: i64,
-        h: impl Fn(&Edge, i64) -> f64,
+        start_node_id: i64,
+        end_node_id: i64,
+        h: impl Fn(&Edge, i64, &Edge, i64) -> f64,
         conn: &sqlx::Pool<Postgres>,
     ) -> Vec<Point> {
+        let end_node = Edge::get(end_node_id, conn)
+            .await
+            .expect("the end node should exist");
         // open_set is the set of nodes to be evaluated
         let mut open_set = HashSet::new();
         let mut min_in_open_set = BTreeMap::new();
-        open_set.insert(start_node);
-        min_in_open_set.insert(Score(0.), start_node);
+        open_set.insert(start_node_id);
+        min_in_open_set.insert(Score(0.), start_node_id);
         let mut came_from: HashMap<i64, i64> = HashMap::new();
         // g_score is the shortest distance from the start node to the current node
         let mut g_score: HashMap<i64, f64> = HashMap::new();
-        g_score.insert(start_node, 0.0);
+        g_score.insert(start_node_id, 0.0);
         // f_score is the shortest distance from the start node to the end node
         let mut f_score: HashMap<i64, f64> = HashMap::new();
-        f_score.insert(start_node, 0.0);
+        f_score.insert(start_node_id, 0.0);
 
         // a* algorithm
         while !open_set.is_empty() {
@@ -241,14 +240,14 @@ impl Edge {
                 .expect("open set should not be empty");
             let current = first_min_entry.get().clone();
             // if we are at the end, return the path
-            if current == end_node {
-                let mut current = end_node;
+            if current == end_node_id {
+                let mut current = end_node_id;
                 let mut path = vec![];
-                while current != start_node {
+                while current != start_node_id {
                     path.push(current);
                     current = *came_from.get(&current).unwrap();
                 }
-                path.push(start_node);
+                path.push(start_node_id);
                 path.reverse();
                 let promises = path
                     .iter()
@@ -292,7 +291,10 @@ impl Edge {
                 {
                     came_from.insert(neighbor_id, current);
                     g_score.insert(neighbor_id, tentative_g_score);
-                    f_score.insert(neighbor_id, tentative_g_score + h(&neighbor, neighbor_id));
+                    f_score.insert(
+                        neighbor_id,
+                        tentative_g_score + h(&neighbor, neighbor_id, &end_node, end_node_id),
+                    );
                     if !open_set.contains(&neighbor_id) {
                         open_set.insert(neighbor_id);
                         min_in_open_set
@@ -485,8 +487,13 @@ mod tests {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();
-        let h = crate::db::edge::Edge::make_h(1764306722, &conn).await;
-        let points = crate::db::edge::Edge::fast_route(321801851, 1764306722, h, &conn).await;
+        let points = crate::db::edge::Edge::fast_route(
+            321801851,
+            1764306722,
+            crate::db::edge::Edge::h,
+            &conn,
+        )
+        .await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }

@@ -42,13 +42,7 @@ pub async fn route(
             return RoutePanel::error(format!("Error while fetching end node: {}", e));
         }
     };
-    let mut points = Edge::fast_route(
-        start.node_id,
-        end.node_id,
-        Edge::make_h(end.node_id, &state.conn).await,
-        &state.conn,
-    )
-    .await;
+    let mut points = Edge::fast_route(start.node_id, end.node_id, Edge::h, &state.conn).await;
 
     if let 0 = points.len() {
         return RoutePanel::error(format!("No route found from {start:?} to {end:?}"));
