@@ -348,6 +348,9 @@ local all_node = osm2pgsql.define_node_table('all_node', {{
 }, {
     column = 'capacity',
     type = 'integer'
+}, {
+    column = 'shop',
+    type = 'text'
 }})
 
 local address = osm2pgsql.define_table({
@@ -569,7 +572,7 @@ function osm2pgsql.process_relation(object)
 end
 
 function osm2pgsql.process_node(object)
-    if object.tags.place or object.tags.amenity then
+    if object.tags.place or object.tags.amenity or object.tags.shop == "bicycle" then
         all_node:insert({
             name = object.tags.name,
             geom = object:as_point(),
@@ -577,7 +580,8 @@ function osm2pgsql.process_node(object)
             place = object.tags.place,
             amenity = object.tags.amenity,
             bicycle_parking = object.tags["bicycle_parking"],
-            capacity = object.tags.capacity
+            capacity = object.tags.capacity,
+            shop = object.tags.shop
         })
     end
 

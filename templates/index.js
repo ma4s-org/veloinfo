@@ -70,6 +70,9 @@ map.on("load", async () => {
     const drinking_water = await map.loadImage('/pub/drinking_water.png');
     map.addImage('drinking-water', drinking_water.data);
 
+    const bike_shop = await map.loadImage('/pub/bike_shop.png');
+    map.addImage('bike-shop', bike_shop.data);
+
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })
