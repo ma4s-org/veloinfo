@@ -56,6 +56,9 @@ var map = new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl());
 let geolocate = new maplibregl.GeolocateControl({
+    fitBoundsOptions: {
+        maxZoom: 16.5
+    },
     positionOptions: {
         enableHighAccuracy: true
     },
