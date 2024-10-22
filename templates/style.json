@@ -3067,165 +3067,6 @@
             ]
         },
         {
-            "id": "Bike parking",
-            "type": "symbol",
-            "source": "veloinfo_all_node",
-            "source-layer": "all_node",
-            "minzoom": 14,
-            "layout": {
-                "text-font": [
-                    "Metropolis Semi Bold",
-                    "Noto Sans Bold"
-                ],
-                "text-size": [
-                    "interpolate",
-                    [
-                        "linear",
-                        1
-                    ],
-                    [
-                        "zoom"
-                    ],
-                    12,
-                    10,
-                    13,
-                    12,
-                    14,
-                    14,
-                    16,
-                    13
-                ],
-                "text-field": "{capacity}",
-                "visibility": "visible",
-                "text-anchor": "center",
-                "text-offset": [
-                    0.5,
-                    0.8
-                ],
-                "text-max-width": 10,
-                "text-transform": "none",
-                "text-keep-upright": true,
-                "icon-image": "bike-parking",
-                "icon-size": [
-                    "interpolate",
-                    [
-                        "linear",
-                        1
-                    ],
-                    [
-                        "zoom"
-                    ],
-                    1,
-                    0.5
-                ]
-            },
-            "paint": {
-                "text-color": "hsl(204, 11%, 47%)",
-                "text-opacity": 1,
-                "text-halo-blur": 0,
-                "text-halo-color": "hsl(0, 0%, 100%)",
-                "text-halo-width": 1.5
-            },
-            "filter": [
-                "==",
-                "amenity",
-                "bicycle_parking"
-            ]
-        },
-        {
-            "id": "Drinking water",
-            "type": "symbol",
-            "source": "veloinfo_all_node",
-            "source-layer": "all_node",
-            "minzoom": 11,
-            "layout": {
-                "text-font": [
-                    "Metropolis Semi Bold",
-                    "Noto Sans Bold"
-                ],
-                "text-size": [
-                    "interpolate",
-                    [
-                        "linear",
-                        1
-                    ],
-                    [
-                        "zoom"
-                    ],
-                    12,
-                    10,
-                    13,
-                    12,
-                    14,
-                    14,
-                    16,
-                    13
-                ],
-                "text-field": "{capacity}",
-                "visibility": "visible",
-                "icon-image": "drinking-water",
-                "icon-size": [
-                    "interpolate",
-                    [
-                        "linear",
-                        1
-                    ],
-                    [
-                        "zoom"
-                    ],
-                    1,
-                    0.5
-                ]
-            },
-            "paint": {
-                "text-color": "hsl(204, 11%, 47%)",
-                "text-opacity": 1,
-                "text-halo-blur": 0,
-                "text-halo-color": "hsl(0, 0%, 100%)",
-                "text-halo-width": 1.5
-            },
-            "filter": [
-                "==",
-                "amenity",
-                "drinking_water"
-            ]
-        },
-        {
-            "id": "Bike shop",
-            "type": "symbol",
-            "source": "veloinfo_all_node",
-            "source-layer": "all_node",
-            "minzoom": 11,
-            "layout": {
-                "text-font": [
-                    "Metropolis Semi Bold",
-                    "Noto Sans Bold"
-                ],
-                "text-size": 10,
-                "text-field": "{name}",
-                "text-anchor": "center",
-                "text-offset": [
-                    0,
-                    -2
-                ],
-                "visibility": "visible",
-                "icon-image": "bike-shop",
-                "icon-size": 0.5
-            },
-            "paint": {
-                "text-color": "hsl(204, 11%, 47%)",
-                "text-opacity": 1,
-                "text-halo-blur": 0,
-                "text-halo-color": "hsl(0, 0%, 100%)",
-                "text-halo-width": 1.5
-            },
-            "filter": [
-                "==",
-                "shop",
-                "bicycle"
-            ]
-        },
-        {
             "id": "name",
             "type": "symbol",
             "source": "veloinfo_name",
@@ -3414,6 +3255,165 @@
                     "place",
                     "city"
                 ]
+            ]
+        },
+        {
+            "id": "Bike parking",
+            "type": "symbol",
+            "source": "veloinfo_all_node",
+            "source-layer": "all_node",
+            "minzoom": 14,
+            "layout": {
+                "text-font": [
+                    "Metropolis Semi Bold",
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear",
+                        1
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    10,
+                    13,
+                    12,
+                    14,
+                    14,
+                    16,
+                    13
+                ],
+                "text-field": "{capacity}",
+                "visibility": "visible",
+                "text-anchor": "center",
+                "text-offset": [
+                    0.5,
+                    0.8
+                ],
+                "text-max-width": 10,
+                "text-transform": "none",
+                "text-keep-upright": true,
+                "icon-image": "bike-parking",
+                "icon-size": [
+                    "interpolate",
+                    [
+                        "linear",
+                        1
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    1,
+                    0.5
+                ]
+            },
+            "paint": {
+                "text-color": "hsl(204, 11%, 47%)",
+                "text-opacity": 1,
+                "text-halo-blur": 0,
+                "text-halo-color": "hsl(0, 0%, 100%)",
+                "text-halo-width": 1.5
+            },
+            "filter": [
+                "==",
+                "amenity",
+                "bicycle_parking"
+            ]
+        },
+        {
+            "id": "Drinking water",
+            "type": "symbol",
+            "source": "veloinfo_all_node",
+            "source-layer": "all_node",
+            "minzoom": 11,
+            "layout": {
+                "text-font": [
+                    "Metropolis Semi Bold",
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear",
+                        1
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    10,
+                    13,
+                    12,
+                    14,
+                    14,
+                    16,
+                    13
+                ],
+                "text-field": "{capacity}",
+                "visibility": "visible",
+                "icon-image": "drinking-water",
+                "icon-size": [
+                    "interpolate",
+                    [
+                        "linear",
+                        1
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    1,
+                    0.5
+                ]
+            },
+            "paint": {
+                "text-color": "hsl(204, 11%, 47%)",
+                "text-opacity": 1,
+                "text-halo-blur": 0,
+                "text-halo-color": "hsl(0, 0%, 100%)",
+                "text-halo-width": 1.5
+            },
+            "filter": [
+                "==",
+                "amenity",
+                "drinking_water"
+            ]
+        },
+        {
+            "id": "Bike shop",
+            "type": "symbol",
+            "source": "veloinfo_all_node",
+            "source-layer": "all_node",
+            "minzoom": 11,
+            "layout": {
+                "text-font": [
+                    "Metropolis Semi Bold",
+                    "Noto Sans Bold"
+                ],
+                "text-size": 10,
+                "text-field": "{name}",
+                "text-anchor": "center",
+                "text-offset": [
+                    0,
+                    -2
+                ],
+                "visibility": "visible",
+                "icon-image": "bike-shop",
+                "icon-size": 0.5
+            },
+            "paint": {
+                "text-color": "hsl(204, 11%, 47%)",
+                "text-opacity": 1,
+                "text-halo-blur": 0,
+                "text-halo-color": "hsl(0, 0%, 100%)",
+                "text-halo-width": 1.5
+            },
+            "filter": [
+                "==",
+                "shop",
+                "bicycle"
             ]
         }
     ],
