@@ -59,7 +59,8 @@ impl Edge {
         if target == self.source
             && self.tags.get("oneway") == Some(&"yes".to_string())
             && !self.tags.get("cycleway:both").is_some()
-            && !self.tags.get("cycleway:left").is_some()
+            && (!self.tags.get("cycleway:left").is_some()
+                || self.tags.get("cycleway:left") != Some(&"no".to_string()))
             && self.tags.get("oneway:bicycle") != Some(&"no".to_string())
         {
             return 1. / 0.00001;
