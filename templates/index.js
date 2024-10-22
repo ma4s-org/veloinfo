@@ -32,7 +32,7 @@ setInterval(() => {
         // the wake lock request fails - usually system related, such being low on battery
         console.log(`${err.name}, ${err.message}`);
     }
-}, 60000);
+}, 30000);
 
 // Speed
 navigator.geolocation.watchPosition((position) => {
