@@ -42,7 +42,7 @@
         coordinates[coordinates.length - 1][0],
         coordinates[coordinates.length - 1][1]);
     setTimeout(() => {
-        map.flyTo({ bearing });
+        map.flyTo({ bearing, pitch: 0 });
     }, 1050);
     {% endif %}
     (async () => {
