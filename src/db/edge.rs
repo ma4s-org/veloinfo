@@ -155,7 +155,7 @@ impl Edge {
         } else if self.tags.get("highway") == Some(&"service".to_string()) {
             1. / 0.5
         } else if self.tags.get("highway") == Some(&"path".to_string()) {
-            1. / 0.5
+            1. / 0.4
         } else if self.tags.get("highway") == Some(&"secondary".to_string()) {
             1. / 0.4
         } else if self.tags.get("cycleway") == Some(&"separate".to_string()) {
