@@ -159,8 +159,6 @@ impl Edge {
             1. / 0.5
         } else if self.tags.get("bicycle") == Some(&"yes".to_string()) {
             1. / 0.5
-        } else if self.tags.get("highway") == Some(&"service".to_string()) {
-            1. / 0.5
         } else if self.tags.get("highway") == Some(&"path".to_string()) {
             1. / 0.4
         } else if self.tags.get("highway") == Some(&"secondary".to_string()) {
@@ -177,6 +175,8 @@ impl Edge {
             && target == self.target
         {
             1. / 0.4
+        } else if self.tags.get("highway") == Some(&"service".to_string()) {
+            1. / 0.3
         } else if self.tags.get("higway") == Some(&"primary".to_string()) {
             1. / 0.3
         } else if self.tags.get("higway") == Some(&"trunk".to_string()) {
@@ -490,6 +490,7 @@ impl Edge {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::env;
 
     #[tokio::test]
@@ -497,13 +498,7 @@ mod tests {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();
-        let points = crate::db::edge::Edge::fast_route(
-            321801851,
-            1764306722,
-            crate::db::edge::Edge::h,
-            &conn,
-        )
-        .await;
+        let points = Edge::fast_route(321801851, 1764306722, Edge::h, &conn).await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }
