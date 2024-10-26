@@ -109,6 +109,18 @@ impl Edge {
             && target == self.target
         {
             1. / 0.8
+        } else if self.tags.get("footway") == Some(&"path".to_string()) {
+            if self.tags.get("bicycle") == Some(&"yes".to_string()) {
+                1. / 0.8
+            } else {
+                1. / 0.2
+            }
+        } else if self.tags.get("highway") == Some(&"footway".to_string()) {
+            if self.tags.get("bicycle") == Some(&"yes".to_string()) {
+                1. / 0.8
+            } else {
+                1. / 0.2
+            }
         } else if self.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
             1. / 0.7
         } else if self.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
@@ -126,12 +138,6 @@ impl Edge {
                 1. / 0.6
             } else {
                 1. / 0.3
-            }
-        } else if self.tags.get("footway") == Some(&"path".to_string()) {
-            if self.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.6
-            } else {
-                1. / 0.2
             }
         } else if self.tags.get("highway") == Some(&"residential".to_string()) {
             1. / 0.6
