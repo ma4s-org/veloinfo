@@ -1530,11 +1530,6 @@
                 [
                     "!has",
                     "railway"
-                ],
-                [
-                    "!=",
-                    "footway",
-                    "crossing"
                 ]
             ]
         },
@@ -1792,11 +1787,6 @@
                 [
                     "!has",
                     "railway"
-                ],
-                [
-                    "!=",
-                    "footway",
-                    "crossing"
                 ]
             ]
         },
