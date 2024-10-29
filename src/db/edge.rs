@@ -81,6 +81,8 @@ impl Edge {
             }
         } else if self.tags.get("bicycle") == Some(&"discouraged".to_string()) {
             1. / 0.1
+        } else if self.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
+            1. / 0.1
         } else if self.tags.get("bicycle") == Some(&"dismount".to_string()) {
             1. / 0.3
         } else if self.tags.get("highway") == Some(&"cycleway".to_string()) {
