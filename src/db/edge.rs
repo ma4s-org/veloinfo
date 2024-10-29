@@ -87,6 +87,8 @@ impl Edge {
             1. / 0.2
         } else if self.tags.get("highway") == Some(&"cycleway".to_string()) {
             1.
+        } else if self.tags.get("cycleway") == Some(&"crossing".to_string()) {
+            1.
         } else if self.tags.get("cycleway") == Some(&"track".to_string()) {
             1. / 0.9
         } else if self.tags.get("cycleway:both") == Some(&"track".to_string()) {
@@ -127,6 +129,10 @@ impl Edge {
             1. / 0.7
         } else if self.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
             1. / 0.7
+        } else if self.tags.get("highway") == Some(&"unclassified".to_string()) {
+            1. / 0.7
+        } else if self.tags.get("bicycle") == Some(&"designated".to_string()) {
+            1. / 0.7
         } else if self.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
             && target == self.source
         {
@@ -157,12 +163,6 @@ impl Edge {
             1. / 0.5
         } else if self.tags.get("bicycle") == Some(&"yes".to_string()) {
             1. / 0.5
-        } else if self.tags.get("highway") == Some(&"unclassified".to_string()) {
-            1. / 0.4
-        } else if self.tags.get("bicycle") == Some(&"designated".to_string()) {
-            1. / 0.4
-        } else if self.tags.get("highway") == Some(&"path".to_string()) {
-            1. / 0.4
         } else if self.tags.get("cycleway") == Some(&"separate".to_string()) {
             1. / 0.4
         } else if self.tags.get("cycleway:both") == Some(&"separate".to_string()) {
