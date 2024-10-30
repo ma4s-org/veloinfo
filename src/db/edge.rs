@@ -64,7 +64,7 @@ impl Edge {
                 || self.tags.get("cycleway:left") == Some(&"no".to_string()))
             && self.tags.get("oneway:bicycle") != Some(&"no".to_string())
         {
-            return 1. / 0.00001;
+            return 1. / 0.1;
         }
 
         let cost = if self.tags.get("bicycle") == Some(&"no".to_string()) {
