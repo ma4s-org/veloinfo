@@ -90,8 +90,8 @@ async fn main() {
                     println!("status: {}", output.status);
 
                     // clearing cache
-                    NEIGHBORS_CACHE.lock().await.clear();
                     mtl::fetch_montreal_data(&conn).await;
+                    NEIGHBORS_CACHE.lock().await.clear();
 
                     // filling the cache from Sainte-Anne-de-Bellevue (98896591) To Quebec (1019190375)
                     crate::db::edge::Edge::fast_route(
