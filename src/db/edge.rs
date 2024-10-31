@@ -195,7 +195,7 @@ impl Edge {
         };
 
         if self.road_work {
-            cost = 1. / 0.5;
+            cost = 1. / 0.25;
         }
 
         let score = 1.
