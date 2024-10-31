@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     osm2pgsql \
     nodejs \
     npm \
+    gdal-bin \
     cmake make libclang-dev libssl-dev pkg-config 
 
 RUN cd
@@ -31,7 +32,7 @@ RUN rustup component add rustfmt
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
 RUN chmod 0600 /root/.pgpass
 
-CMD cargo watch -x run
+CMD cargo watch -x run --ignore tiles
 
 FROM base as build
 
@@ -42,6 +43,7 @@ FROM debian as prod
 
 RUN apt-get update && apt-get install -y \
     osm2pgsql \
+    gdal-bin \
     wget
 
 WORKDIR /app

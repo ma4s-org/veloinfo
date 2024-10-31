@@ -37,11 +37,13 @@ use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use utils::mtl;
 
 mod auth;
 mod component;
 mod db;
 mod score_selector_controler;
+mod utils;
 
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
@@ -89,6 +91,7 @@ async fn main() {
 
                     // clearing cache
                     NEIGHBORS_CACHE.lock().await.clear();
+                    mtl::fetch_montreal_data(&conn).await;
 
                     // filling the cache from Sainte-Anne-de-Bellevue (98896591) To Quebec (1019190375)
                     crate::db::edge::Edge::fast_route(

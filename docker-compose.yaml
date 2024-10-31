@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     volumes:
-      - .:/app:z
+      - .:/app:Z
       - root:/root/.local:z
       - target:/app/target
       - node_modules:/app/node_modules

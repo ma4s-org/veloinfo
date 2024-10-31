@@ -46,6 +46,7 @@ pub struct Edge {
     pub way_id: i64,
     pub length: f64,
     tags: sqlx::types::Json<HashMap<String, String>>,
+    road_work: bool,
 }
 
 lazy_static! {
@@ -67,7 +68,7 @@ impl Edge {
             return 1. / 0.1;
         }
 
-        let cost = if self.tags.get("bicycle") == Some(&"no".to_string()) {
+        let mut cost = if self.tags.get("bicycle") == Some(&"no".to_string()) {
             1. / 0.00001
         } else if self.tags.get("higway") == Some(&"proposed".to_string()) {
             1. / 0.00001
@@ -193,6 +194,10 @@ impl Edge {
             1. / 0.025
         };
 
+        if self.road_work {
+            cost = 1. / 0.5;
+        }
+
         let score = 1.
             / match self.score {
                 Some(score) => {
@@ -233,7 +238,7 @@ impl Edge {
     ) -> Vec<Point> {
         let end_node = Edge::get(end_node_id, conn)
             .await
-            .expect("the end node should exist");
+            .expect(format!("the end node should exist: {} ", end_node_id).as_str());
         // open_set is the set of nodes to be evaluated
         let mut open_set = HashSet::new();
         let mut min_in_open_set = BTreeMap::new();
@@ -434,7 +439,7 @@ impl Edge {
             r#"SELECT
                 source,
                 target,
-                id as edge,
+                e.id as edge,
                 score,
                 x1 as lon1,
                 y1 as lat1,
@@ -443,8 +448,10 @@ impl Edge {
                 tags,
                 way_id,
                 tags->>'name' as name, 
-                st_length(geom) as length
-            FROM edge
+                st_length(e.geom) as length,
+                rw.geom is not null as road_work
+            FROM edge e
+            left join road_work rw on ST_Intersects(e.geom, rw.geom)
             WHERE source = $1 or target = $1"#,
         )
         .bind(edge_id)
@@ -462,7 +469,7 @@ impl Edge {
             r#"SELECT
                 source,
                 target,
-                id as edge,
+                e.id as edge,
                 score,
                 x1 as lon1,
                 y1 as lat1,
@@ -471,9 +478,11 @@ impl Edge {
                 tags,
                 way_id,
                 tags->>'name' as name, 
-                st_length(geom) as length
-            FROM edge
-            WHERE source = $1 or target = $1"#,
+                st_length(e.geom) as length,
+                rw.geom is not null as road_work
+            FROM edge e
+            left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            WHERE (source = $1 or target = $1)"#,
         )
         .bind(edge_id)
         .fetch_all(conn)

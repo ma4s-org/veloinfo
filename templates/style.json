@@ -63,6 +63,10 @@
         "veloinfo_name": {
             "type": "vector",
             "url": "{{martin_url}}/name"
+        },
+        "road_work": {
+            "type": "vector",
+            "url": "{{martin_url}}/road_work"
         }
     },
     "layers": [
@@ -3370,6 +3374,21 @@
                 "amenity",
                 "drinking_water"
             ]
+        },
+        {
+            "id": "road_work",
+            "type": "fill",
+            "source": "road_work",
+            "source-layer": "road_work",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "layout": {
+                "visibility": "visible"
+            },
+            "paint": {
+                "fill-color": "hsl(0, 100%, 58%)",
+                "fill-opacity": 0.3
+            }
         },
         {
             "id": "Bike shop",

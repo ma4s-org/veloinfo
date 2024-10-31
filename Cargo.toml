@@ -15,16 +15,21 @@ axum-macros = "0.4.1"
 chrono = { version = "0.4.38", features = ["unstable-locales"] }
 chrono-tz = "0.9.0"
 futures = "0.3.30"
+geo = { version = "0.29.0", features = ["serde"] }
+geojson = "0.24.1"
+geozero = { version = "0.14.0", features = ["with-postgis-sqlx"] }
 image = "0.25.2"
 lazy_static = "1.5.0"
 libheif-rs = "1.0.2"
 pathfinding = "4.10.0"
 postgres = "0.19.8"
+rayon = "1.10.0"
 regex = "1.10.6"
 reqwest = { version = "0.12.5", features = ["json"] }
 serde = "1.0.204"
 serde_json = "1.0.122"
-sqlx = { version = "0.8.0", features = ["runtime-tokio", "postgres", "chrono", "uuid"] }
+sqlx = { version = "0.8.2", features = ["postgres", "runtime-tokio", "chrono", "uuid", "time"] }
+time = { version = "0.3.36", features = ["formatting"] }
 timeago = "0.4.2"
 tokio = { version = "1.39.2", features = ["full"] }
 tokio-cron-scheduler = "0.10.2"
