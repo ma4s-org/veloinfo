@@ -80,6 +80,11 @@ impl Edge {
             } else {
                 1. / 0.005
             }
+        } else if self.tags.get("highway") == Some(&"path".to_string())
+            && (self.tags.get("bicycle") == Some(&"dismount".to_string())
+                || self.tags.get("bicycle") == Some(&"discouraged".to_string()))
+        {
+            1. / 0.05
         } else if self.tags.get("bicycle") == Some(&"discouraged".to_string()) {
             1. / 0.1
         } else if self.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
