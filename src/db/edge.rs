@@ -147,12 +147,6 @@ impl Edge {
             && target == self.target
         {
             1. / 0.7
-        } else if self.tags.get("highway") == Some(&"path".to_string()) {
-            if self.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.6
-            } else {
-                1. / 0.3
-            }
         } else if self.tags.get("highway") == Some(&"residential".to_string()) {
             if self.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.7
