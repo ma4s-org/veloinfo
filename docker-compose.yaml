@@ -37,7 +37,7 @@ services:
       - veloinfo
     entrypoint: martin --font /fonts
   db:
-    image: postgis/postgis:13-3.1
+    image: postgis/postgis:13-3.5
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: carte
