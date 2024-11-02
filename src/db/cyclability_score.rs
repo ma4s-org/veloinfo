@@ -210,22 +210,31 @@ impl CyclabilityScore {
             .await?;
         };
 
-        sqlx::query(r#"REFRESH MATERIALIZED VIEW bike_path"#)
-            .execute(conn)
-            .await?;
-
         NEIGHBORS_CACHE.lock().await.clear();
 
         let conn = conn.clone();
         tokio::spawn(async move {
-            sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY last_cycleway_score"#)
+            match sqlx::query(r#"REFRESH MATERIALIZED VIEW bike_path"#)
                 .execute(&conn)
                 .await
-                .unwrap();
-            sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY edge"#)
+            {
+                Ok(_) => (),
+                Err(e) => eprintln!("Error while refreshing bike_path: {}", e),
+            };
+            match sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY last_cycleway_score"#)
                 .execute(&conn)
                 .await
-                .unwrap();
+            {
+                Ok(_) => (),
+                Err(e) => eprintln!("Error while refreshing last_cycleway_score: {}", e),
+            };
+            match sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY edge"#)
+                .execute(&conn)
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => eprintln!("Error while refreshing edge: {}", e),
+            };
         });
 
         Ok(id)
