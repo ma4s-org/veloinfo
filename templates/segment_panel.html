@@ -30,6 +30,9 @@
             {% else %}
             <div class="">
                 <div class="flex flex-row justify-center">
+                    Choisissez un second point ou
+                </div>
+                <div class="flex flex-row justify-center">
                     <button id="route_button" hx-on:click="route()"
                         class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/directions.png"
                             class="w-4 h-4 mr-1">itinéraire</button>
@@ -37,9 +40,6 @@
                         class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/edit.png"
                             class="w-4 h-4 mr-1">
                         Modifier</button>
-                    <button hx-get="/segment_panel_bigger" hx-target="#info"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/bigger.png"
-                            class="w-4 h-4 mr-1">Agrandir</button>
                 </div>
                 <div class="flex flex-row justify-center">
                     <button hx-on:click="clear()" class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</button>
@@ -66,7 +66,7 @@
 </div>
 
 <script>
-    display_segment_geom([{{ geom_json }}]);
+    display_segment_geom({{ geom_json }});
     {% if fit_bounds %}
     map.fitBounds(fitBounds({{ geom_json }}), { padding: window.innerWidth * .10 });
     {% endif %}

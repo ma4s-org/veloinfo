@@ -84,7 +84,6 @@ map.on("load", async () => {
 map.on("click", async function (event) {
     if (document.getElementById("info_panel_up") ||
         document.getElementById("info_panel_down") ||
-        document.getElementById("segment_panel_bigger") ||
         document.getElementById("segment_panel") ||
         document.getElementById("point_panel")
     ) {
@@ -99,8 +98,7 @@ map.on("move", function (e) {
 let start_marker = null;
 let end_marker = null;
 async function select(event) {
-    const segment_panel_bigger = document.getElementById("segment_panel_bigger");
-    if (segment_panel_bigger) {
+    if (start_marker) {
         selectBigger(event);
         return;
     }
@@ -211,9 +209,11 @@ function update_url() {
 async function clear() {
     if (start_marker) {
         start_marker.remove();
+        start_marker = null;
     }
     if (end_marker) {
         end_marker.remove();
+        end_marker = null;
     }
     const selected = map.getSource("selected");
     if (selected) {

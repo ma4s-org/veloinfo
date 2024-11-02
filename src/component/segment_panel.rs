@@ -297,6 +297,7 @@ pub async fn segment_panel_get(
 }
 
 pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPanel {
+    println!("segment_panel {}", way_ids);
     let re = Regex::new(r"\d+").unwrap();
     let way_ids_i64 = re
         .find_iter(way_ids.as_str())
@@ -333,9 +334,7 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPane
             }
             None => acc,
         });
-    let geom = cycleways.iter().fold(vec![], |acc, way| {
-        acc.iter().chain(way.geom.iter()).cloned().collect()
-    });
+    let geom: Vec<Vec<[f64; 2]>> = cycleways.iter().map(|way| way.geom.clone()).collect();
 
     let history = InfopanelContribution::get_history(&way_ids_i64, &state.conn).await;
     let photo_ids = CyclabilityScore::get_photo_by_way_ids(&way_ids_i64, &state.conn).await;
@@ -363,13 +362,6 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPane
         geom_json: serde_json::to_string(&geom).unwrap_or("".to_string()),
         fit_bounds: false,
         user_name: "".to_string(),
-    }
-}
-
-pub async fn segment_panel_bigger() -> SegmentPanelBigger {
-    SegmentPanelBigger {
-        ways: vec![],
-        geom_json: "".to_string(),
     }
 }
 
@@ -404,7 +396,13 @@ pub async fn segment_panel_bigger_route(
         }
     };
 
-    let edges = Edge::route_without_score(&node1, &node2, &state.conn).await;
+    let edges = Edge::fast_route(
+        node1.node_id,
+        node2.node_id,
+        Box::new(crate::utils::h::HBiggerSelection {}),
+        &state.conn,
+    )
+    .await;
 
     let ways = edges.iter().fold("".to_string(), |acc, edge| {
         match acc.contains(&edge.way_id.to_string()) {
@@ -413,13 +411,6 @@ pub async fn segment_panel_bigger_route(
         }
     });
     segment_panel(state, ways).await
-}
-
-#[derive(Template)]
-#[template(path = "segment_panel_bigger.html", escape = "none")]
-pub struct SegmentPanelBigger {
-    ways: Vec<Cycleway>,
-    geom_json: String,
 }
 
 async fn segment_panel_score_id(conn: &sqlx::Pool<Postgres>, id: i32, edit: bool) -> SegmentPanel {
@@ -495,8 +486,6 @@ pub async fn segment_panel_lng_lat(
     State(state): State<VeloinfoState>,
     Path((lng, lat)): Path<(f64, f64)>,
 ) -> SegmentPanel {
-    println!("segment_panel_lat_lng");
-
     let conn = state.clone().conn;
     let node: Node = match Cycleway::find(&lng, &lat, &conn).await {
         Ok(response) => response,
@@ -545,7 +534,7 @@ pub async fn segment_panel_lng_lat(
         edit: false,
         history,
         photo_ids,
-        geom_json: serde_json::to_string(&node.geom).unwrap_or("".to_string()),
+        geom_json: serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
         fit_bounds: false,
         user_name: "".to_string(),
     };

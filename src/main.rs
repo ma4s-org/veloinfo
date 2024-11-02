@@ -7,7 +7,6 @@ use crate::component::menu::{menu_close, menu_open};
 use crate::component::photo_scroll::photo_scroll;
 use crate::component::point_panel::point_panel_lng_lat;
 use crate::component::search;
-use crate::component::segment_panel::segment_panel_bigger;
 use crate::component::segment_panel::segment_panel_bigger_route;
 use crate::component::segment_panel::segment_panel_edit;
 use crate::component::segment_panel::segment_panel_get;
@@ -15,6 +14,7 @@ use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
 use crate::score_selector_controler::score_bounds_controler;
+use crate::utils::h::HMoyen;
 use askama::Template;
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderMap;
@@ -97,7 +97,7 @@ async fn main() {
                     crate::db::edge::Edge::fast_route(
                         98896591,
                         1019190375,
-                        crate::db::edge::Edge::h,
+                        Box::new(HMoyen {}),
                         &conn,
                     )
                     .await;
@@ -106,7 +106,7 @@ async fn main() {
                     crate::db::edge::Edge::fast_route(
                         1016199248,
                         1870784004,
-                        crate::db::edge::Edge::h,
+                        Box::new(HMoyen {}),
                         &conn,
                     )
                     .await;
@@ -115,7 +115,7 @@ async fn main() {
                     crate::db::edge::Edge::fast_route(
                         1016199248,
                         814688566,
-                        crate::db::edge::Edge::h,
+                        Box::new(HMoyen {}),
                         &conn,
                     )
                     .await;
@@ -141,7 +141,6 @@ async fn main() {
         .route("/segment_panel/ways/:way_ids", get(segment_panel_get))
         .route("/segment_panel/edit/ways/:way_ids", get(segment_panel_edit))
         .route("/segment_panel", post(segment_panel_post))
-        .route("/segment_panel_bigger", get(segment_panel_bigger))
         .route(
             "/segment_panel_bigger/:start_lng/:start_lat/:end_lng/:end_lat",
             get(segment_panel_bigger_route),
