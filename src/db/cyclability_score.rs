@@ -1,3 +1,4 @@
+use super::edge::NEIGHBORS_CACHE;
 use chrono::{DateTime, Local};
 use regex::Regex;
 use sqlx::{Postgres, Row};
@@ -212,6 +213,8 @@ impl CyclabilityScore {
         sqlx::query(r#"REFRESH MATERIALIZED VIEW bike_path"#)
             .execute(conn)
             .await?;
+
+        NEIGHBORS_CACHE.lock().await.clear();
 
         let conn = conn.clone();
         tokio::spawn(async move {
