@@ -98,8 +98,6 @@ impl H for HMoyen {
             1. / 0.7
         } else if edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
             1. / 0.7
-        } else if edge.tags.get("highway") == Some(&"unclassified".to_string()) {
-            1. / 0.7
         } else if edge.tags.get("bicycle") == Some(&"designated".to_string()) {
             1. / 0.7
         } else if edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
@@ -116,6 +114,8 @@ impl H for HMoyen {
             } else {
                 1. / 0.6
             }
+        } else if edge.tags.get("highway") == Some(&"unclassified".to_string()) {
+            1. / 0.5
         } else if edge.tags.get("highway") == Some(&"tertiary".to_string()) {
             1. / 0.5
         } else if edge.tags.get("higway") == Some(&"tertiary_link".to_string()) {
@@ -159,21 +159,25 @@ impl H for HMoyen {
         if edge.road_work {
             cost = 1. / 0.33;
         }
-
-        let score = 1.
-            / match edge.score {
-                Some(score) => {
-                    if score == 0. {
-                        0.00001
-                    } else if score == -1.0 {
-                        1.0
-                    } else {
-                        score
-                    }
+        let score = match edge.score {
+            Some(score) => {
+                if score <= 0. {
+                    0.00001
+                } else {
+                    score
                 }
-                None => 1.,
-            };
-        cost * score
+            }
+            None => 1.,
+        };
+        println!(
+            "{:?} {:?} {:?} {:?} {:?}",
+            edge.tags.get("name"),
+            edge.source,
+            cost,
+            score,
+            cost / score
+        );
+        cost / score
     }
 
     fn h(&self, destination: &Edge, destination_id: i64, goal: &Edge, gaol_id: i64) -> f64 {
