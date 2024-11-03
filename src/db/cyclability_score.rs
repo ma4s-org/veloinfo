@@ -210,8 +210,6 @@ impl CyclabilityScore {
             .await?;
         };
 
-        NEIGHBORS_CACHE.lock().await.clear();
-
         let conn = conn.clone();
         tokio::spawn(async move {
             match sqlx::query(r#"REFRESH MATERIALIZED VIEW bike_path"#)
@@ -235,6 +233,7 @@ impl CyclabilityScore {
                 Ok(_) => (),
                 Err(e) => eprintln!("Error while refreshing edge: {}", e),
             };
+            NEIGHBORS_CACHE.lock().await.clear();
         });
 
         Ok(id)
