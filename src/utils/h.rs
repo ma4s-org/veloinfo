@@ -274,6 +274,6 @@ impl H for HBiggerSelection {
     }
 
     fn get_max_point(&self) -> i64 {
-        100
+        1000
     }
 }
