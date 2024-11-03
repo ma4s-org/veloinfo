@@ -4,6 +4,7 @@ use crate::db::utils::distance_meters;
 pub trait H: Send {
     fn get_cost(&self, edge: &Edge, target: i64) -> f64;
     fn h(&self, destination: &Edge, destination_id: i64, goal: &Edge, gaol_id: i64) -> f64;
+    fn get_max_point(&self) -> i64;
 }
 
 pub struct HMoyen {}
@@ -182,6 +183,10 @@ impl H for HMoyen {
 
         distance * self.get_cost(destination, destination_id)
     }
+
+    fn get_max_point(&self) -> i64 {
+        1000000000000000000
+    }
 }
 
 pub struct HBiggerSelection {}
@@ -266,5 +271,9 @@ impl H for HBiggerSelection {
         let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
 
         distance * self.get_cost(destination, destination_id)
+    }
+
+    fn get_max_point(&self) -> i64 {
+        100
     }
 }

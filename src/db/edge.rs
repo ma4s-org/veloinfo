@@ -79,7 +79,12 @@ impl Edge {
         f_score.insert(start_node_id, 0.0);
 
         // a* algorithm
+        let mut number_of_nodes = 0;
         while !open_set.is_empty() {
+            number_of_nodes += 1;
+            if number_of_nodes > h.get_max_point() {
+                break;
+            }
             let first_min_entry = min_in_open_set
                 .first_entry()
                 .expect("open set should not be empty");

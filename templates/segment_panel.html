@@ -67,7 +67,11 @@
 
 <script>
     // wait 10s before showing segment
-    setTimeout(() => {
+    display_segment_geom({{ geom_json }});
+    if (segmentTimeout) {
+        clearTimeout(segmentTimeout);
+    }
+    segmentTimeout = setTimeout(() => {
         display_segment_geom({{ geom_json }});
     }, 10000);
     {% if fit_bounds %}
