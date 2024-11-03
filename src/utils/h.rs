@@ -126,6 +126,8 @@ impl H for HMoyen {
             1. / 0.5
         } else if edge.tags.get("bicycle") == Some(&"yes".to_string()) {
             1. / 0.5
+        } else if edge.tags.get("highway") == Some(&"service".to_string()) {
+            1. / 0.5
         } else if edge.tags.get("cycleway") == Some(&"separate".to_string()) {
             1. / 0.4
         } else if edge.tags.get("cycleway:both") == Some(&"separate".to_string()) {
@@ -142,8 +144,6 @@ impl H for HMoyen {
             1. / 0.35
         } else if edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
             1. / 0.35
-        } else if edge.tags.get("highway") == Some(&"service".to_string()) {
-            1. / 0.3
         } else if edge.tags.get("higway") == Some(&"primary".to_string()) {
             1. / 0.3
         } else if edge.tags.get("higway") == Some(&"trunk".to_string()) {
