@@ -14,7 +14,6 @@ use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
 use crate::score_selector_controler::score_bounds_controler;
-use crate::utils::h::HMoyen;
 use askama::Template;
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderMap;
@@ -37,6 +36,7 @@ use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use utils::h::get_h_moyen;
 use utils::mtl;
 
 mod auth;
@@ -94,31 +94,16 @@ async fn main() {
                     NEIGHBORS_CACHE.lock().await.clear();
 
                     // filling the cache from Sainte-Anne-de-Bellevue (98896591) To Quebec (1019190375)
-                    crate::db::edge::Edge::fast_route(
-                        98896591,
-                        1019190375,
-                        Box::new(HMoyen {}),
-                        &conn,
-                    )
-                    .await;
+                    crate::db::edge::Edge::fast_route(98896591, 1019190375, get_h_moyen(), &conn)
+                        .await;
 
                     // filling the cache from Montreal (1016199248) To Sherbrooke (1870784004)
-                    crate::db::edge::Edge::fast_route(
-                        1016199248,
-                        1870784004,
-                        Box::new(HMoyen {}),
-                        &conn,
-                    )
-                    .await;
+                    crate::db::edge::Edge::fast_route(1016199248, 1870784004, get_h_moyen(), &conn)
+                        .await;
 
                     // filling the cache from Montreal (1016199248) To Mont-Tremblant (814688566)
-                    crate::db::edge::Edge::fast_route(
-                        1016199248,
-                        814688566,
-                        Box::new(HMoyen {}),
-                        &conn,
-                    )
-                    .await;
+                    crate::db::edge::Edge::fast_route(1016199248, 814688566, get_h_moyen(), &conn)
+                        .await;
                 });
             })
             .unwrap(),

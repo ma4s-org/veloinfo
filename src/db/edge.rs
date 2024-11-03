@@ -264,7 +264,8 @@ impl Edge {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::h::HMoyen;
+
+    use crate::utils::h::get_h_moyen;
 
     use super::*;
     use std::env;
@@ -274,7 +275,7 @@ mod tests {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();
-        let points = Edge::fast_route(321801851, 1764306722, Box::new(HMoyen {}), &conn).await;
+        let points = Edge::fast_route(321801851, 1764306722, get_h_moyen(), &conn).await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }

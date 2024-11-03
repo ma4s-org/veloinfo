@@ -7,6 +7,14 @@ pub trait H: Send {
     fn get_max_point(&self) -> i64;
 }
 
+pub fn get_h_moyen() -> Box<dyn H> {
+    Box::new(HMoyen {})
+}
+
+pub fn get_h_bigger_selection() -> Box<dyn H> {
+    Box::new(HBiggerSelection {})
+}
+
 pub struct HMoyen {}
 
 impl H for HMoyen {

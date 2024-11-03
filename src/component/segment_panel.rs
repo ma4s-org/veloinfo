@@ -4,6 +4,7 @@ use super::{
 use crate::db::cycleway::{Cycleway, Node};
 use crate::db::edge::Edge;
 use crate::db::user::User;
+use crate::utils::h::get_h_bigger_selection;
 use crate::{db::cyclability_score::CyclabilityScore, VeloinfoState};
 use askama::Template;
 use axum::extract::multipart::Multipart;
@@ -399,7 +400,7 @@ pub async fn segment_panel_bigger_route(
     let edges = Edge::fast_route(
         node1.node_id,
         node2.node_id,
-        Box::new(crate::utils::h::HBiggerSelection {}),
+        get_h_bigger_selection(),
         &state.conn,
     )
     .await;

@@ -1,4 +1,4 @@
-use crate::utils::h::HMoyen;
+use crate::utils::h::get_h_moyen;
 use askama::Template;
 use axum::extract::{Path, State};
 use axum_macros::debug_handler;
@@ -43,8 +43,7 @@ pub async fn route(
             return RoutePanel::error(format!("Error while fetching end node: {}", e));
         }
     };
-    let mut points =
-        Edge::fast_route(start.node_id, end.node_id, Box::new(HMoyen {}), &state.conn).await;
+    let mut points = Edge::fast_route(start.node_id, end.node_id, get_h_moyen(), &state.conn).await;
 
     if let 0 = points.len() {
         return RoutePanel::error(format!("No route found from {start:?} to {end:?}"));
