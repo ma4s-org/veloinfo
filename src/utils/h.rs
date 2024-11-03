@@ -169,14 +169,6 @@ impl H for HMoyen {
             }
             None => 1.,
         };
-        println!(
-            "{:?} {:?} {:?} {:?} {:?}",
-            edge.tags.get("name"),
-            edge.source,
-            cost,
-            score,
-            cost / score
-        );
         cost / score
     }
 
