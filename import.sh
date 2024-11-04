@@ -76,51 +76,7 @@ psql -h db -U postgres -d carte -c "
                                             nodes, 
                                             ST_DumpSegments(geom) as segment,
                                             aw.name,
-                                            aw.tags,
-                                            case
-                                                when tags->>'bicycle' = 'no' then 1 / 0.0001
-                                                when tags->>'informal' = 'yes' then 1 / 0.08
-                                                when tags->>'highway' = 'steps' and tags->>'bicycle' = 'yes' then 1 / 0.05
-                                                when tags->>'highway' = 'steps' then 1 / 0.05
-                                                when tags->>'bicycle' = 'discouraged' then 1 / 0.1
-                                                when tags->>'bicycle' = 'dismount' then 1 / 0.2
-                                                when tags->>'highway' = 'cycleway' then 1 / 1
-                                                when tags->>'cycleway' = 'track' then 1 / 0.9
-                                                when tags->>'cycleway:both' = 'track' then 1 / 0.9
-                                                when tags->>'cycleway:left' = 'track' then 1 / 0.9
-                                                when tags->>'cycleway:right' = 'track' then 1 / 0.9
-                                                when tags->>'cycleway' = 'lane' then 1 / 0.8
-                                                when tags->>'cycleway:both' = 'lane' then 1 / 0.8
-                                                when tags->>'cycleway:left' = 'lane' then 1 / 0.8
-                                                when tags->>'cycleway:right' = 'lane' then 1 / 0.8
-                                                when tags->>'cycleway' = 'shared_lane' then 1 / 0.7
-                                                when tags->>'cycleway:both' = 'shared_lane' then 1 / 0.7
-                                                when tags->>'cycleway:left' = 'shared_lane' then 1 / 0.7
-                                                when tags->>'cycleway:right' = 'shared_lane' then 1 / 0.7
-                                                when tags->>'highway' = 'path' and tags->>'bicycle' = 'yes' then 1 / 0.6
-                                                when tags->>'highway' = 'footway' and tags->>'bicycle' = 'yes' then 1 / 0.6
-                                                when tags->>'highway' = 'residential' then 1 / 0.6
-                                                when tags->>'highway' = 'unclassified' then 1 / 0.6
-                                                when tags->>'bicycle' = 'designated' then 1 / 0.5
-                                                when tags->>'highway' = 'tertiary' then 1 / 0.45
-                                                when tags->>'highway' = 'tertiary_link' then 1 / 0.45
-                                                when tags->>'highway' = 'footway' and tags->>'footway' = 'crossing' then 1 / 0.3
-                                                when tags->>'highway' = 'secondary' then 1 / 0.3
-                                                when tags->>'highway' = 'secondary_link' then 1 / 0.3
-                                                when tags->>'bicycle' = 'yes' then 1 / 0.3
-                                                when tags->>'highway' = 'service' then 1 / 0.3
-                                                when tags->>'highway' = 'path' then 1 / 0.3
-                                                when tags->>'cycleway' = 'separate' then 1 / 0.2
-                                                when tags->>'cycleway:both' = 'separate' then 1 / 0.2
-                                                when tags->>'cycleway:left' = 'separate' then 1 / 0.2
-                                                when tags->>'cycleway:right' = 'separate' then 1 / 0.2
-                                                when tags->>'highway' = 'primary' then 1 / 0.1
-                                                when tags->>'highway' = 'trunk' then 1 / 0.1
-                                                when tags->>'highway' = 'footway' then 1 / 0.1
-                                                when tags->>'highway' = 'proposed' then 1 / 0.001
-                                                when tags->>'highway' is not null then 1 / 0.01
-                                                else 1 / 0.25
-                                            end as cost_road
+                                            aw.tags
                                         from all_way aw;       
                                     create unique index _all_way_edge_id_idx on _all_way_edge (id);
                                     create index _all_way_edge_way_id_idx on _all_way_edge (way_id);
@@ -138,27 +94,7 @@ psql -h db -U postgres -d carte -c "
                                         awe.way_id,
                                         awe.tags,
                                         score,
-                                        (segment).geom,
-                                        cost_road,
-                                        st_length((segment).geom) *
-                                        CASE
-                                            WHEN score IS NULL THEN 
-                                                cost_road
-                                            WHEN score = 0 THEN 1 / 0.001
-                                            ELSE cost_road * (1 / score)
-                                        END as cost,
-                                        st_length((segment).geom) *
-                                        CASE
-                                            when awe.tags->>'oneway:bicycle' = 'no' and score is not null and score != 0 then cost_road * (1 / score)
-                                            when awe.tags->>'oneway:bicycle' = 'no' then cost_road
-                                            when awe.tags->>'oneway' = 'no' and score is not null and score != 0 then cost_road * (1 / score)
-                                            when awe.tags->>'oneway:bicycle' = 'yes' then 1 / 0.001
-                                            when awe.tags->>'oneway' = 'yes' then 1 / 0.001
-                                            WHEN score IS NULL THEN
-                                                cost_road
-                                            WHEN score = 0 THEN 1 / 0.001
-                                            ELSE cost_road * (1 / score)
-                                        END as reverse_cost
+                                        (segment).geom
                                     from _all_way_edge awe
                                     left join  last_cycleway_score cs on cs.way_id = awe.way_id
                                     where awe.nodes[(segment).path[1]+1] is not null;       

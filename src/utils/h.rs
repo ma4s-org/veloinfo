@@ -148,10 +148,10 @@ impl H for HMoyen {
             1. / 0.3
         } else if edge.tags.get("higway") == Some(&"trunk".to_string()) {
             1. / 0.3
-        } else if edge.tags.get("higway") == Some(&"footway".to_string()) {
-            1. / 0.3
         } else if edge.tags.get("higway").is_some() {
             1. / 0.3
+        } else if edge.tags.get("higway") == Some(&"footway".to_string()) {
+            1. / 0.2
         } else {
             1. / 0.025
         };
