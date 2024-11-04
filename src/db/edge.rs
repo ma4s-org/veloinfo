@@ -177,7 +177,8 @@ impl Edge {
                 FROM edge e
 	            WHERE 
                     ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) and
-                    tags->>'highway' != 'footway' and tags->>'bicycle' != 'no' and tags->>'highway' != 'path' 
+                    tags->>'highway' != 'footway' and 
+                    tags->>'highway' != 'path' 
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
