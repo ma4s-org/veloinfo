@@ -3,8 +3,8 @@ use std::{
     fmt::Debug,
 };
 
-use crate::db::utils::Score;
 use crate::utils::h::H;
+use crate::{db::utils::Score, utils::h::get_h_moyen};
 use futures::future::join_all;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -51,8 +51,7 @@ pub struct Edge {
 }
 
 lazy_static! {
-    pub static ref NEIGHBORS_CACHE: Mutex<HashMap<i64, ARc<Vec<Edge>>>> =
-        Mutex::new(HashMap::new());
+    static ref NEIGHBORS_CACHE: Mutex<HashMap<i64, ARc<Vec<Edge>>>> = Mutex::new(HashMap::new());
 }
 
 impl Edge {
@@ -258,6 +257,28 @@ impl Edge {
                 ARc::new(vec![])
             }
         }
+    }
+
+    pub async fn clear_cache(conn: &sqlx::Pool<Postgres>) {
+        println!("Clearing cache");
+        NEIGHBORS_CACHE.lock().await.clear();
+
+        //on a different thread, we fill the cache
+        let conn = conn.clone();
+        tokio::spawn(async move {
+            println!("Filling cache");
+            // filling the cache from Sainte-Anne-de-Bellevue (235888032) To Quebec (177522966)
+            crate::db::edge::Edge::fast_route(235888032, 177522966, get_h_moyen(), &conn).await;
+            println!("Filled cache Sainte-Anne-de-Bellevue (235888032) To Quebec (177522966) done");
+
+            // filling the cache from Montreal (26233313) To Sherbrooke (1870784004)
+            crate::db::edge::Edge::fast_route(26233313, 1870784004, get_h_moyen(), &conn).await;
+            println!("Filled cache Montreal (26233313) To Sherbrooke (1870784004) done");
+
+            // filling the cache from Montreal (26233313) To Mont-Tremblant (2352518821)
+            crate::db::edge::Edge::fast_route(26233313, 2352518821, get_h_moyen(), &conn).await;
+            println!("Filled cache Montreal (26233313) To Mont-Tremblant (2352518821) done");
+        });
     }
 }
 

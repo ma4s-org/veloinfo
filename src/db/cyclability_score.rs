@@ -1,8 +1,9 @@
-use super::edge::NEIGHBORS_CACHE;
 use chrono::{DateTime, Local};
 use regex::Regex;
 use sqlx::{Postgres, Row};
 use uuid::Uuid;
+
+use super::edge::Edge;
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct CyclabilityScore {
@@ -233,7 +234,7 @@ impl CyclabilityScore {
                 Ok(_) => (),
                 Err(e) => eprintln!("Error while refreshing edge: {}", e),
             };
-            NEIGHBORS_CACHE.lock().await.clear();
+            Edge::clear_cache(&conn).await;
         });
 
         Ok(id)

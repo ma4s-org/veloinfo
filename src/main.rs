@@ -24,7 +24,7 @@ use axum::routing::{get, Router};
 use component::follow_panel::follow;
 use component::route_panel::route;
 use component::style::style;
-use db::edge::NEIGHBORS_CACHE;
+use db::edge::Edge;
 use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
 use sqlx::PgPool;
@@ -36,7 +36,6 @@ use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use utils::h::get_h_moyen;
 use utils::mtl;
 
 mod auth;
@@ -70,8 +69,9 @@ async fn main() {
         .await
         .unwrap();
     let state = VeloinfoState { conn: conn.clone() };
-
     sqlx::migrate!().run(&conn).await.unwrap();
+
+    Edge::clear_cache(&conn).await;
 
     println!("Starting cron scheduler");
     let sched = JobScheduler::new().await.unwrap();
@@ -91,19 +91,7 @@ async fn main() {
 
                     // clearing cache
                     mtl::fetch_montreal_data(&conn).await;
-                    NEIGHBORS_CACHE.lock().await.clear();
-
-                    // filling the cache from Sainte-Anne-de-Bellevue (98896591) To Quebec (1019190375)
-                    crate::db::edge::Edge::fast_route(98896591, 1019190375, get_h_moyen(), &conn)
-                        .await;
-
-                    // filling the cache from Montreal (1016199248) To Sherbrooke (1870784004)
-                    crate::db::edge::Edge::fast_route(1016199248, 1870784004, get_h_moyen(), &conn)
-                        .await;
-
-                    // filling the cache from Montreal (1016199248) To Mont-Tremblant (814688566)
-                    crate::db::edge::Edge::fast_route(1016199248, 814688566, get_h_moyen(), &conn)
-                        .await;
+                    Edge::clear_cache(&conn).await;
                 });
             })
             .unwrap(),
