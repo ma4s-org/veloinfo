@@ -181,7 +181,7 @@ impl Edge {
                     AND tags->>'highway' NOT IN ('footway', 'path', 'steps', 'pedestrian')
                     AND (
                         tags->>'bicycle' != 'no' 
-                        OR (tags->>'bicycle' IS NULL AND tags->>'highway' IN ('residential', 'tertiary', 'secondary', 'primary'))
+                        OR (tags->>'bicycle' IS NULL AND tags->>'highway' IN ('residential', 'tertiary', 'secondary', 'primary', 'service'))
                     )
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
