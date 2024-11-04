@@ -278,6 +278,12 @@ impl Edge {
 
             // filling the cache from Montreal (26233313) To Mont-Tremblant (2352518821)
             crate::db::edge::Edge::fast_route(26233313, 2352518821, get_h_moyen(), &conn).await;
+
+            // filling the cache from Montreal (26233313) To Trois-Rivières (305805771)
+            crate::db::edge::Edge::fast_route(26233313, 305805771, get_h_moyen(), &conn).await;
+
+            // filling the cache from Trois-Rivières (305805771) To Québec (177522966)
+            crate::db::edge::Edge::fast_route(305805771, 177522966, get_h_moyen(), &conn).await;
         });
     }
 }
