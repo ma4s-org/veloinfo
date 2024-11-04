@@ -34,13 +34,19 @@ pub async fn route(
     let start = match Edge::find_closest_node(&start_lng, &start_lat, &state.conn).await {
         Ok(start) => start,
         Err(e) => {
-            return RoutePanel::error(format!("Error while fetching start node: {}", e));
+            return RoutePanel::error(format!(
+                "Error while fetching start node for {}, {}: {}",
+                start_lat, start_lng, e
+            ));
         }
     };
     let end = match Edge::find_closest_node(&end_lng, &end_lat, &state.conn).await {
         Ok(end) => end,
         Err(e) => {
-            return RoutePanel::error(format!("Error while fetching end node: {}", e));
+            return RoutePanel::error(format!(
+                "Error while fetching end node for {}, {}: {}",
+                end_lat, end_lng, e
+            ));
         }
     };
     let mut points = Edge::fast_route(start.node_id, end.node_id, get_h_moyen(), &state.conn).await;

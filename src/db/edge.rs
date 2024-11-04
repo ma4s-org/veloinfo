@@ -175,11 +175,14 @@ impl Edge {
                         source as node_id,
                         geom
                 FROM edge e
-	            WHERE 
-                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) and
-                    (tags->>'highway' is null or tags->>'highway' != 'footway') and 
-                    (tags->>'highway' is null or tags->>'highway' != 'path') and 
-                    (tags->>'bicycle' is null or tags->>'bicycle' != 'no')  
+                WHERE 
+                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) 
+                    AND tags->>'highway' is not null
+                    AND tags->>'highway' NOT IN ('footway', 'path', 'steps', 'pedestrian')
+                    AND (
+                        tags->>'bicycle' != 'no' 
+                        OR (tags->>'bicycle' IS NULL AND tags->>'highway' IN ('residential', 'tertiary', 'secondary', 'primary'))
+                    )
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
