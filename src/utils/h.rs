@@ -28,20 +28,20 @@ impl H for HMoyen {
                 || edge.tags.get("cycleway:left") == Some(&"no".to_string()))
             && edge.tags.get("oneway:bicycle") != Some(&"no".to_string())
         {
-            return 1. / 0.1;
+            return 1. / 0.05;
         }
 
         let mut cost = if edge.tags.get("bicycle") == Some(&"no".to_string()) {
-            1. / 0.00001
+            1. / 0.1
         } else if edge.tags.get("higway") == Some(&"proposed".to_string()) {
-            1. / 0.00001
+            1. / 0.05
         } else if edge.tags.get("informal") == Some(&"yes".to_string()) {
             1. / 0.1
         } else if edge.tags.get("highway") == Some(&"steps".to_string()) {
             if edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.3
             } else {
-                1. / 0.005
+                1. / 0.1
             }
         } else if edge.tags.get("highway") == Some(&"path".to_string())
             && (edge.tags.get("bicycle") == Some(&"dismount".to_string())
@@ -153,7 +153,7 @@ impl H for HMoyen {
         } else if edge.tags.get("higway") == Some(&"footway".to_string()) {
             1. / 0.2
         } else {
-            1. / 0.025
+            1. / 0.05
         };
 
         if edge.road_work {
