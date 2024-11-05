@@ -351,6 +351,9 @@ local all_node = osm2pgsql.define_node_table('all_node', {{
 }, {
     column = 'shop',
     type = 'text'
+}, {
+    column = 'network',
+    type = 'text'
 }})
 
 local address = osm2pgsql.define_table({
@@ -579,6 +582,7 @@ function osm2pgsql.process_node(object)
             tags = object.tags,
             place = object.tags.place,
             amenity = object.tags.amenity,
+            network = object.tags.network,
             bicycle_parking = object.tags["bicycle_parking"],
             capacity = object.tags.capacity,
             shop = object.tags.shop

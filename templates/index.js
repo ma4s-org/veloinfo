@@ -79,6 +79,9 @@ map.on("load", async () => {
     const bicycle_repair_station = await map.loadImage('/pub/bicycle_repair_station.png');
     map.addImage('bicycle_repair_station', bicycle_repair_station.data);
 
+    const bixi = await map.loadImage('/pub/bixi.png');
+    map.addImage('bixi', bixi.data);
+
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })
