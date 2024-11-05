@@ -6,40 +6,40 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.92"
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
-axum = { version = "0.7.5", features = ["multipart"] }
-axum-extra = { version = "0.9.3", features = ["cookie", "typed-header"] }
-axum-macros = "0.4.1"
+axum = { version = "0.7.7", features = ["multipart"] }
+axum-extra = { version = "0.9.4", features = ["cookie", "typed-header"] }
+axum-macros = "0.4.2"
 chrono = { version = "0.4.38", features = ["unstable-locales"] }
 chrono-tz = "0.9.0"
-futures = "0.3.30"
-geo = { version = "0.29.0", features = ["serde"] }
+futures = "0.3.31"
+geo = { version = "0.29.1", features = ["serde"] }
 geojson = "0.24.1"
 geozero = { version = "0.14.0", features = ["with-postgis-sqlx"] }
-image = "0.25.2"
+image = "0.25.4"
 lazy_static = "1.5.0"
 libheif-rs = "1.0.2"
-pathfinding = "4.10.0"
-postgres = "0.19.8"
+pathfinding = "4.11.0"
+postgres = "0.19.9"
 rayon = "1.10.0"
-regex = "1.10.6"
-reqwest = { version = "0.12.5", features = ["json"] }
-serde = "1.0.204"
-serde_json = "1.0.122"
+regex = "1.11.1"
+reqwest = { version = "0.12.9", features = ["json"] }
+serde = "1.0.214"
+serde_json = "1.0.132"
 sqlx = { version = "0.8.2", features = ["postgres", "runtime-tokio", "chrono", "uuid", "time"] }
 time = { version = "0.3.36", features = ["formatting"] }
 timeago = "0.4.2"
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.41.0", features = ["full"] }
 tokio-cron-scheduler = "0.10.2"
 tower-http = { version = "0.5.2", features = ["fs", "trace"] }
-tower-livereload = "0.9.3"
+tower-livereload = "0.9.4"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [dependencies.uuid]
-version = "1.10.0"
+version = "1.11.0"
 features = [
     "v7",                # Lets you generate random UUIDs
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
