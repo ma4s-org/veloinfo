@@ -53,6 +53,18 @@ var map = new maplibregl.Map({
     zoom: zoom,
     minZoom: 8
 });
+(async () => {
+    const bike_image = await map.loadImage('/pub/bicycle-parking.png');
+    map.addImage('bike-parking', bike_image.data);
+    const drinking_water = await map.loadImage('/pub/drinking_water.png');
+    map.addImage('drinking-water', drinking_water.data);
+    const bike_shop = await map.loadImage('/pub/bike_shop.png');
+    map.addImage('bike-shop', bike_shop.data);
+    const bicycle_repair_station = await map.loadImage('/pub/bicycle_repair_station.png');
+    map.addImage('bicycle_repair_station', bicycle_repair_station.data);
+    const bixi = await map.loadImage('/pub/bixi.png');
+    map.addImage('bixi', bixi.data);
+})();
 
 map.addControl(new maplibregl.NavigationControl());
 let geolocate = new maplibregl.GeolocateControl({
@@ -67,21 +79,6 @@ let geolocate = new maplibregl.GeolocateControl({
 map.addControl(geolocate);
 
 map.on("load", async () => {
-    const bike_image = await map.loadImage('/pub/bicycle-parking.png');
-    map.addImage('bike-parking', bike_image.data);
-
-    const drinking_water = await map.loadImage('/pub/drinking_water.png');
-    map.addImage('drinking-water', drinking_water.data);
-
-    const bike_shop = await map.loadImage('/pub/bike_shop.png');
-    map.addImage('bike-shop', bike_shop.data);
-
-    const bicycle_repair_station = await map.loadImage('/pub/bicycle_repair_station.png');
-    map.addImage('bicycle_repair_station', bicycle_repair_station.data);
-
-    const bixi = await map.loadImage('/pub/bixi.png');
-    map.addImage('bixi', bixi.data);
-
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })

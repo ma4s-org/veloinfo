@@ -5,53 +5,6 @@ wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf -O
 osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
 psql -h db -U postgres -d carte -c "
-                                    drop materialized view if exists bike_path;
-                                    CREATE MATERIALIZED VIEW bike_path AS
-                                        SELECT way_id,
-                                                name,
-                                                geom,
-                                                source,
-                                                target,
-                                                kind,
-                                                tags,
-                                                nodes,
-                                                case
-                                                    when score is null then -1
-                                                    else score
-                                                end as score
-                                            FROM (
-                                                SELECT c.*, cs.score,
-                                                ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
-                                                FROM cycleway_way c 
-                                                LEFT JOIN cyclability_score cs ON c.way_id = ANY(cs.way_ids)
-                                            ) t
-                                        WHERE t.rn = 1;
-                                    CREATE UNIQUE INDEX bike_path_way_id_idx ON bike_path(way_id);
-                                    CREATE INDEX edge_geom_gist ON bike_path USING gist(geom);
-
-                                    CREATE MATERIALIZED VIEW bike_path_far AS
-                                        SELECT way_id,
-                                                name,
-                                                geom,
-                                                source,
-                                                target,
-                                                kind,
-                                                tags,
-                                                nodes,
-                                                case
-                                                    when score is null then -1
-                                                    else score
-                                                end as score
-                                            FROM (
-                                                SELECT c.*, cs.score,
-                                                ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
-                                                FROM cycleway_way_far c 
-                                                LEFT JOIN cyclability_score cs ON c.way_id = ANY(cs.way_ids)
-                                            ) t
-                                        WHERE t.rn = 1;
-                                    CREATE UNIQUE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);
-                                    CREATE INDEX edge_geom_far_gist ON bike_path_far USING gist(geom);
-
                                     drop materialized view if exists last_cycleway_score cascade;
                                     CREATE MATERIALIZED VIEW last_cycleway_score
                                     AS
@@ -64,6 +17,44 @@ psql -h db -U postgres -d carte -c "
                                             ) t
                                         WHERE t.rn = 1;
                                     CREATE UNIQUE INDEX last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
+
+                                    drop materialized view if exists bike_path;
+                                    CREATE MATERIALIZED VIEW bike_path as
+                                        SELECT c.way_id,
+                                                c.name,
+                                                c.geom,
+                                                c.source,
+                                                c.target,
+                                                c.kind,
+                                                lcs.tags,
+                                                lcs.nodes,
+                                                case
+                                                    when score is null then -1
+                                                    else score
+                                                end as score
+                                            FROM cycleway_way c
+                                            LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id;
+                                    CREATE UNIQUE INDEX bike_path_way_id_idx ON bike_path(way_id);
+                                    CREATE INDEX edge_geom_gist ON bike_path USING gist(geom);
+                                    
+                                    drop materialized view if exists bike_path_far;
+                                    CREATE MATERIALIZED VIEW bike_path_far as
+                                        SELECT c.way_id,
+                                                c.name,
+                                                c.geom,
+                                                c.source,
+                                                c.target,
+                                                c.kind,
+                                                lcs.tags,
+                                                lcs.nodes,
+                                                case
+                                                    when score is null then -1
+                                                    else score
+                                                end as score
+                                            FROM cycleway_way_far c
+                                            LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id;
+                                    CREATE UNIQUE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);
+                                    CREATE INDEX edge_geom_far_gist ON bike_path_far USING gist(geom);
                                     
                                     drop materialized view if exists _all_way_edge;
                                     drop sequence if exists edge_id;
