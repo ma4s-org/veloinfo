@@ -28,10 +28,7 @@ psql -h db -U postgres -d carte -c "
                                                 c.kind,
                                                 lcs.tags,
                                                 lcs.nodes,
-                                                case
-                                                    when score is null then -1
-                                                    else score
-                                                end as score
+                                                score
                                             FROM cycleway_way c
                                             LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id;
                                     CREATE UNIQUE INDEX bike_path_way_id_idx ON bike_path(way_id);
@@ -47,10 +44,7 @@ psql -h db -U postgres -d carte -c "
                                                 c.kind,
                                                 lcs.tags,
                                                 lcs.nodes,
-                                                case
-                                                    when score is null then -1
-                                                    else score
-                                                end as score
+                                                score
                                             FROM cycleway_way_far c
                                             LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id;
                                     CREATE UNIQUE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);

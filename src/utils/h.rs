@@ -162,7 +162,7 @@ impl H for HMoyen {
         let score = match edge.score {
             Some(score) => {
                 if score <= 0. {
-                    0.00001
+                    0.01
                 } else {
                     score
                 }
