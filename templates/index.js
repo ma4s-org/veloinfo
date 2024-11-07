@@ -94,8 +94,25 @@ map.on("click", async function (event) {
     }
 });
 
+let timeout_url = null;
 map.on("move", function (e) {
-    update_url();
+    if (timeout_url) {
+        clearTimeout(timeout_url);
+    }
+    timeout_url = setTimeout(() => {
+        window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
+        const position = {
+            "lng": + map.getCenter().lng,
+            "lat": + map.getCenter().lat,
+            "zoom": + map.getZoom()
+        }
+        localStorage.setItem("position", JSON.stringify(position));
+        if (document.getElementById("info_panel_up")) {
+            const bounds = map.getBounds();
+            htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
+        }
+    }, 1000);
+
 });
 
 let start_marker = null;
@@ -147,67 +164,6 @@ async function selectBigger(event) {
 }
 
 
-function display_segment_geom(geom) {
-    if (map.getLayer("selected")) {
-        map.getSource("selected").setData({
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "MultiLineString",
-                "coordinates": geom
-            }
-        });
-    } else {
-        map.addSource("selected", {
-            "type": "geojson",
-            "data": {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "type": "MultiLineString",
-                    "coordinates": geom
-                }
-            }
-        })
-        map.addLayer({
-            "id": "selected",
-            "type": "line",
-            "source": "selected",
-            "paint": {
-                "line-width": 8,
-                "line-color": "hsl(205, 100%, 50%)",
-                "line-blur": 0,
-                "line-opacity": 0.50
-            }
-        },
-            "Road labels")
-    }
-    if (!start_marker) {
-        start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
-    }
-    map.getSource("veloinfo").setUrl("{{martin_url}}/bike_path");
-}
-
-
-let timeout_url = null;
-function update_url() {
-    if (timeout_url) {
-        clearTimeout(timeout_url);
-    }
-    timeout_url = setTimeout(() => {
-        window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
-        const position = {
-            "lng": + map.getCenter().lng,
-            "lat": + map.getCenter().lat,
-            "zoom": + map.getZoom()
-        }
-        localStorage.setItem("position", JSON.stringify(position));
-        if (document.getElementById("info_panel_up")) {
-            const bounds = map.getBounds();
-            htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
-        }
-    }, 1000);
-}
 
 async function clear() {
     if (start_marker) {

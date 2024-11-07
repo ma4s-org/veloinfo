@@ -66,13 +66,54 @@
 </div>
 
 <script>
+    var geom = {{ geom_json }};
+    {% if fit_bounds %}
+    map.fitBounds(fitBounds(geom[0]), { padding: window.innerWidth * .10 });
+    {% endif %}
+    if (!start_marker) {
+        start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
+    }
     {% if !edit %}
-    display_segment_geom({{ geom_json }});
+    if (map.getLayer("selected")) {
+        console.log("updating selected layer");
+        map.getSource("selected").setData({
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "MultiLineString",
+                "coordinates": geom
+            }
+        });
+    } else {
+        console.log("adding selected layer");
+
+        map.addSource("selected", {
+            "type": "geojson",
+            "data": {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "MultiLineString",
+                    "coordinates": geom
+                }
+            }
+        })
+        map.addLayer({
+            "id": "selected",
+            "type": "line",
+            "source": "selected",
+            "paint": {
+                "line-width": 8,
+                "line-color": "hsl(205, 100%, 50%)",
+                "line-blur": 0,
+                "line-opacity": 0.50
+            }
+        },
+            "Road labels")
+    }
+    map.getSource("veloinfo").setUrl("{{martin_url}}/bike_path");
     setTimeout(() => {
         map.getSource("veloinfo").setUrl("{{martin_url}}/bike_path");
     }, 10000);
-    {% if fit_bounds %}
-    map.fitBounds(fitBounds({{ geom_json }}), { padding: window.innerWidth * .10 });
-    {% endif %}
     {% endif %}
 </script>

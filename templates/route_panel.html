@@ -33,7 +33,41 @@
 <script type="text/javascript">
     {% if coordinates != "" %}
     var coordinates = {{ coordinates }};
-    display_segment_geom([coordinates]);
+    if (map.getLayer("selected")) {
+        map.getSource("selected").setData({
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "MultiLineString",
+                "coordinates": [coordinates]
+            }
+        });
+    } else {
+        map.addSource("selected", {
+            "type": "geojson",
+            "data": {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "type": "MultiLineString",
+                    "coordinates": [coordinates]
+                }
+            }
+        })
+        map.addLayer({
+            "id": "selected",
+            "type": "line",
+            "source": "selected",
+            "paint": {
+                "line-width": 8,
+                "line-color": "hsl(205, 100%, 50%)",
+                "line-blur": 0,
+                "line-opacity": 0.50
+            }
+        },
+            "Road labels")
+    }
+
     var bounds = fitBounds(coordinates);
     map.fitBounds(bounds, { duration: 1000 });
     var bearing = calculateBearing(
