@@ -66,15 +66,13 @@
 </div>
 
 <script>
-    // wait 10s before showing segment
+    {% if !edit %}
     display_segment_geom({{ geom_json }});
-    if (segmentTimeout) {
-        clearTimeout(segmentTimeout);
-    }
-    segmentTimeout = setTimeout(() => {
-        display_segment_geom({{ geom_json }});
+    setTimeout(() => {
+        map.getSource("veloinfo").setUrl("{{martin_url}}/bike_path");
     }, 10000);
     {% if fit_bounds %}
     map.fitBounds(fitBounds({{ geom_json }}), { padding: window.innerWidth * .10 });
+    {% endif %}
     {% endif %}
 </script>

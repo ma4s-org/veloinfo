@@ -36,6 +36,7 @@ pub struct SegmentPanel {
     geom_json: String,
     fit_bounds: bool,
     user_name: String,
+    martin_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -153,6 +154,7 @@ pub async fn segment_panel_post(
                     geom_json: "".to_string(),
                     fit_bounds: false,
                     user_name,
+                    martin_url: env::var("MARTIN_URL").unwrap(),
                 },
             );
         }
@@ -285,6 +287,7 @@ pub async fn segment_panel_edit(
         geom_json,
         fit_bounds: false,
         user_name,
+        martin_url: env::var("MARTIN_URL").unwrap(),
     };
 
     (jar, segment_panel)
@@ -363,6 +366,7 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPane
         geom_json: serde_json::to_string(&geom).unwrap_or("".to_string()),
         fit_bounds: false,
         user_name: "".to_string(),
+        martin_url: env::var("MARTIN_URL").unwrap(),
     }
 }
 
@@ -480,6 +484,7 @@ async fn segment_panel_score_id(conn: &sqlx::Pool<Postgres>, id: i32, edit: bool
         geom_json,
         fit_bounds: true,
         user_name: "".to_string(),
+        martin_url: env::var("MARTIN_URL").unwrap(),
     }
 }
 
@@ -538,6 +543,7 @@ pub async fn segment_panel_lng_lat(
         geom_json: serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
         fit_bounds: false,
         user_name: "".to_string(),
+        martin_url: env::var("MARTIN_URL").unwrap(),
     };
 
     info_panel
