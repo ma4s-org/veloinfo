@@ -118,6 +118,10 @@ map.on("move", function (e) {
 let start_marker = null;
 let end_marker = null;
 async function select(event) {
+    if (start_marker && end_marker) {
+        clear();
+    }
+
     if (start_marker && map.getLayer("selected")) {
         selectBigger(event);
         return;
