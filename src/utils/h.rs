@@ -127,7 +127,7 @@ impl H for HMoyen {
         } else if edge.tags.get("higway") == Some(&"footway".to_string())
             && edge.tags.get("footway") == Some(&"crossing".to_string())
         {
-            1. / 0.5
+            1. / 0.8
         } else if edge.tags.get("bicycle") == Some(&"yes".to_string()) {
             1. / 0.5
         } else if edge.tags.get("highway") == Some(&"service".to_string()) {
