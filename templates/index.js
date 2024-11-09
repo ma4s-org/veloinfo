@@ -118,7 +118,7 @@ map.on("move", function (e) {
 let start_marker = null;
 let end_marker = null;
 async function select(event) {
-    if (start_marker) {
+    if (start_marker && map.getLayer("selected")) {
         selectBigger(event);
         return;
     }
@@ -174,17 +174,9 @@ async function clear() {
         end_marker.remove();
         end_marker = null;
     }
-    const selected = map.getSource("selected");
-    if (selected) {
-        selected.setData({
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "LineString",
-                "coordinates": []
-            }
-        });
-    }
+    map.removeLayer("selected");
+    map.removeSource("selected");
+
     // Display info panel
     htmx.ajax("GET", "/info_panel/down", "#info");
 }
