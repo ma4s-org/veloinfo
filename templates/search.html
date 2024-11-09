@@ -1,5 +1,5 @@
 <div class="absolute top-4 z-10 flex justify-center">
-    <form class="">
+    <form class="" onsubmit="return false;">
         <input class="w-52 h-8 rounded-lg outline outline-gray-800 text-center" id="query" name="query" type="text"
             name="query" placeholder="Rechercher" value="{{query}}" autofocus hx-on:keyup="search()"
             hx-on:click="displayHistory()" hx-on:focusout="clearResult()" />
@@ -31,6 +31,12 @@
     function search() {
         lng = map.getCenter().lng;
         lat = map.getCenter().lat;
+        // Si enter on séléctionne le premier résultat
+        if (event.key === "Enter") {
+            document.querySelector("#search_results div.result").click();
+            document.getElementById("search_results").remove();
+            return;
+        }
         htmx.ajax('POST', '/search', { target: "#search_results", values: { query: query.value, lng: lng, lat: lat } });
     }
 
