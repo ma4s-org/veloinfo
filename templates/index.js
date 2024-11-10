@@ -37,12 +37,14 @@ setInterval(() => {
 // Speed
 navigator.geolocation.watchPosition((position) => {
     speed = position.coords.speed * 3.6;
-    speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
+    if (document.getElementById("speed_value")) {
+        speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
 
-    if (speed == 0 || speed == null) {
-        document.getElementById("speed_value").parentElement.style.display = "none";
-    } else {
-        document.getElementById("speed_value").parentElement.style.display = "block";
+        if (speed == 0 || speed == null) {
+            document.getElementById("speed_value").parentElement.style.display = "none";
+        } else {
+            document.getElementById("speed_value").parentElement.style.display = "block";
+        }
     }
 });
 

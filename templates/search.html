@@ -17,13 +17,15 @@
         if (query.value === "") { // Vérifier si le champ de recherche est vide
             let recentTargets = JSON.parse(localStorage.getItem('recentTargets')) || [];
             let searchResults = document.querySelector("#search_results");
-            searchResults.innerHTML = ""; // Effacer les résultats de recherche existants
-            for (let target of recentTargets) {
-                let div = document.createElement("div");
-                div.innerHTML = target;
-                searchResults.appendChild(div);
+            if (searchResults) {
+                searchResults.innerHTML = ""; // Effacer les résultats de recherche existants
+                for (let target of recentTargets) {
+                    let div = document.createElement("div");
+                    div.innerHTML = target;
+                    searchResults.appendChild(div);
+                }
+                htmx.process(searchResults);
             }
-            htmx.process(searchResults);
         }
     }
 
@@ -34,7 +36,7 @@
         // Si enter on séléctionne le premier résultat
         if (event.key === "Enter") {
             document.querySelector("#search_results div.result").click();
-            document.getElementById("search_results").remove();
+            document.getElementById("search_results").innerHTML = "";
             return;
         }
         htmx.ajax('POST', '/search', { target: "#search_results", values: { query: query.value, lng: lng, lat: lat } });
