@@ -73,8 +73,12 @@
 
     function clearResult() {
         setTimeout(() => {
-            document.getElementById("search_results").innerHTML = "";
-            document.getElementById("query").value = "";
+            if (document.getElementById("search_results")) {
+                document.getElementById("search_results").innerHTML = "";
+            }
+            if (document.getElementById("query")) {
+                document.getElementById("query").value = "";
+            }
         }, 250);
     }
 
