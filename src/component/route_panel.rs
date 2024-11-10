@@ -49,7 +49,8 @@ pub async fn route(
             ));
         }
     };
-    let mut points = Edge::fast_route(start.node_id, end.node_id, get_h_moyen(), &state.conn).await;
+    let mut points =
+        Edge::a_star_route(start.node_id, end.node_id, get_h_moyen(), &state.conn).await;
 
     if let 0 = points.len() {
         return RoutePanel::error(format!("No route found from {start:?} to {end:?}"));

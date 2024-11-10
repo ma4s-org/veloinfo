@@ -55,7 +55,7 @@ lazy_static! {
 }
 
 impl Edge {
-    pub async fn fast_route(
+    pub async fn a_star_route(
         start_node_id: i64,
         end_node_id: i64,
         h: Box<dyn H>,
@@ -260,25 +260,39 @@ impl Edge {
     }
 
     pub async fn clear_cache(conn: &sqlx::Pool<Postgres>) {
-        NEIGHBORS_CACHE.lock().await.clear();
+        // Tenter d'acquérir le verrou avec timeout
+        match tokio::time::timeout(std::time::Duration::from_secs(5), NEIGHBORS_CACHE.lock()).await
+        {
+            Ok(mut guard) => {
+                println!("Cache lock acquired, clearing...");
+                guard.clear();
+                println!("Cache cleared");
+            }
+            Err(_) => {
+                println!("Failed to acquire cache lock after 5 seconds");
+                return;
+            }
+        };
 
-        //on a different thread, we fill the cache
+        // Remplir le cache de manière synchrone
         let conn = conn.clone();
         tokio::spawn(async move {
-            // filling the cache from Sainte-Anne-de-Bellevue (235888032) To Quebec (177522966)
-            crate::db::edge::Edge::fast_route(235888032, 177522966, get_h_moyen(), &conn).await;
+            println!("Starting cache prefill...");
 
-            // filling the cache from Montreal (26233313) To Sherbrooke (1870784004)
-            crate::db::edge::Edge::fast_route(26233313, 1870784004, get_h_moyen(), &conn).await;
+            let routes = vec![
+                (235888032, 177522966, "Sainte-Anne-de-Bellevue to Quebec"),
+                (26233313, 1870784004, "Montreal to Sherbrooke"),
+                (26233313, 2352518821, "Montreal to Mont-Tremblant"),
+                (26233313, 305805771, "Montreal to Trois-Rivières"),
+                (305805771, 177522966, "Trois-Rivières to Québec"),
+            ];
 
-            // filling the cache from Montreal (26233313) To Mont-Tremblant (2352518821)
-            crate::db::edge::Edge::fast_route(26233313, 2352518821, get_h_moyen(), &conn).await;
+            for (source, target, description) in routes {
+                println!("Calculating route: {}", description);
+                Edge::a_star_route(source, target, get_h_moyen(), &conn).await;
+            }
 
-            // filling the cache from Montreal (26233313) To Trois-Rivières (305805771)
-            crate::db::edge::Edge::fast_route(26233313, 305805771, get_h_moyen(), &conn).await;
-
-            // filling the cache from Trois-Rivières (305805771) To Québec (177522966)
-            crate::db::edge::Edge::fast_route(305805771, 177522966, get_h_moyen(), &conn).await;
+            println!("Cache prefill complete");
         });
     }
 }
@@ -296,7 +310,7 @@ mod tests {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();
-        let points = Edge::fast_route(321801851, 1764306722, get_h_moyen(), &conn).await;
+        let points = Edge::a_star_route(321801851, 1764306722, get_h_moyen(), &conn).await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }
