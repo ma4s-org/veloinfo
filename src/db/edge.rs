@@ -261,6 +261,7 @@ impl Edge {
 
     pub async fn clear_cache(conn: &sqlx::Pool<Postgres>) {
         // Tenter d'acquérir le verrou avec timeout
+        println!("Attempting to acquire cache lock...");
         match tokio::time::timeout(std::time::Duration::from_secs(5), NEIGHBORS_CACHE.lock()).await
         {
             Ok(mut guard) => {
