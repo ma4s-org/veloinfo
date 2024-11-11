@@ -47,12 +47,10 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
 pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
     let response = reqwest::get(format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", sm.zoom, sm.x, sm.y)).await.unwrap();
     if response.status() == 404 {
-        println!("Tile not found: {} {} {}", sm.zoom, sm.x, sm.y);
         return;
     }
     let bytes = response.bytes().await.unwrap();
     if bytes.len() == 0 {
-        println!("Empty tile: {} {} {}", sm.zoom, sm.x, sm.y);
         return;
     }
 
