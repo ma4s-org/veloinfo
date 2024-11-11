@@ -41,7 +41,12 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
             read_tile(sm, conn).await;
         });
     });
-    std::fs::remove_dir_all("tiles").unwrap();
+    match std::fs::remove_dir_all("tiles") {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error removing tiles directory: {}", e);
+        }
+    }
 }
 
 pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
