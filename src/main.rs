@@ -75,14 +75,12 @@ async fn main() {
 
     println!("Starting cron scheduler");
     let sched = JobScheduler::new().await.unwrap();
+
     sched
         .add(
-            Job::new("0 0 7 * * *", |_uuid, _l| {
-                tokio::spawn(async {
-                    let conn =
-                        PgPool::connect(format!("{}", env::var("DATABASE_URL").unwrap()).as_str())
-                            .await
-                            .unwrap();
+            Job::new("0 0 7 * * *", move |_uuid, _l| {
+                let conn = conn.clone();
+                tokio::spawn(async move {
                     println!("Importing data");
                     let output = Command::new("./import.sh")
                         .output()
