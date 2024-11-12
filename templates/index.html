@@ -34,16 +34,16 @@
     </div>
     <div id="menu" hx-trigger="load" hx-get="/menu/closed" hx-swap="outerHTML">
     </div>
-    <div id="buttons" class="absolute flex flex-col justify-center items-center top-36 right-2 z-10 cursor-pointer">
+    <div id="buttons" class="absolute flex flex-col justify-center items-center top-36 right-[2px] z-10 cursor-pointer">
         <div class="flex w-[32px] h-[32px] rounded-md bg-gray-300 justify-center" hx-get="/layers" hx-target="#info"
             hx-swap="innerHTML">
             <img class="bg-white rounded-md w-[29px] h-[29px] self-center" src="/pub/layers.png">
         </div>
-    </div>
-    <div id="speed_container"
-        class="rounded-lg outline outline-gray-300 flex justify-center items-center top-36 right-2 z-10 bg-white w-10 h-10">
-        <div id="speed_value" class="text-lg flex justify-center items-center">
-            2
+        <div id="speed_container"
+            class="rounded-md m-2 outline outline-gray-300 outline-[2px] flex justify-center items-center top-36 bg-white w-[29px] h-[29px]">
+            <div id="speed_value" class="text-lg flex justify-center items-center">
+                0
+            </div>
         </div>
     </div>
 </div>
