@@ -71,7 +71,6 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
         .arg(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y))
         .output()
         .expect("Failed to execute ogr2ogr command");
-    println!("Tile read: {} {} {}", sm.zoom, sm.x, sm.y);
 
     let geojson_path = format!("tiles/{}_{}_{}.geojson", sm.zoom, sm.x, sm.y);
     let geojson_str = std::fs::read_to_string(&geojson_path).unwrap();
@@ -85,7 +84,6 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
                     start_date: Date::from_calendar_date(2024, time::Month::April, 1).unwrap(),
                     end_date: Date::from_calendar_date(2024, time::Month::April, 1).unwrap(),
                 };
-                println!("Inserting road work");
                 road_work.insert(conn).await;
             }
         }

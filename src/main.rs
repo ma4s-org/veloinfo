@@ -88,7 +88,9 @@ async fn main() {
                     println!("status: {}", output.status);
 
                     // clearing cache
+                    println!("fetching montreal data");
                     mtl::fetch_montreal_data(&conn).await;
+                    println!("clearing cache");
                     Edge::clear_cache(&conn).await;
                 });
             })

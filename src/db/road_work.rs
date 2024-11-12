@@ -13,7 +13,13 @@ pub struct Roadwork {
 
 impl Roadwork {
     pub async fn insert(&self, conn: &PgPool) {
-        let geo_geometry: GeoGeometry<f64> = convert_geojson_to_geo(&self.geom).unwrap();
+        let geo_geometry: GeoGeometry<f64> = match convert_geojson_to_geo(&self.geom) {
+            Ok(geo) => geo,
+            Err(e) => {
+                println!("Error converting GeoJSON to Geo: {}", e);
+                return;
+            }
+        };
 
         sqlx::query(
             r#"
