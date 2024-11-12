@@ -22,6 +22,7 @@ use axum::http::Request;
 use axum::routing::post;
 use axum::routing::{get, Router};
 use component::follow_panel::follow;
+use component::layers;
 use component::route_panel::route;
 use component::style::style;
 use db::edge::Edge;
@@ -133,6 +134,7 @@ async fn main() {
         .route("/photo_scroll/:photo/:way_ids", get(photo_scroll))
         .route("/style.json", get(style))
         .route("/index.js", get(indexjs))
+        .route("/layers", get(layers::layers))
         .nest_service("/pub/", ServeDir::new("pub"))
         .nest_service("/images/", ServeDir::new(IMAGE_DIR.as_str()))
         .with_state(state)

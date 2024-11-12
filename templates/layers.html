@@ -1,0 +1,59 @@
+<div id="layers" class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
+    <div class="flex flex-col">
+        <div class="flex flex-row items-center">
+            <img src="/pub/bike_shop.png" class="h-5 w-5">
+            <div class="m-2">Atelier vélo</div>
+        </div>
+        <div class="flex flex-row items-center">
+            <img src="/pub/drinking_water.png" class="h-5 w-5">
+            <div class="m-2">Eau potable</div>
+        </div>
+        <div class="flex flex-row items-center">
+            <img src="/pub/bixi.png" class="h-5 w-5">
+            <div class="m-2">Bixi</div>
+        </div>
+        <div class="flex flex-row items-center">
+            <img src="/pub/bicycle-parking.png" class="h-5 w-5">
+            <div class="m-2">Parking vélo</div>
+        </div>
+        <div class="flex flex-row">
+            <div class="flex flex-col">
+                <div class="flex flex-row items-center">
+                    <div class="h-[5px] w-10 bg-green-800"></div>
+                    <div class="m-2">Piste cyclable</div>
+                </div>
+                <div class="flex flex-row items-center">
+                    <div class="h-[3px] w-10 bg-green-800"></div>
+                    <div class="m-2">Bande cyclable</div>
+                </div>
+                <div class="flex flex-row items-center">
+                    <div class="h-[1px] w-10 bg-green-800"></div>
+                    <div class="m-2">Partage de la route</div>
+                </div>
+            </div>
+            <div class="flex flex-col">
+                <div class="flex flex-row items-center">
+                    <div class="h-[5px] w-10 bg-green-800"></div>
+                    <div class="m-2">État normal</div>
+                </div>
+                <div class="flex flex-row items-center">
+                    <div class="h-[5px] w-10 bg-yellow-300"></div>
+                    <div class="m-2">Problème mineur</div>
+                </div>
+                <div class="flex flex-row items-center">
+                    <div class="h-[5px] w-10 bg-orange-500"></div>
+                    <div class="m-2">Piste dangereuse</div>
+                </div>
+                <div class="flex flex-row items-center">
+                    <div class="h-[5px] w-10 bg-red-600"></div>
+                    <div class="m-2">Piste Fermée</div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end justify-center">
+            <button hx-get="/info_panel/down" hx-target="#info"
+                class="ml-2 bg-teal-300 rounded uppercase p-2 flex justify-center">fermer</button>
+        </div>
+    </div>
+</div>
+</div>

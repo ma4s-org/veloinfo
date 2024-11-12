@@ -90,6 +90,7 @@ map.on("click", async function (event) {
     if (document.getElementById("info_panel_up") ||
         document.getElementById("info_panel_down") ||
         document.getElementById("segment_panel") ||
+        document.getElementById("layers") ||
         document.getElementById("point_panel")
     ) {
         select(event);

@@ -1,6 +1,7 @@
 pub mod follow_panel;
 pub mod index_js;
 pub mod info_panel;
+pub mod layers;
 pub mod menu;
 pub mod photo_scroll;
 pub mod point_panel;
