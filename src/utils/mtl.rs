@@ -62,8 +62,6 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
     let mut file = File::create(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y)).unwrap();
     file.write_all(&bytes).unwrap();
 
-    println!("Reading tile: {} {} {}", sm.zoom, sm.x, sm.y);
-
     Command::new("ogr2ogr")
         .arg("-f")
         .arg("GeoJSON")
