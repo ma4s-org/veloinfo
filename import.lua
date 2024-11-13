@@ -417,7 +417,7 @@ local name = osm2pgsql.define_node_table('name', {{
 function osm2pgsql.process_way(object)
     if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] == "track" or
         object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and object.tags.footway ~=
-        "sidewalk" and object.tags.service ~= "parking_aisle" then
+        "sidewalk" and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
@@ -457,7 +457,7 @@ function osm2pgsql.process_way(object)
 
     if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] == "track" or
         object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and object.tags.footway ~=
-        "sidewalk" and object.tags.service ~= "parking_aisle" then
+        "sidewalk" and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
         cycleway_far:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
@@ -479,7 +479,7 @@ function osm2pgsql.process_way(object)
     end
 
     if (object.tags.highway or object.tags.railway) and object.tags.footway ~= "sidewalk" and object.tags.highway ~=
-        "steps" and object.tags.service ~= "parking_aisle" then
+        "steps" and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
         transportation:insert({
             name = object.tags.name,
             name_fr = object.tags["name:fr"],
@@ -501,7 +501,8 @@ function osm2pgsql.process_way(object)
         })
     end
 
-    if object.tags.highway and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
+    if object.tags.highway and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" and
+        object.tags.highway ~= "proposed" then
         all_way:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
