@@ -2645,10 +2645,10 @@
                     "hsl(141, 100%, 17%)",
                     "hsl(141, 100%, 17%)"
                 ],
-                "line-width": 1,
+                "line-width": 2,
                 "line-dasharray": [
                     1,
-                    1
+                    4
                 ]
             },
             "filter": [
