@@ -62,25 +62,54 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
     let mut file = File::create(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y)).unwrap();
     file.write_all(&bytes).unwrap();
 
-    Command::new("ogr2ogr")
+    match Command::new("ogr2ogr")
         .arg("-f")
         .arg("GeoJSON")
         .arg(format!("tiles/{}_{}_{}.geojson", sm.zoom, sm.x, sm.y))
         .arg(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y))
         .output()
-        .expect("Failed to execute ogr2ogr command");
+    {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error executing ogr2ogr: {}", e);
+        }
+    };
 
     let geojson_path = format!("tiles/{}_{}_{}.geojson", sm.zoom, sm.x, sm.y);
-    let geojson_str = std::fs::read_to_string(&geojson_path).unwrap();
-    let geojson = GeoJson::from_str(&geojson_str).unwrap();
+    let geojson_str = match std::fs::read_to_string(&geojson_path) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Error reading geojson file: {}", e);
+            return;
+        }
+    };
+    let geojson = match GeoJson::from_str(&geojson_str) {
+        Ok(g) => g,
+        Err(e) => {
+            println!("Error parsing geojson: {}", e);
+            return;
+        }
+    };
 
     if let GeoJson::FeatureCollection(features) = geojson {
         for feature in features {
             if let Some(geometry) = feature.geometry {
                 let road_work = road_work::Roadwork {
                     geom: geometry,
-                    start_date: Date::from_calendar_date(2024, time::Month::April, 1).unwrap(),
-                    end_date: Date::from_calendar_date(2024, time::Month::April, 1).unwrap(),
+                    start_date: match Date::from_calendar_date(2024, time::Month::April, 1) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            println!("Error creating date: {}", e);
+                            return;
+                        }
+                    },
+                    end_date: match Date::from_calendar_date(2024, time::Month::April, 1) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            println!("Error creating date: {}", e);
+                            return;
+                        }
+                    },
                 };
                 road_work.insert(conn).await;
             }
