@@ -66,6 +66,17 @@ var map = new maplibregl.Map({
     map.addImage('bicycle_repair_station', bicycle_repair_station.data);
     const bixi = await map.loadImage('/pub/bixi.png');
     map.addImage('bixi', bixi.data);
+
+    const layers = JSON.parse(localStorage.getItem("layers"));
+    if (layers) {
+        for (const layer in layers) {
+            if (layer.visible) {
+                map.setLayoutProperty(layer, 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty(layer, 'visibility', 'none');
+            }
+        }
+    }
 })();
 
 map.addControl(new maplibregl.NavigationControl());

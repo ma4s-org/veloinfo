@@ -3389,7 +3389,7 @@
             ]
         },
         {
-            "id": "Bike parking",
+            "id": "bike_parking",
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
@@ -3455,7 +3455,7 @@
             ]
         },
         {
-            "id": "Drinking water",
+            "id": "drinking_water",
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
@@ -3528,7 +3528,7 @@
             }
         },
         {
-            "id": "Bike repair station",
+            "id": "bike_repair_station",
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
@@ -3594,7 +3594,7 @@
             ]
         },
         {
-            "id": "Bixi",
+            "id": "bixi",
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
@@ -3668,7 +3668,7 @@
             ]
         },
         {
-            "id": "Bike shop",
+            "id": "bike_shop",
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",

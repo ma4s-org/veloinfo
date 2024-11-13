@@ -1,22 +1,27 @@
 <div id="layers" class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
     <div class="flex flex-col m-2">
         <div class="flex flex-row items-center">
+            <input type="checkbox" class="mr-2" data-layer="bike_shop">
             <img src="/pub/bike_shop.png" class="h-5 w-5">
             <div class="m-2">Atelier vélo</div>
         </div>
         <div class="flex flex-row items-center">
+            <input type="checkbox" class="mr-2" data-layer="bicycle_repair_station">
             <img src="/pub/bicycle_repair_station.png" class="h-5 w-5">
             <div class="m-2">Station de réparation autonome</div>
         </div>
         <div class="flex flex-row items-center">
+            <input type="checkbox" class="mr-2" data-layer="drinking_water">
             <img src="/pub/drinking_water.png" class="h-5 w-5">
             <div class="m-2">Eau potable</div>
         </div>
         <div class="flex flex-row items-center">
+            <input type="checkbox" class="mr-2" data-layer="bike_parking">
             <img src="/pub/bicycle-parking.png" class="h-5 w-5">
             <div class="m-2">Parking vélo</div>
         </div>
         <div class="flex flex-row items-center">
+            <input type="checkbox" class="mr-2" data-layer="bixi">
             <img src="/pub/bixi.png" class="h-5 w-5">
             <div class="m-2">Bixi</div>
         </div>
@@ -68,3 +73,35 @@
     </div>
 </div>
 </div>
+
+<script>
+    document.querySelectorAll('#layers input').forEach(input => {
+        input.addEventListener('change', function () {
+            var layers = localStorage.getItem('layers');
+            layers = layers ? JSON.parse(layers) : {};
+            const layer = this.dataset.layer;
+            if (this.checked) {
+                map.setLayoutProperty(layer, 'visibility', 'visible');
+                layers[layer] = 'visible';
+            } else {
+                map.setLayoutProperty(layer, 'visibility', 'none');
+                layers[layer] = 'none';
+            }
+            localStorage.setItem('layers', JSON.stringify(layers));
+        });
+    });
+
+    var layers = localStorage.getItem('layers');
+    layers = layers ? JSON.parse(layers) : {};
+    document.querySelectorAll('#layers input').forEach(input => {
+        const layer = input.dataset.layer;
+        if (layers[layer] === 'visible' || layers[layer] === undefined) {
+            input.checked = true;
+            map.setLayoutProperty(layer, 'visibility', 'visible');
+        } else {
+            input.checked = false;
+            map.setLayoutProperty(layer, 'visibility', 'none');
+        }
+    });
+
+</script>
