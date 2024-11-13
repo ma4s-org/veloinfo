@@ -345,7 +345,9 @@ impl H for HRapid {
             } else {
                 1. / 0.2
             }
-        } else if edge.tags.get("highway") == Some(&"footway".to_string()) {
+        } else if edge.tags.get("highway") == Some(&"footway".to_string())
+            || edge.tags.get("highway") == Some(&"pedestrian".to_string())
+        {
             if edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.9
             } else {
