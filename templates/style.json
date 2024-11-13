@@ -2507,21 +2507,158 @@
                     "hsl(141, 100%, 17%)",
                     "hsl(141, 100%, 17%)"
                 ],
-                "line-width": [
-                    "match",
+                "line-width": 4
+            },
+            "filter": [
+                "==",
+                [
+                    "get",
+                    "kind"
+                ],
+                "cycleway"
+            ]
+        },
+        {
+            "id": "designated",
+            "source": "veloinfo",
+            "source-layer": "bike_path",
+            "type": "line",
+            "minzoom": 12,
+            "paint": {
+                "line-color": [
+                    "case",
                     [
-                        "get",
-                        "kind"
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        -0.5
                     ],
-                    "cycleway",
-                    5,
-                    "designated",
+                    "hsl(141, 100%, 17%)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        0
+                    ],
+                    "hsl(0, 100%, 27%)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        0.34
+                    ],
+                    "hsl(26, 79%, 43%)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        0.66
+                    ],
+                    "rgb(234 179 8)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        1
+                    ],
+                    "hsl(141, 100%, 17%)",
+                    "hsl(141, 100%, 17%)"
+                ],
+                "line-width": 2,
+                "line-dasharray": [
                     3,
-                    "shared_line",
-                    2,
                     1
                 ]
-            }
+            },
+            "filter": [
+                "==",
+                [
+                    "get",
+                    "kind"
+                ],
+                "designated"
+            ]
+        },
+        {
+            "id": "shared_lane",
+            "source": "veloinfo",
+            "source-layer": "bike_path",
+            "type": "line",
+            "minzoom": 12,
+            "paint": {
+                "line-color": [
+                    "case",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        -0.5
+                    ],
+                    "hsl(141, 100%, 17%)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        0
+                    ],
+                    "hsl(0, 100%, 27%)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        0.34
+                    ],
+                    "hsl(26, 79%, 43%)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        0.66
+                    ],
+                    "rgb(234 179 8)",
+                    [
+                        "<=",
+                        [
+                            "get",
+                            "score"
+                        ],
+                        1
+                    ],
+                    "hsl(141, 100%, 17%)",
+                    "hsl(141, 100%, 17%)"
+                ],
+                "line-width": 1,
+                "line-dasharray": [
+                    1,
+                    1
+                ]
+            },
+            "filter": [
+                "==",
+                [
+                    "get",
+                    "kind"
+                ],
+                "shared_lane"
+            ]
         },
         {
             "id": "cycleway-zoom",
