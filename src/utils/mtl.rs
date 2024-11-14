@@ -51,7 +51,11 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
 }
 
 pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
-    let response = match reqwest::get(format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", sm.zoom, sm.x, sm.y)).await {
+    let response = match reqwest::get(
+            format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", 
+            sm.zoom, 
+            sm.x, 
+            sm.y)).await {
         Ok(r) => r,
         Err(e) => {
             println!("Error fetching tile: {}", e);
