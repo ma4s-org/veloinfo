@@ -2,9 +2,7 @@ FROM rust:1.82.0 as base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    software-properties-common
-
-RUN apt-get update && apt-get install -y \
+    software-properties-common \
     fish \
     rustfmt \
     osm2pgsql \
@@ -20,11 +18,12 @@ run cd
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
 RUN install -d tailwindcss
-        
+
 FROM base as dev
 
 RUN chsh -s $(which fish)
-    
+
+RUN rustup component add rust-analyzer
 RUN cargo install cargo-watch
 RUN cargo install cargo-edit
 RUN cargo install sqlx-cli --no-default-features --features postgres
