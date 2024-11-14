@@ -7,7 +7,6 @@ use std::io::Write;
 use std::process::Command;
 use std::str::FromStr;
 use time::Date;
-use tokio::spawn;
 
 use crate::db::road_work::{self, Roadwork};
 
@@ -36,11 +35,8 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
 
     let tasks = sms
         .into_iter()
-        .map(|sm| {
-            let conn = conn.clone();
-            spawn(async move {
-                read_tile(&sm, &conn).await;
-            })
+        .map(|sm| async move {
+            read_tile(&sm, &conn).await;
         })
         .collect::<Vec<_>>();
 
@@ -55,7 +51,12 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
 }
 
 pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
-    let response = reqwest::get(format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", sm.zoom, sm.x, sm.y)).await.unwrap();
+    let response = match reqwest::get(format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", sm.zoom, sm.x, sm.y)).await {
+        Ok(r) => r,
+        Err(e) => {
+            println!("Error fetching tile: {}", e);
+            return;
+    }};
     if response.status() == 404 {
         return;
     }
