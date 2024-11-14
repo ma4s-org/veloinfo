@@ -3937,7 +3937,6 @@ dependencies = [
  "libheif-rs",
  "pathfinding",
  "postgres",
- "rayon",
  "regex",
  "reqwest",
  "serde",
