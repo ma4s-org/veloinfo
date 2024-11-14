@@ -11,7 +11,7 @@
     "lang": "fr",
     "screenshots": [
         {
-            "src": "pub/screenshot.png",
+            "src": "screenshot.png",
             "sizes": "1440x3040",
             "type": "image/png",
             "description": "Une route vers le Mont-Royal"
@@ -24,7 +24,7 @@
             "description": "A description of the functionality of this shortcut",
             "icons": [
                 {
-                    "src": "/pub/shortcut.png",
+                    "src": "/shortcut.png",
                     "type": "image/png",
                     "sizes": "94x94"
                 }
@@ -33,12 +33,12 @@
     ],
     "icons": [
         {
-            "src": "pub/favicon.ico",
+            "src": "favicon.ico",
             "sizes": "48x48",
             "type": "image/png"
         },
         {
-            "src": "pub/logo-big.png",
+            "src": "logo-big.png",
             "sizes": "512x512",
             "type": "image/png"
         }
