@@ -1,4 +1,4 @@
-FROM rust:1.81.0 as base
+FROM rust:1.82.0 as base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
