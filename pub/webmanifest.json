@@ -8,6 +8,7 @@
     "background_color": "#fff",
     "theme_color": "#00f",
     "orientation": "portrait",
+    "lang": "fr",
     "screenshots": [
         {
             "src": "pub/screenshot.png",
