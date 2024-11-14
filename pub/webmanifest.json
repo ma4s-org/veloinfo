@@ -24,7 +24,7 @@
             "description": "A description of the functionality of this shortcut",
             "icons": [
                 {
-                    "src": "/shortcut.png",
+                    "src": "shortcut.png",
                     "type": "image/png",
                     "sizes": "94x94"
                 }
