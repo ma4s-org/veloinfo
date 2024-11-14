@@ -1,14 +1,46 @@
 {
     "name": "Veloinfo",
+    "description": "L'application pour les cyclistes urbains",
     "short_name": "Veloinfo",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#fff",
+    "theme_color": "#00f",
+    "orientation": "portrait",
+    "screenshots": [
+        {
+            "src": "pub/screenshot.png",
+            "sizes": "1440x3040",
+            "type": "image/png",
+            "description": "Une route vers le Mont-Royal"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "The name you would like to be displayed for your shortcut",
+            "url": "The url you would like to open when the user chooses this shortcut. This must be a URL local to your PWA. For example: If my start_url is /, this URL must be something like /shortcut",
+            "description": "A description of the functionality of this shortcut",
+            "icons": [
+                {
+                    "src": "/pub/shortcut.png",
+                    "type": "image/png",
+                    "sizes": "94x94"
+                }
+            ]
+        }
+    ],
     "icons": [
         {
             "src": "pub/favicon.ico",
             "sizes": "48x48",
             "type": "image/png"
-        }
+        },
+        [
+            {
+                "src": "pub/logo-big.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }
+        ]
     ]
 }
