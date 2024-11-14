@@ -1,5 +1,5 @@
+use futures::future::join_all;
 use geojson::GeoJson;
-use rayon::prelude::*;
 use reqwest;
 use sqlx::postgres::Postgres;
 use std::fs::File;
@@ -7,7 +7,7 @@ use std::io::Write;
 use std::process::Command;
 use std::str::FromStr;
 use time::Date;
-use tokio::runtime::Runtime;
+use tokio::spawn;
 
 use crate::db::road_work::{self, Roadwork};
 
@@ -34,13 +34,18 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
         })
         .collect();
 
-    let rt = Runtime::new().unwrap();
+    let tasks = sms
+        .into_iter()
+        .map(|sm| {
+            let conn = conn.clone();
+            spawn(async move {
+                read_tile(&sm, &conn).await;
+            })
+        })
+        .collect::<Vec<_>>();
 
-    sms.par_iter().for_each(|sm| {
-        rt.block_on(async move {
-            read_tile(sm, conn).await;
-        });
-    });
+    join_all(tasks).await;
+
     match std::fs::remove_dir_all("tiles") {
         Ok(_) => {}
         Err(e) => {
