@@ -35,12 +35,10 @@
             "sizes": "48x48",
             "type": "image/png"
         },
-        [
-            {
-                "src": "pub/logo-big.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
+        {
+            "src": "pub/logo-big.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
     ]
 }
