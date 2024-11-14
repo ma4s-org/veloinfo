@@ -3528,7 +3528,7 @@
             }
         },
         {
-            "id": "bike_repair_station",
+            "id": "bicycle_repair_station",
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
