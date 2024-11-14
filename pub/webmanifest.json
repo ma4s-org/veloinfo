@@ -1,5 +1,6 @@
 {
-    "name": "Veloinfo",
+    "id": "veloinfo.quebec",
+    "name": "Vélo-info",
     "description": "L'application pour les cyclistes urbains",
     "short_name": "Veloinfo",
     "start_url": "/",
