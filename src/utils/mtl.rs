@@ -1,4 +1,3 @@
-use futures::future::join_all;
 use geojson::GeoJson;
 use reqwest;
 use sqlx::postgres::Postgres;
@@ -33,14 +32,10 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
         })
         .collect();
 
-    let tasks = sms
-        .into_iter()
-        .map(|sm| async move {
-            read_tile(&sm, &conn).await;
-        })
-        .collect::<Vec<_>>();
-
-    join_all(tasks).await;
+    for sm in sms{
+        read_tile(&sm, &conn).await;
+    } 
+    println!("Done fetching montreal data");
 
     match std::fs::remove_dir_all("tiles") {
         Ok(_) => {}

@@ -21,7 +21,7 @@ impl Roadwork {
             }
         };
 
-        sqlx::query(
+        match sqlx::query(
             r#"
         INSERT INTO road_work (geom, start_date, end_date)
         VALUES ($1, $2, $3)
@@ -32,7 +32,12 @@ impl Roadwork {
         .bind(&self.end_date)
         .execute(conn)
         .await
-        .unwrap();
+        {
+            Ok(_) => (),
+            Err(e) => {
+                println!("Error inserting roadwork: {}", e);
+            }
+        }
     }
 
     pub async fn remove_all(conn: &PgPool) {

@@ -30,14 +30,13 @@ use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
 use sqlx::PgPool;
 use std::env;
-use std::process::Command;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use utils::mtl;
+use utils::import::import;
 
 mod auth;
 mod component;
@@ -80,19 +79,10 @@ async fn main() {
     sched
         .add(
             Job::new("0 0 7 * * *", move |_uuid, _l| {
+                // tokio spawn
                 let conn = conn.clone();
                 tokio::spawn(async move {
-                    println!("Importing data");
-                    let output = Command::new("./import.sh")
-                        .output()
-                        .expect("failed to execute process");
-                    println!("status: {}", output.status);
-
-                    // clearing cache
-                    println!("fetching montreal data");
-                    mtl::fetch_montreal_data(&conn).await;
-                    println!("clearing cache");
-                    Edge::clear_cache(&conn).await;
+                    import(&conn).await;
                 });
             })
             .unwrap(),
