@@ -37,7 +37,6 @@ use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use utils::import::import;
-use utils::import::import_mtl;
 
 mod auth;
 mod component;
@@ -126,7 +125,7 @@ async fn main() {
         .route("/style.json", get(style))
         .route("/index.js", get(indexjs))
         .route("/layers", get(layers::layers))
-        .route("/import_mtl", get(import_mtl))
+        // .route("/import_mtl", get(import_mtl))
         .nest_service("/pub/", ServeDir::new("pub"))
         .nest_service("/images/", ServeDir::new(IMAGE_DIR.as_str()))
         .with_state(state)

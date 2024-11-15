@@ -15,6 +15,7 @@ pub fn get_h_bigger_selection() -> Box<dyn H> {
     Box::new(HBiggerSelection {})
 }
 
+#[allow(dead_code)]
 pub fn get_h_rapid() -> Box<dyn H> {
     Box::new(HRapid {})
 }

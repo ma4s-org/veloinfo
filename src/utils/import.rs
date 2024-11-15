@@ -18,6 +18,7 @@ pub async fn import(conn: &PgPool) {
     Edge::clear_cache(&conn).await;
 }
 
+#[allow(dead_code)]
 pub async fn import_mtl(State(state): State<VeloinfoState>) {
-    mtl::fetch_montreal_data(&state.conn).await;
+    import(&state.conn).await;
 }
