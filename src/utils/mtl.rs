@@ -46,6 +46,7 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
 }
 
 pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
+    println!("Reading tile: https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", sm.zoom, sm.x, sm.y);
     let response = match reqwest::get(
             format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", 
             sm.zoom, 
@@ -63,7 +64,7 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
     if bytes.len() == 0 {
         return;
     }
-
+    println!("Writing tile: {} {} {}", sm.zoom, sm.x, sm.y);
     let mut file = File::create(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y)).unwrap();
     file.write_all(&bytes).unwrap();
 
@@ -79,6 +80,7 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
             println!("Error executing ogr2ogr: {}", e);
         }
     };
+    println!("Reading geojson: {} {} {}", sm.zoom, sm.x, sm.y);
 
     let geojson_path = format!("tiles/{}_{}_{}.geojson", sm.zoom, sm.x, sm.y);
     let geojson_str = match std::fs::read_to_string(&geojson_path) {
@@ -95,7 +97,7 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
             return;
         }
     };
-
+    println!("Inserting roadwork: {} {} {}", sm.zoom, sm.x, sm.y);
     if let GeoJson::FeatureCollection(features) = geojson {
         for feature in features {
             if let Some(geometry) = feature.geometry {
