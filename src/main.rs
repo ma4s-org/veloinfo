@@ -37,7 +37,6 @@ use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use utils::import::import;
-use utils::mtl::fetch_montreal_data;
 
 mod auth;
 mod component;
@@ -73,7 +72,7 @@ async fn main() {
     sqlx::migrate!().run(&conn).await.unwrap();
 
     Edge::clear_cache(&conn).await;
-    fetch_montreal_data(&conn).await;
+    // fetch_montreal_data(&conn).await;
 
     println!("Starting cron scheduler");
     let sched = JobScheduler::new().await.unwrap();
