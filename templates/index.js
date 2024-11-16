@@ -193,7 +193,9 @@ async function clear() {
         end_marker = null;
     }
     map.removeLayer("selected");
-    map.removeSource("selected");
+    if (map.getSource("selected")) {
+        map.removeSource("selected");
+    }
 
     // Display info panel
     htmx.ajax("GET", "/info_panel/down", "#info");
