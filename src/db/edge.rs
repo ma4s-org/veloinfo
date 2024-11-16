@@ -178,6 +178,7 @@ impl Edge {
                 WHERE 
                     ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) 
                     AND tags->>'highway' is not null
+                    AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
