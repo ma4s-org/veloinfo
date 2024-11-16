@@ -27,11 +27,8 @@ impl H for HMoyen {
         // if the target is the source we are reverse of the edge
         if target == edge.source
             && edge.tags.get("oneway") == Some(&"yes".to_string())
-            && (!edge.tags.get("cycleway:both").is_some()
-                || edge.tags.get("cycleway:both") == Some(&"no".to_string()))
-            && (!edge.tags.get("cycleway:left").is_some()
-                || edge.tags.get("cycleway:left") == Some(&"no".to_string()))
             && edge.tags.get("oneway:bicycle") != Some(&"no".to_string())
+            && edge.tags.get("cycleway:left:oneway") != Some(&"no".to_string())
         {
             return 1. / 0.05;
         }
