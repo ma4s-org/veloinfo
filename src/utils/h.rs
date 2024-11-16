@@ -29,6 +29,7 @@ impl H for HMoyen {
             && edge.tags.get("oneway") == Some(&"yes".to_string())
             && edge.tags.get("oneway:bicycle") != Some(&"no".to_string())
             && edge.tags.get("cycleway:left:oneway") != Some(&"no".to_string())
+            && edge.tags.get("cycleway:right:oneway") != Some(&"no".to_string())
         {
             return 1. / 0.05;
         }
