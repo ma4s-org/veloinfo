@@ -72,6 +72,9 @@ fn convert_geojson_to_geo(geometry: &GeoJsonGeometry) -> Result<GeoGeometry<f64>
                     .collect(),
             )))
         }
-        _ => Err("Unsupported geometry type"),
+        GeoJsonValue::MultiPoint(_) => Err("Unsupported geometry type MultiPoint"),
+        GeoJsonValue::MultiLineString(_) => Err("Unsupported geometry type MultiLineString"),
+        GeoJsonValue::MultiPolygon(_) => Err("Unsupported geometry type MultiPolygon"),
+        GeoJsonValue::GeometryCollection(_) => Err("Unsupported geometry type GeometryCollection"),
     }
 }
