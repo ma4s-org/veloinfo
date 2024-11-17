@@ -66,16 +66,13 @@
             "Road labels")
     }
 
-    var bounds = fitBounds(coordinates);
-    map.fitBounds(bounds, { duration: 1000 });
     var bearing = calculateBearing(
         coordinates[0][0],
         coordinates[0][1],
         coordinates[coordinates.length - 1][0],
         coordinates[coordinates.length - 1][1]);
-    setTimeout(() => {
-        map.flyTo({ bearing, pitch: 0 });
-    }, 1050);
+    var bounds = fitBounds(coordinates);
+    map.fitBounds(bounds, { bearing, pitch: 0, padding: 30, duration: 900 });
     {% endif %}
     (async () => {
         try {
