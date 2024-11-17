@@ -11,7 +11,9 @@
 
 </div>
 <script type="text/javascript">
-    map.setPitch(60);
+    map.flyTo({
+        pitch: 60
+    });
     geolocate.trigger();
     geolocate.trackUserLocation = true;
 </script>
