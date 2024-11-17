@@ -11,9 +11,12 @@
 
 </div>
 <script type="text/javascript">
-    map.flyTo({
-        pitch: 60
+    map.easeTo({
+        pitch: 60,
+        duration: 800,
     });
-    geolocate.trigger();
-    geolocate.trackUserLocation = true;
+    setTimeout(() => {
+        geolocate.trigger();
+        geolocate.trackUserLocation = true;
+    }, 1000);
 </script>
