@@ -21,10 +21,9 @@
                     <input type="file" id="photo" name="photo">
                 </div>
                 <div class="flex justify-center">
-                    <paper-button hx-post="/segment_panel" hx-encoding="multipart/form-data" hx-target="#info"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2">Enregistrer</paper-button>
-                    <paper-button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</paper-button>
+                    <paper-button hx-post="/segment_panel" hx-encoding="multipart/form-data"
+                        hx-target="#info">Enregistrer</paper-button>
+                    <paper-button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info">annuler</paper-button>
                 </div>
             </form>
             {% else %}
@@ -33,17 +32,14 @@
                     Choisissez un second point pour aggrandir la sélection ou
                 </div>
                 <div class="flex flex-row justify-center">
-                    <paper-button id="route_button" hx-on:click="route()"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/directions.png"
+                    <paper-button id="route_button" hx-on:click="route()"><img src="/pub/directions.png"
                             class="w-4 h-4 mr-1">itinéraire</paper-button>
-                    <paper-button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2 flex flex-row"><img src="/pub/edit.png"
-                            class="w-4 h-4 mr-1">
+                    <paper-button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img
+                            src="/pub/edit.png" class="w-4 h-4 mr-1">
                         Modifier</paper-button>
                 </div>
                 <div class="flex flex-row justify-center p-2">
-                    <paper-button hx-on:click="clear()"
-                        class="ml-2 bg-teal-300 rounded uppercase p-2">annuler</paper-button>
+                    <paper-button hx-on:click="clear()">annuler</paper-button>
                 </div>
             </div>
         </div>
