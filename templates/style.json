@@ -1534,6 +1534,16 @@
                 [
                     "!has",
                     "railway"
+                ],
+                [
+                    "!=",
+                    "footway",
+                    "crossing"
+                ],
+                [
+                    "!=",
+                    "footway",
+                    "link"
                 ]
             ]
         },
@@ -1791,6 +1801,16 @@
                 [
                     "!has",
                     "railway"
+                ],
+                [
+                    "!=",
+                    "footway",
+                    "crossing"
+                ],
+                [
+                    "!=",
+                    "footway",
+                    "link"
                 ]
             ]
         },
