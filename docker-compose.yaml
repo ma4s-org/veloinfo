@@ -3,15 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: dev
+      target: prod
     volumes:
-      - .:/app:Z
+      # - .:/app:Z
       - root:/root/.local:z
       - target:/app/target
       - node_modules:/app/node_modules
       - images:/images
     ports:
       - 3000:3000
+      - 3002:3002
     environment:
       - IMAGE_DIR=/images
       - PGUSER=postgres
@@ -20,6 +21,7 @@ services:
       - KEYCLOAK_BROWSER_URL=https://keycloak.veloinfo.ca/realms/master
       - KEYCLOAK_SERVER_URL=https://keycloak.veloinfo.ca/realms/master
       - VELOINFO_URL=http://localhost:3000
+      - NODE_MODULES_URL=http://localhost:3002
       - ENV=dev
       - MATOMO_SERVER=localhost:8080
     depends_on:

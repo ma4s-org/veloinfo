@@ -32,7 +32,7 @@ time = { version = "0.3.36", features = ["formatting"] }
 timeago = "0.4.2"
 tokio = { version = "1.41.0", features = ["full"] }
 tokio-cron-scheduler = "0.10.2"
-tower-http = { version = "0.5.2", features = ["fs", "trace"] }
+tower-http = { version = "0.5.2", features = ["fs", "trace", "cors"] }
 tower-livereload = "0.9.4"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

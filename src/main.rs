@@ -31,6 +31,8 @@ use score_selector_controler::score_selector_controler;
 use sqlx::PgPool;
 use std::env;
 use tokio_cron_scheduler::{Job, JobScheduler};
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
@@ -47,6 +49,7 @@ mod utils;
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
     static ref MATOMO_SERVER: String = env::var("MATOMO_SERVER").unwrap();
+    static ref NODE_MODULES_URL: String = env::var("NODE_MODULES_URL").unwrap();
 }
 
 #[derive(Clone, Debug)]
@@ -138,7 +141,27 @@ async fn main() {
     }
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+    let app_node_modules = Router::new()
+        .nest_service("/", ServeDir::new("node_modules"))
+        .layer(cors)
+        .layer(TraceLayer::new_for_http());
+    let listener_node_modules = tokio::net::TcpListener::bind("0.0.0.0:3002").await.unwrap();
+    tokio::spawn(async move {
+        axum::serve(listener_node_modules, app_node_modules)
+            .await
+            .unwrap();
+    });
+
+    // Garder le programme en cours d'exécution
+    tokio::signal::ctrl_c().await.unwrap();
 }
 
 fn not_htmx_predicate<T>(req: &Request<T>) -> bool {
@@ -149,11 +172,13 @@ fn not_htmx_predicate<T>(req: &Request<T>) -> bool {
 #[template(path = "index.html", escape = "none")]
 pub struct IndexTemplate {
     pub matomo_server: String,
+    pub node_modules_url: String,
 }
 
 pub async fn index() -> (HeaderMap, IndexTemplate) {
     let template = IndexTemplate {
         matomo_server: MATOMO_SERVER.clone(),
+        node_modules_url: NODE_MODULES_URL.clone(),
     };
     let mut headers = HeaderMap::new();
     headers.insert(

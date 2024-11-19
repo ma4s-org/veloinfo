@@ -17,7 +17,6 @@ RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
 run cd 
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
-RUN install -d tailwindcss
 
 FROM base as dev
 
@@ -32,12 +31,13 @@ RUN rustup component add rustfmt
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
 RUN chmod 0600 /root/.pgpass
 
-CMD cargo watch -x run --ignore tiles
+CMD npm install; cargo watch -x run --ignore tiles
 
 FROM base as build
 
 COPY . .
 RUN cargo build --release
+RUN npm install
 
 FROM debian as prod
 
@@ -50,6 +50,7 @@ WORKDIR /app
 COPY --from=build /app/target/release/veloinfo /app/veloinfo
 COPY --from=build /app/migrations /app/migrations
 COPY --from=build /app/pub /app/pub
+COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/import.sh /app/import.sh
 COPY --from=build /app/import.lua /app/import.lua
 COPY --from=build /usr/local/lib/libheif /usr/local/lib/libheif
