@@ -2,17 +2,17 @@
     hx-on:click="event.stopPropagation()">
     {% match previous %}
     {% when Some with (previous) %}
-    <paper-button hx-get="/photo_scroll/{{previous}}/{{way_ids}}" hx-target="#photo_scroll_inner">&lt;</paper-button>
+    <button hx-get="/photo_scroll/{{previous}}/{{way_ids}}" hx-target="#photo_scroll_inner">&lt;</button>
     {% when None %}
     {% endmatch %}
     {% match next %}
     {% when Some with (next) %}
-    <paper-button hx-get="/photo_scroll/{{next}}/{{way_ids}}" hx-target="#photo_scroll_inner">&gt;</paper-button>
+    <button hx-get="/photo_scroll/{{next}}/{{way_ids}}" hx-target="#photo_scroll_inner">&gt;</button>
     {% when None %}
     {% endmatch %}
     <img src="/images/{{ photo }}.jpeg" class="object-contain max-h-full max-w-full" alt="photo"
         style="height: 100%; width: auto;">
-    <paper-button hx-on:click="closePopover()">X</paper-button>
+    <button hx-on:click="closePopover()">X</button>
 </div>
 
 <script>

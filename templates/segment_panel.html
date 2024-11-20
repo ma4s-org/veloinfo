@@ -21,9 +21,9 @@
                     <input type="file" id="photo" name="photo">
                 </div>
                 <div class="flex justify-center">
-                    <paper-button hx-post="/segment_panel" hx-encoding="multipart/form-data"
-                        hx-target="#info">Enregistrer</paper-button>
-                    <paper-button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info">annuler</paper-button>
+                    <button hx-post="/segment_panel" hx-encoding="multipart/form-data"
+                        hx-target="#info">Enregistrer</button>
+                    <button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info">annuler</button>
                 </div>
             </form>
             {% else %}
@@ -32,14 +32,14 @@
                     Choisissez un second point pour aggrandir la sélection ou
                 </div>
                 <div class="flex flex-row justify-center">
-                    <paper-button id="route_button" hx-on:click="route()"><img src="/pub/directions.png"
-                            class="w-4 h-4 mr-1">itinéraire</paper-button>
-                    <paper-button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img
-                            src="/pub/edit.png" class="w-4 h-4 mr-1">
-                        Modifier</paper-button>
+                    <button id="route_button" hx-on:click="route()"><img src="/pub/directions.png"
+                            class="w-4 h-4 mr-1">itinéraire</button>
+                    <button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img src="/pub/edit.png"
+                            class="w-4 h-4 mr-1">
+                        Modifier</button>
                 </div>
                 <div class="flex flex-row justify-center p-2">
-                    <paper-button hx-on:click="clear()">annuler</paper-button>
+                    <button hx-on:click="clear()">annuler</button>
                 </div>
             </div>
         </div>
