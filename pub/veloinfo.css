@@ -1,6 +1,7 @@
 #info button {
     --tw-bg-opacity: 1;
     background-color: rgb(94 234 212 / var(--tw-bg-opacity));
+    text-transform: uppercase;
     margin-left: 0.5em;
     margin-right: 0.5em;
     margin-bottom: 0.5em;
