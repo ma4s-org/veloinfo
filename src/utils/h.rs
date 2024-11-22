@@ -35,16 +35,16 @@ impl H for HMoyen {
         }
 
         let mut cost = if edge.tags.get("bicycle") == Some(&"no".to_string()) {
-            1. / 0.1
+            1. / 0.05
         } else if edge.tags.get("higway") == Some(&"proposed".to_string()) {
             1. / 0.05
         } else if edge.tags.get("informal") == Some(&"yes".to_string()) {
-            1. / 0.1
+            1. / 0.05
         } else if edge.tags.get("highway") == Some(&"steps".to_string()) {
             if edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.3
             } else {
-                1. / 0.1
+                1. / 0.05
             }
         } else if edge.tags.get("highway") == Some(&"path".to_string())
             && (edge.tags.get("bicycle") == Some(&"dismount".to_string())
