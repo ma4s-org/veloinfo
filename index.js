@@ -151,7 +151,6 @@ async function select(event) {
         window.start_marker.remove();
     }
     window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(map);
-    console.log("une nouveau window.start_marker a été ajouté");
 
     let width = 20;
     var features = map.queryRenderedFeatures(
@@ -243,7 +242,7 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     return bearing;
 }
 
-const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl }
+const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate };
 Object.assign(window, ex);
 
 export default ex;
