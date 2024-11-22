@@ -37,7 +37,7 @@ CMD npm install; cargo watch -x run --ignore tiles --ignore dist
 FROM base as build
 
 COPY . .
-RUN mkdir /app/dist
+RUN mkdir -p /app/dist
 RUN cargo build --release
 RUN npm install
 
