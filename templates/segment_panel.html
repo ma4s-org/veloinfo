@@ -21,9 +21,10 @@
                     <input type="file" id="photo" name="photo">
                 </div>
                 <div class="flex justify-center">
-                    <button hx-post="/segment_panel" hx-encoding="multipart/form-data"
-                        hx-target="#info">Enregistrer</button>
-                    <button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info">annuler</button>
+                    <md-filled-button hx-post="/segment_panel" hx-encoding="multipart/form-data"
+                        hx-target="#info">Enregistrer</md-filled-button>
+                    <md-filled-button hx-get="/segment_panel/ways/{{way_ids}}"
+                        hx-target="#info">annuler</md-filled-button>
                 </div>
             </form>
             {% else %}
@@ -32,14 +33,14 @@
                     Choisissez un second point pour aggrandir la sélection ou
                 </div>
                 <div class="flex flex-row justify-center">
-                    <button id="route_button" hx-on:click="route()"><img src="/pub/directions.png"
-                            class="w-4 h-4 mr-1">itinéraire</button>
-                    <button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img src="/pub/edit.png"
-                            class="w-4 h-4 mr-1">
-                        Modifier</button>
+                    <md-filled-button id="route_md-filled-button" hx-on:click="route()"><img slot="icon"
+                            src="/pub/directions.png" class="w-4 h-4 mr-1">itinéraire</md-filled-button>
+                    <md-filled-button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img slot="icon"
+                            src="/pub/edit.png" class="w-4 h-4 mr-1">
+                        Modifier</md-filled-button>
                 </div>
                 <div class="flex flex-row justify-center p-2">
-                    <button hx-on:click="clear()">annuler</button>
+                    <md-filled-button hx-on:click="clear()">annuler</md-filled-button>
                 </div>
             </div>
         </div>

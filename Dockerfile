@@ -17,6 +17,7 @@ RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
 run cd 
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
+RUN npm i -g esbuild
 
 FROM base as dev
 
@@ -31,7 +32,7 @@ RUN rustup component add rustfmt
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
 RUN chmod 0600 /root/.pgpass
 
-CMD npm install; cargo watch -x run --ignore tiles
+CMD npm install; cargo watch -x run --ignore tiles --ignore dist
 
 FROM base as build
 

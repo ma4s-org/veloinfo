@@ -5,8 +5,8 @@
 
     <div class="flex flex-row justify-center">
 
-        <button id="route_button" hx-on:click="route()"><img src="/pub/directions.png"
-                class="w-4 h-4 mr-1">itinéraire</button>
-        <button hx-on:click="clear()" hx-target="#info">annuler</button>
+        <md-filled-button id="route_button" hx-on:click="route()"><img slot="icon" src="/pub/directions.png"
+                class="w-4 h-4 mr-1">itinéraire</md-filled-button>
+        <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
     </div>
 </div>

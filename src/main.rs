@@ -1,6 +1,5 @@
 use crate::auth::auth;
 use crate::auth::logout;
-use crate::component::index_js::indexjs;
 use crate::component::info_panel::info_panel_down;
 use crate::component::info_panel::info_panel_up;
 use crate::component::menu::{menu_close, menu_open};
@@ -32,6 +31,7 @@ use sqlx::PgPool;
 use std::env;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::services::ServeDir;
+use tower_http::services::ServeFile;
 use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -124,8 +124,8 @@ async fn main() {
         .route("/score_selector/:score", get(score_selector_controler))
         .route("/photo_scroll/:photo/:way_ids", get(photo_scroll))
         .route("/style.json", get(style))
-        .route("/index.js", get(indexjs))
         .route("/layers", get(layers::layers))
+        .nest_service("/dist/", ServeDir::new("dist"))
         .nest_service("/pub/", ServeDir::new("pub"))
         .nest_service("/images/", ServeDir::new(IMAGE_DIR.as_str()))
         .nest_service("/node_modules/", ServeDir::new("node_modules"))

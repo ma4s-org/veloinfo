@@ -1,3 +1,8 @@
+import '@material/web/all.js';
+import typescaleStyles from 'https://esm.run/@material/web/typography/md-typescale-styles.js';
+import maplibregl from 'maplibre-gl';
+
+
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
 }
@@ -35,6 +40,8 @@ setInterval(() => {
 }, 30000);
 
 // Speed
+var speed = 0;
+var speed_text = 0;
 navigator.geolocation.watchPosition((position) => {
     speed = position.coords.speed * 3.6;
     if (document.getElementById("speed_value")) {
@@ -192,7 +199,9 @@ async function clear() {
         end_marker.remove();
         end_marker = null;
     }
-    map.removeLayer("selected");
+    if (map.getLayer("selected")) {
+        map.removeLayer("selected");
+    }
     if (map.getSource("selected")) {
         map.removeSource("selected");
     }
@@ -202,8 +211,6 @@ async function clear() {
 }
 
 async function route() {
-    const button = document.getElementById("route_button");
-    button.classList.add("htmx-request");
     var end = start_marker.getLngLat();
     // get the position of the device
     var start = await new Promise((resolve, reject) => {
@@ -235,3 +242,16 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     bearing = (bearing + 360) % 360; // Ensuring the bearing is positive
     return bearing;
 }
+
+window.clear = clear;
+window.route = route;
+window.select = select;
+window.selectBigger = selectBigger;
+window.calculateBearing = calculateBearing;
+window.fitBounds = fitBounds;
+window.map = map;
+window.start_marker = start_marker;
+window.maplibregl = maplibregl;
+window.geolocate = geolocate;
+
+export { map, clear, route, select, selectBigger, calculateBearing, fitBounds };

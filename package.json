@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@material/web": "^2.2.0",
     "htmx.org": "^1.9.12",
     "lit": "^3.2.1",
     "maplibre-gl": "^4.7.1",

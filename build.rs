@@ -10,5 +10,15 @@ fn main() {
             "./pub/index.css",
         ])
         .status()
-        .expect("Failed to build lib");
+        .expect("Failed to build tailwind");
+
+    Command::new("esbuild")
+        .args([
+            "--bundle",
+            "index.js",
+            "--outfile=dist/index.js",
+            "--format=esm",
+        ])
+        .status()
+        .expect("Failed to npm build");
 }

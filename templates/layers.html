@@ -1,27 +1,27 @@
 <div id="layers" class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
     <div class="flex flex-col m-2">
         <div class="flex flex-row items-center">
-            <input type="checkbox" class="mr-2" data-layer="bike_shop">
+            <md-checkbox class="mr-2" data-layer="bike_shop"></md-checkbox>
             <img src="/pub/bike_shop.png" class="h-5 w-5">
             <div class="m-2">Atelier vélo</div>
         </div>
         <div class="flex flex-row items-center">
-            <input type="checkbox" class="mr-2" data-layer="bicycle_repair_station">
+            <md-checkbox class="mr-2" data-layer="bicycle_repair_station"></md-checkbox>
             <img src="/pub/bicycle_repair_station.png" class="h-5 w-5">
             <div class="m-2">Station de réparation autonome</div>
         </div>
         <div class="flex flex-row items-center">
-            <input type="checkbox" class="mr-2" data-layer="drinking_water">
+            <md-checkbox class="mr-2" data-layer="drinking_water"></md-checkbox>
             <img src="/pub/drinking_water.png" class="h-5 w-5">
             <div class="m-2">Eau potable</div>
         </div>
         <div class="flex flex-row items-center">
-            <input type="checkbox" class="mr-2" data-layer="bike_parking">
+            <md-checkbox class="mr-2" data-layer="bike_parking"></md-checkbox>
             <img src="/pub/bicycle-parking.png" class="h-5 w-5">
             <div class="m-2">Parking vélo</div>
         </div>
         <div class="flex flex-row items-center">
-            <input type="checkbox" class="mr-2" data-layer="bixi">
+            <md-checkbox class="mr-2" data-layer="bixi"></md-checkbox>
             <img src="/pub/bixi.png" class="h-5 w-5">
             <div class="m-2">Bixi</div>
         </div>
@@ -67,14 +67,14 @@
         </div>
 
         <div class="flex justify-center">
-            <button hx-get="/info_panel/down" hx-target="#info">fermer</button>
+            <md-filled-button hx-get="/info_panel/down" hx-target="#info">fermer</md-filled-button>
         </div>
     </div>
 </div>
 </div>
 
 <script>
-    document.querySelectorAll('#layers input').forEach(input => {
+    document.querySelectorAll('#layers md-checkbox').forEach(input => {
         input.addEventListener('change', function () {
             var layers = localStorage.getItem('layers');
             layers = layers ? JSON.parse(layers) : {};
@@ -92,7 +92,7 @@
 
     var layers = localStorage.getItem('layers');
     layers = layers ? JSON.parse(layers) : {};
-    document.querySelectorAll('#layers input').forEach(input => {
+    document.querySelectorAll('#layers md-checkbox').forEach(input => {
         const layer = input.dataset.layer;
         if (layers[layer] === 'visible' || layers[layer] === undefined) {
             input.checked = true;

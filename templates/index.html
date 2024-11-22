@@ -6,26 +6,12 @@
     <link rel="icon" href="pub/favicon.ico" />
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <script src="/node_modules/maplibre-gl/dist/maplibre-gl.js"></script>
+    <script src="node_modules/htmx.org/dist/htmx.min.js"></script>
     <link href="/node_modules/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
     <link href="/pub/index.css" rel="stylesheet" />
     <link href="/pub/veloinfo.css" rel="stylesheet" />
     <link href="/pub/webmanifest.json" rel="manifest" />
-    <script src="/node_modules/htmx.org/dist/htmx.min.js">
-    </script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 100%;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <div id="map">
     <div id="search" hx-trigger="load" hx-get="/search/open" class="flex justify-center">
@@ -47,9 +33,7 @@
         </div>
     </div>
 </div>
-</div>
-
-<script src="/index.js"></script>
+<script src="/dist/index.js" type="module"></script>
 
 <!-- Matomo -->
 <script>
