@@ -21,10 +21,10 @@
                     <input type="file" id="photo" name="photo">
                 </div>
                 <div class="flex justify-center">
-                    <md-filled-button hx-post="/segment_panel" hx-encoding="multipart/form-data"
-                        hx-target="#info">Enregistrer</md-filled-button>
-                    <md-filled-button hx-get="/segment_panel/ways/{{way_ids}}"
-                        hx-target="#info">annuler</md-filled-button>
+                    <md-filled-button hx-post="/segment_panel" hx-encoding="multipart/form-data" hx-target="#info"
+                        type="button">Enregistrer</md-filled-button>
+                    <md-filled-button hx-get="/segment_panel/ways/{{way_ids}}" hx-target="#info"
+                        type="button">annuler</md-filled-button>
                 </div>
             </form>
             {% else %}
@@ -63,13 +63,14 @@
 </div>
 </div>
 
-<script>
+<script type="module">
     var geom = {{ geom_json }};
     {% if fit_bounds %}
     map.fitBounds(fitBounds(geom[0]), { padding: window.innerWidth * .10 });
     {% endif %}
-    if (!start_marker) {
-        start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
+    if (!window.start_marker) {
+        console.log("creating start marker");
+        window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
     }
     {% if !edit %}
     if (map.getLayer("selected")) {

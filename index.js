@@ -136,22 +136,22 @@ map.on("move", function (e) {
 
 });
 
-let start_marker = null;
 let end_marker = null;
 async function select(event) {
-    if (start_marker && end_marker) {
+    if (window.start_marker && end_marker) {
         clear();
     }
 
-    if (start_marker && map.getLayer("selected")) {
+    if (window.start_marker && map.getLayer("selected")) {
         selectBigger(event);
         return;
     }
 
-    if (start_marker) {
-        start_marker.remove();
+    if (window.start_marker) {
+        window.start_marker.remove();
     }
-    start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(map);
+    window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(map);
+    console.log("une nouveau window.start_marker a été ajouté");
 
     let width = 20;
     var features = map.queryRenderedFeatures(
@@ -185,15 +185,15 @@ async function selectBigger(event) {
     }
     end_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(map);
 
-    var nodes = await htmx.ajax('GET', '/segment_panel_bigger/' + start_marker.getLngLat().lng + "/" + start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat, "#info");
+    var nodes = await htmx.ajax('GET', '/segment_panel_bigger/' + window.start_marker.getLngLat().lng + "/" + window.start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat, "#info");
 }
 
 
 
 async function clear() {
-    if (start_marker) {
-        start_marker.remove();
-        start_marker = null;
+    if (window.start_marker) {
+        window.start_marker.remove();
+        window.start_marker = null;
     }
     if (end_marker) {
         end_marker.remove();
@@ -211,7 +211,7 @@ async function clear() {
 }
 
 async function route() {
-    var end = start_marker.getLngLat();
+    var end = window.start_marker.getLngLat();
     // get the position of the device
     var start = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition((position) => {
@@ -243,15 +243,7 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     return bearing;
 }
 
-window.clear = clear;
-window.route = route;
-window.select = select;
-window.selectBigger = selectBigger;
-window.calculateBearing = calculateBearing;
-window.fitBounds = fitBounds;
-window.map = map;
-window.start_marker = start_marker;
-window.maplibregl = maplibregl;
-window.geolocate = geolocate;
+const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl }
+Object.assign(window, ex);
 
-export { map, clear, route, select, selectBigger, calculateBearing, fitBounds };
+export default ex;
