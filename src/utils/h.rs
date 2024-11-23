@@ -131,18 +131,6 @@ impl H for HMoyen {
             1. / 0.5
         } else if edge.tags.get("highway") == Some(&"service".to_string()) {
             1. / 0.5
-        } else if edge.tags.get("cycleway") == Some(&"separate".to_string()) {
-            1. / 0.4
-        } else if edge.tags.get("cycleway:both") == Some(&"separate".to_string()) {
-            1. / 0.4
-        } else if edge.tags.get("cycleway:left") == Some(&"separate".to_string())
-            && target == edge.source
-        {
-            1. / 0.4
-        } else if edge.tags.get("cycleway:right") == Some(&"separate".to_string())
-            && target == edge.target
-        {
-            1. / 0.4
         } else if edge.tags.get("highway") == Some(&"secondary".to_string()) {
             1. / 0.35
         } else if edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
