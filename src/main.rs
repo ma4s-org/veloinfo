@@ -71,7 +71,8 @@ async fn main() {
     let state = VeloinfoState { conn: conn.clone() };
     sqlx::migrate!().run(&conn).await.unwrap();
 
-    if ENV.as_str().contains("dev") {
+    if !dev {
+        println!("Clearing cache {}", ENV.as_str());
         Edge::clear_cache(&conn).await;
     }
 
