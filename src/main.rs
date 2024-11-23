@@ -31,7 +31,6 @@ use sqlx::PgPool;
 use std::env;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::services::ServeDir;
-use tower_http::services::ServeFile;
 use tower_http::trace::TraceLayer;
 use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -47,6 +46,7 @@ mod utils;
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
     static ref MATOMO_SERVER: String = env::var("MATOMO_SERVER").unwrap();
+    static ref ENV: String = env::var("ENV").unwrap();
 }
 
 #[derive(Clone, Debug)]
@@ -71,8 +71,9 @@ async fn main() {
     let state = VeloinfoState { conn: conn.clone() };
     sqlx::migrate!().run(&conn).await.unwrap();
 
-    Edge::clear_cache(&conn).await;
-    // fetch_montreal_data(&conn).await;
+    if ENV.as_str().contains("dev") {
+        Edge::clear_cache(&conn).await;
+    }
 
     println!("Starting cron scheduler");
     let sched = JobScheduler::new().await.unwrap();
