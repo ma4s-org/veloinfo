@@ -212,6 +212,7 @@ async function clear() {
 async function route() {
     var end = window.start_marker.getLngLat();
     // get the position of the device
+    document.getElementById("search_position_dialog").removeAttribute("style");
     document.getElementById("search_position_dialog").setAttribute("open", "true");
     var start = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition((position) => {
@@ -219,6 +220,7 @@ async function route() {
             document.getElementById("search_position_dialog").removeAttribute("open");
         });
     });
+    document.getElementById("search_route_dialog").removeAttribute("style");
     document.getElementById("search_route_dialog").setAttribute("open", "true");
     await htmx.ajax("GET", "/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat, "#info");
     document.getElementById("search_route_dialog").removeAttribute("open");
