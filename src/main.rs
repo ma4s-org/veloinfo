@@ -46,7 +46,6 @@ mod utils;
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
     static ref MATOMO_SERVER: String = env::var("MATOMO_SERVER").unwrap();
-    static ref ENV: String = env::var("ENV").unwrap();
 }
 
 #[derive(Clone, Debug)]
@@ -72,7 +71,6 @@ async fn main() {
     sqlx::migrate!().run(&conn).await.unwrap();
 
     if !dev {
-        println!("Clearing cache {}", ENV.as_str());
         Edge::clear_cache(&conn).await;
     }
 
