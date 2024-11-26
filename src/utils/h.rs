@@ -194,6 +194,8 @@ impl H for HBiggerSelection {
     fn get_cost(&self, edge: &Edge, target: i64) -> f64 {
         let cost = if edge.tags.get("highway") == Some(&"cycleway".to_string()) {
             1.
+        } else if edge.tags.get("cyclestreet") == Some(&"true".to_string()) {
+            1.
         } else if edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
             1.
         } else if edge.tags.get("cycleway") == Some(&"track".to_string()) {
@@ -303,6 +305,8 @@ impl H for HRapid {
         } else if edge.tags.get("bicycle") == Some(&"dismount".to_string()) {
             1. / 0.2
         } else if edge.tags.get("highway") == Some(&"cycleway".to_string()) {
+            1.
+        } else if edge.tags.get("cyclestreet") == Some(&"true".to_string()) {
             1.
         } else if edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
             1.
