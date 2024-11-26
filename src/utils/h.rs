@@ -61,6 +61,8 @@ impl H for HMoyen {
             1.
         } else if edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
             1.
+        } else if edge.tags.get("cyclestreet") == Some(&"true".to_string()) {
+            1.
         } else if edge.tags.get("cycleway") == Some(&"track".to_string()) {
             1. / 0.9
         } else if edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
