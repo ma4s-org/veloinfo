@@ -93,13 +93,13 @@ impl H for HMoyen {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.8
             } else {
-                1. / 0.2
+                1. / 0.1
             }
         } else if edge.edge.tags.get("highway") == Some(&"footway".to_string()) {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.8
             } else {
-                1. / 0.2
+                1. / 0.1
             }
         } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
             1. / 0.7
@@ -144,7 +144,7 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("higway").is_some() {
             1. / 0.3
         } else if edge.edge.tags.get("higway") == Some(&"footway".to_string()) {
-            1. / 0.2
+            1. / 0.1
         } else {
             1. / 0.05
         };
@@ -332,7 +332,7 @@ impl H for HRapid {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.9
             } else {
-                1. / 0.2
+                1. / 0.1
             }
         } else if edge.edge.tags.get("highway") == Some(&"footway".to_string())
             || edge.edge.tags.get("highway") == Some(&"pedestrian".to_string())
@@ -340,7 +340,7 @@ impl H for HRapid {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.9
             } else {
-                1. / 0.2
+                1. / 0.1
             }
         } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
             1. / 0.85
@@ -399,7 +399,7 @@ impl H for HRapid {
         } else if edge.edge.tags.get("higway").is_some() {
             1. / 0.5
         } else if edge.edge.tags.get("higway") == Some(&"footway".to_string()) {
-            1. / 0.2
+            1. / 0.1
         } else {
             1. / 0.1
         };
