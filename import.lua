@@ -415,9 +415,10 @@ local name = osm2pgsql.define_node_table('name', {{
 }})
 
 function osm2pgsql.process_way(object)
-    if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] == "track" or
-        object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and object.tags.footway ~=
-        "sidewalk" and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
+    if (object.tags.highway == 'cycleway' or object.tags.cyclestreet == "true" or object.tags.cycleway == "track" or
+        object.tags["cycleway:left"] == "track" or object.tags["cycleway:right"] == "track" or
+        object.tags["cycleway:both"] == "track") and object.tags.footway ~= "sidewalk" and object.tags.service ~=
+        "parking_aisle" and object.tags.highway ~= "proposed" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
