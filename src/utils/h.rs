@@ -93,13 +93,13 @@ impl H for HMoyen {
             1. / 0.9
         } else if edge.edge.tags.get("footway") == Some(&"path".to_string()) {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.7
+                1. / 0.6
             } else {
                 1. / 0.1
             }
         } else if edge.edge.tags.get("highway") == Some(&"footway".to_string()) {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.7
+                1. / 0.6
             } else {
                 1. / 0.1
             }
