@@ -1,4 +1,4 @@
-use crate::db::edge::{Edge, EdgePoint, SourceOrTarget};
+use crate::db::edge::{EdgePoint, SourceOrTarget};
 use crate::db::utils::distance_meters;
 
 pub trait H: Send {

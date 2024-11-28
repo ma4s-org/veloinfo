@@ -2,7 +2,6 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fmt::Debug,
     hash::Hash,
-    rc::Rc,
 };
 
 use crate::utils::h::H;
@@ -70,6 +69,73 @@ impl PartialEq for Edge {
 pub struct EdgePoint {
     pub edge: Edge,
     pub point: SourceOrTarget,
+}
+
+impl EdgePoint {
+    pub fn get_node_id(&self) -> i64 {
+        match self.point {
+            SourceOrTarget::Source => self.edge.source,
+            SourceOrTarget::Target => self.edge.target,
+        }
+    }
+
+    pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> Vec<ARc<EdgePoint>> {
+        let mut cache = NEIGHBORS_CACHE.lock().await;
+        let node_id = self.get_node_id();
+        if cache.contains_key(&node_id) {
+            return cache.get(&node_id).unwrap().clone();
+        }
+
+        match sqlx::query_as(
+            r#"SELECT
+                e.id,
+                source,
+                target,
+                score,
+                x1 as lon1,
+                y1 as lat1,
+                x2 as lon2,
+                y2 as lat2,
+                tags,
+                way_id,
+                tags->>'name' as name, 
+                st_length(e.geom) as length,
+                rw.geom is not null as road_work
+            FROM edge e
+            left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            WHERE (source = $1 or target = $1)
+            "#,
+        )
+        .bind(node_id)
+        .fetch_all(conn)
+        .await
+        {
+            Ok(results) => {
+                let result: Vec<ARc<EdgePoint>> = results
+                    .into_iter()
+                    .map(|edge: Edge| {
+                        if edge.source == node_id {
+                            return ARc::new(EdgePoint {
+                                edge,
+                                point: SourceOrTarget::Target,
+                            });
+                        } else {
+                            return ARc::new(EdgePoint {
+                                edge,
+                                point: SourceOrTarget::Source,
+                            });
+                        }
+                    })
+                    .collect();
+                cache.insert(node_id, result.clone());
+                result
+            }
+            Err(e) => {
+                eprintln!("Error while getting neighbors: {}", e);
+                return vec![];
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, Hash)]
@@ -176,20 +242,12 @@ impl Edge {
             }
             open_set.remove(&current);
             first_min_entry.remove();
-            let neighbors = Edge::get_neighbors(
-                match current.point {
-                    SourceOrTarget::Source => current.edge.source,
-                    SourceOrTarget::Target => current.edge.target,
-                },
-                conn,
-            )
-            .await;
+            let neighbors = current.get_neighbors(conn).await;
             for neighbor in neighbors.iter() {
                 let tentative_g_score = g_score.get(&current).expect("current should have a score")
                     + neighbor.edge.length * h.get_cost(neighbor);
-                let neignbourd_g_score = g_score.get(neighbor);
-                if neignbourd_g_score.is_none() || &tentative_g_score < neignbourd_g_score.unwrap()
-                {
+                let neighbord_g_score = g_score.get(neighbor);
+                if neighbord_g_score.is_none() || &tentative_g_score < neighbord_g_score.unwrap() {
                     came_from.insert(neighbor.clone(), current.clone());
                     g_score.insert(neighbor.clone(), tentative_g_score);
                     f_score.insert(
@@ -204,7 +262,6 @@ impl Edge {
                 }
             }
         }
-
         vec![]
     }
 
@@ -283,62 +340,6 @@ impl Edge {
                 Ok(ARc::new(EdgePoint { edge, point }))
             }
             Err(e) => Err(e),
-        }
-    }
-
-    pub async fn get_neighbors(node_id: i64, conn: &sqlx::Pool<Postgres>) -> Vec<ARc<EdgePoint>> {
-        let mut cache = NEIGHBORS_CACHE.lock().await;
-        if cache.contains_key(&node_id) {
-            return cache.get(&node_id).unwrap().clone();
-        }
-
-        match sqlx::query_as(
-            r#"SELECT
-                e.id,
-                source,
-                target,
-                score,
-                x1 as lon1,
-                y1 as lat1,
-                x2 as lon2,
-                y2 as lat2,
-                tags,
-                way_id,
-                tags->>'name' as name, 
-                st_length(e.geom) as length,
-                rw.geom is not null as road_work
-            FROM edge e
-            left join road_work rw on ST_Intersects(e.geom, rw.geom)
-            WHERE (source = $1 or target = $1)"#,
-        )
-        .bind(node_id)
-        .fetch_all(conn)
-        .await
-        {
-            Ok(results) => {
-                let result: Vec<ARc<EdgePoint>> = results
-                    .into_iter()
-                    .map(|edge: Edge| {
-                        if edge.source == node_id {
-                            return ARc::new(EdgePoint {
-                                edge,
-                                point: SourceOrTarget::Source,
-                            });
-                        } else {
-                            return ARc::new(EdgePoint {
-                                edge,
-                                point: SourceOrTarget::Target,
-                            });
-                        }
-                    })
-                    .collect();
-                cache.insert(node_id, result.clone());
-                result
-            }
-            Err(e) => {
-                eprintln!("Error while getting neighbors: {}", e);
-                return vec![];
-            }
         }
     }
 
