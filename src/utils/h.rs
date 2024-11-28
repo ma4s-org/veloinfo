@@ -121,7 +121,7 @@ impl H for HMoyen {
             {
                 1. / 0.7
             } else {
-                1. / 0.3
+                1. / 0.6
             }
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.5
