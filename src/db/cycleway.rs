@@ -10,7 +10,6 @@ pub struct Cycleway {
     pub geom: Vec<[f64; 2]>,
     pub source: i64,
     pub target: i64,
-    pub score_id: Option<i32>,
     pub score: Option<f64>,
 }
 
@@ -21,7 +20,6 @@ struct CyclewayDb {
     geom: String,
     source: i64,
     target: i64,
-    score_id: Option<i32>,
     score: Option<f64>,
 }
 
@@ -68,23 +66,16 @@ impl Cycleway {
     pub async fn get(way_id: &i64, conn: &sqlx::Pool<Postgres>) -> Result<Cycleway> {
         let response: Result<CyclewayDb, sqlx::Error> = sqlx::query_as(
             r#"select
-                c.name,  
-                way_id,
-                source,
-                target,
-                ST_AsText(ST_Transform(c.geom, 4326)) as geom,  
-                score,
-                cs.id as score_id
-               from cycleway_way c 
-               left join (
-                    select *
-                    from cyclability_score 
-                    where $1 = any(way_ids)
-                    order by created_at desc
-                    limit 1
-               ) cs on way_id = any(cs.way_ids)
-               where 
-                way_id = $1"#,
+                    c.name,  
+                    c.way_id,
+                    c.source,
+                    c.target,
+                    ST_AsText(ST_Transform(c.geom, 4326)) as geom,  
+                    cs.score
+                from cycleway_way c 
+                left join last_cycleway_score cs on c.way_id = cs.way_id
+                where 
+                c.way_id = $1"#,
         )
         .bind(way_id)
         .fetch_one(conn)
@@ -94,6 +85,38 @@ impl Cycleway {
             Ok(response) => Ok(response.into()),
             Err(e) => {
                 eprintln!("Error getting cycleway {:?} {:?}", way_id, e);
+                Err(e.into())
+            }
+        }
+    }
+
+    pub async fn get_many(
+        way_ids: &Vec<i64>,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<Vec<Cycleway>> {
+        let response: Result<Vec<CyclewayDb>, sqlx::Error> = sqlx::query_as(
+            r#"select
+                    c.name,  
+                    way_id,
+                    source,
+                    target,
+                    ST_AsText(ST_Transform(c.geom, 4326)) as geom,  
+                    score,
+                    cs.id as score_id
+                from cycleway_way c 
+                left join last_cycleway_score lcs on c.way_id = lcs.way_id 
+                where 
+                    c.way_id = lcs.way_id
+                    and c.way_id = ANY($1)"#,
+        )
+        .bind(way_ids)
+        .fetch_all(conn)
+        .await;
+
+        match response {
+            Ok(response) => Ok(response.iter().map(|response| response.into()).collect()),
+            Err(e) => {
+                eprintln!("Error getting cycleway {:?} {:?}", way_ids, e);
                 Err(e.into())
             }
         }
@@ -157,7 +180,7 @@ impl Cycleway {
             Ok(response) => response,
             Err(e) => return Err(e),
         };
-        Ok(response.into())
+        Ok((&response).into())
     }
 }
 
@@ -186,13 +209,12 @@ impl From<&CyclewayDb> for Cycleway {
             source: response.source,
             target: response.target,
             score: response.score,
-            score_id: response.score_id,
         }
     }
 }
 
-impl From<NodeDb> for Node {
-    fn from(response: NodeDb) -> Self {
+impl From<&NodeDb> for Node {
+    fn from(response: &NodeDb) -> Self {
         let re = Regex::new(r"(-?\d+\.*\d*) (-?\d+\.*\d*)").unwrap();
         let points = re
             .captures_iter(response.geom.as_str())

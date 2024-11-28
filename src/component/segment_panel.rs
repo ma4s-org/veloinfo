@@ -317,7 +317,6 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPane
                     way_id: 0,
                     name: Some("".to_string()),
                     score: None,
-                    score_id: None,
                     geom: vec![],
                     source: 0,
                     target: 0,
@@ -410,6 +409,7 @@ pub async fn segment_panel_bigger_route(
     .await;
 
     let ways = edges.iter().fold("".to_string(), |acc, edge| {
+        println!("edge {}", edge.way_id);
         match acc.contains(&edge.way_id.to_string()) {
             true => return acc,
             false => format!("{} {}", acc, edge.way_id),
@@ -515,7 +515,6 @@ pub async fn segment_panel_lng_lat(
                 way_id: 0,
                 name: None,
                 score: None,
-                score_id: None,
                 geom: vec![],
                 source: 0,
                 target: 0,
