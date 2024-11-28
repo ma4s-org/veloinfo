@@ -68,11 +68,13 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
             1.
         } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string())
-            && SourceOrTarget::Source == edge.point
+            && (SourceOrTarget::Source == edge.point
+                || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1.
         } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string())
-            && SourceOrTarget::Target == edge.point
+            && (SourceOrTarget::Target == edge.point
+                || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1.
         } else if edge.edge.tags.get("higway") == Some(&"footway".to_string())
@@ -84,11 +86,13 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string())
-            && SourceOrTarget::Source == edge.point
+            && (SourceOrTarget::Source == edge.point
+                || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string())
-            && SourceOrTarget::Target == edge.point
+            && (SourceOrTarget::Target == edge.point
+                || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1. / 0.9
         } else if edge.edge.tags.get("footway") == Some(&"path".to_string()) {
@@ -108,11 +112,13 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
             1. / 0.7
         } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-            && SourceOrTarget::Source == edge.point
+            && (SourceOrTarget::Source == edge.point
+                || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
         } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-            && SourceOrTarget::Target == edge.point
+            && (SourceOrTarget::Target == edge.point
+                || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
         } else if edge.edge.tags.get("highway") == Some(&"residential".to_string()) {
