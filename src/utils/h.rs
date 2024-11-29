@@ -61,7 +61,7 @@ impl H for HMoyen {
             1.
         } else if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
             1.
-        } else if edge.edge.tags.get("cyclestreet") == Some(&"true".to_string()) {
+        } else if edge.edge.tags.get("cyclestreet") == Some(&"yes".to_string()) {
             1.
         } else if edge.edge.tags.get("cycleway") == Some(&"track".to_string()) {
             1.
@@ -200,7 +200,7 @@ impl H for HBiggerSelection {
     fn get_cost(&self, edge: &EdgePoint) -> f64 {
         let cost = if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
             1.
-        } else if edge.edge.tags.get("cyclestreet") == Some(&"true".to_string()) {
+        } else if edge.edge.tags.get("cyclestreet") == Some(&"yes".to_string()) {
             1.
         } else if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
             1.
@@ -312,7 +312,7 @@ impl H for HRapid {
             1. / 0.2
         } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
             1.
-        } else if edge.edge.tags.get("cyclestreet") == Some(&"true".to_string()) {
+        } else if edge.edge.tags.get("cyclestreet") == Some(&"yes".to_string()) {
             1.
         } else if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
             1.
