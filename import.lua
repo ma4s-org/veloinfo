@@ -417,8 +417,8 @@ local name = osm2pgsql.define_node_table('name', {{
 function osm2pgsql.process_way(object)
     if (object.tags.highway == 'cycleway' or object.tags.cyclestreet == "yes" or object.tags.cycleway == "track" or
         object.tags["cycleway:left"] == "track" or object.tags["cycleway:right"] == "track" or
-        object.tags["cycleway:both"] == "track") and object.tags.footway ~= "sidewalk" and object.tags.service ~=
-        "parking_aisle" and object.tags.highway ~= "proposed" then
+        object.tags["cycleway:both"] == "track") and object.tags.service ~= "parking_aisle" and object.tags.highway ~=
+        "proposed" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
@@ -430,8 +430,8 @@ function osm2pgsql.process_way(object)
         })
     elseif (object.tags["cycleway:left"] == "share_busway" or object.tags["cycleway:right"] == "share_busway" or
         object.tags["cycleway:both"] == "share_busway" or object.tags["cycleway:right"] == "lane" or
-        object.tags["cycleway:left"] == "lane" or object.tags["cycleway:both"] == "lane") and object.tags.footway ~=
-        "sidewalk" and object.tags.service ~= "parking_aisle" then
+        object.tags["cycleway:left"] == "lane" or object.tags["cycleway:both"] == "lane") and object.tags.service ~=
+        "parking_aisle" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
@@ -444,8 +444,8 @@ function osm2pgsql.process_way(object)
     elseif (object.tags.cycleway == "shared_lane" or object.tags.cycleway == "lane" or object.tags["cycleway:left"] ==
         "shared_lane" or object.tags["cycleway:left"] == "opposite_lane" or object.tags["cycleway:right"] ==
         "shared_lane" or object.tags["cycleway:right"] == "opposite_lane" or object.tags["cycleway:both"] ==
-        "shared_lane" or (object.tags.highway == "footway" and object.tags.bicycle == "yes")) and object.tags.footway ~=
-        "sidewalk" and object.tags.service ~= "parking_aisle" then
+        "shared_lane" or (object.tags.highway == "footway" and object.tags.bicycle == "yes")) and object.tags.service ~=
+        "parking_aisle" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
@@ -503,8 +503,7 @@ function osm2pgsql.process_way(object)
         })
     end
 
-    if object.tags.highway and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" and
-        object.tags.highway ~= "proposed" then
+    if object.tags.highway and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
         all_way:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
