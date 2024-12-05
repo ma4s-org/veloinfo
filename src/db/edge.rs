@@ -71,6 +71,36 @@ pub struct EdgePoint {
     pub point: SourceOrTarget,
 }
 
+#[derive(Debug, Clone, Eq, Hash)]
+pub enum SourceOrTarget {
+    Source,
+    Target,
+}
+
+pub struct Shortcut {
+    pub source: ARc<EdgePoint>,
+    pub target: ARc<EdgePoint>,
+    pub path: Vec<ARc<EdgePoint>>,
+    pub length: f64,
+    pub score: f64,
+}
+
+impl PartialEq for SourceOrTarget {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (SourceOrTarget::Source, SourceOrTarget::Source) => true,
+            (SourceOrTarget::Target, SourceOrTarget::Target) => true,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq for EdgePoint {
+    fn eq(&self, other: &Self) -> bool {
+        self.edge.id == other.edge.id && self.point == other.point
+    }
+}
+
 impl EdgePoint {
     pub fn get_node_id(&self) -> i64 {
         match self.point {
@@ -135,28 +165,6 @@ impl EdgePoint {
                 return vec![];
             }
         }
-    }
-}
-
-#[derive(Debug, Clone, Eq, Hash)]
-pub enum SourceOrTarget {
-    Source,
-    Target,
-}
-
-impl PartialEq for SourceOrTarget {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (SourceOrTarget::Source, SourceOrTarget::Source) => true,
-            (SourceOrTarget::Target, SourceOrTarget::Target) => true,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq for EdgePoint {
-    fn eq(&self, other: &Self) -> bool {
-        self.edge.id == other.edge.id && self.point == other.point
     }
 }
 
@@ -340,6 +348,13 @@ impl Edge {
                 Ok(ARc::new(EdgePoint { edge, point }))
             }
             Err(e) => Err(e),
+        }
+    }
+
+    pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
+        let mut cache = NEIGHBORS_CACHE.lock().await;
+        for node_id in node_ids {
+            cache.remove(&node_id);
         }
     }
 

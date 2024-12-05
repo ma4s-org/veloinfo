@@ -212,6 +212,7 @@ impl CyclabilityScore {
         };
 
         let conn = conn.clone();
+        let way_ids = way_ids.clone();
         tokio::spawn(async move {
             match sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY last_cycleway_score"#)
                 .execute(&conn)
@@ -234,7 +235,26 @@ impl CyclabilityScore {
                 Ok(_) => (),
                 Err(e) => eprintln!("Error while refreshing edge: {}", e),
             };
-            Edge::clear_cache(&conn).await;
+
+            let node_ids = sqlx::query(
+                r#"select source, target
+                   from edge
+                   where way_id = any($1)"#,
+            )
+            .bind(way_ids)
+            .fetch_all(&conn)
+            .await
+            .unwrap()
+            .iter()
+            .map(|row| {
+                let source: i64 = row.get(0);
+                let target: i64 = row.get(1);
+                vec![source, target]
+            })
+            .flatten()
+            .collect::<Vec<i64>>();
+
+            Edge::clear_nodes_cache(node_ids).await;
         });
 
         Ok(id)
