@@ -444,7 +444,8 @@ function osm2pgsql.process_way(object)
     elseif (object.tags.cycleway == "shared_lane" or object.tags.cycleway == "lane" or object.tags["cycleway:left"] ==
         "shared_lane" or object.tags["cycleway:left"] == "opposite_lane" or object.tags["cycleway:right"] ==
         "shared_lane" or object.tags["cycleway:right"] == "opposite_lane" or object.tags["cycleway:both"] ==
-        "shared_lane") and object.tags.footway ~= "sidewalk" and object.tags.service ~= "parking_aisle" then
+        "shared_lane" or (object.tags.highway == "footway" and object.tags.bicycle == "yes")) and object.tags.footway ~=
+        "sidewalk" and object.tags.service ~= "parking_aisle" then
         cycleway:insert({
             name = object.tags.name,
             geom = object:as_linestring(),
