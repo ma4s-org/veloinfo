@@ -14,7 +14,7 @@ pub struct CyclabilityScore {
     pub way_ids: Vec<i64>,
     pub created_at: DateTime<Local>,
     pub photo_path_thumbnail: Option<String>,
-    pub geom: Vec<[f64; 2]>,
+    pub geom: Vec<Vec<[f64; 2]>>,
     pub user_id: Option<Uuid>,
 }
 
@@ -263,16 +263,23 @@ impl CyclabilityScore {
 
 impl From<&CyclabilityScoreDb> for CyclabilityScore {
     fn from(response: &CyclabilityScoreDb) -> Self {
-        let re = Regex::new(r"(-?\d+\.*\d*) (-?\d+\.*\d*)").unwrap();
-        let points = re
-            .captures_iter(response.geom.as_str())
-            .map(|cap| {
-                let x = cap[1].parse::<f64>().unwrap();
-                let y = cap[2].parse::<f64>().unwrap();
+        let re = Regex::new(r"(-?\d+\.\d+) (-?\d+\.\d+)").unwrap();
+        let mut points = Vec::new();
 
-                [x, y]
-            })
-            .collect::<Vec<[f64; 2]>>();
+        println!("geom {}", response.geom);
+        for line in response.geom.split("),(") {
+            let line_points = re
+                .captures_iter(line)
+                .map(|cap| {
+                    let x = cap[1].parse::<f64>().unwrap();
+                    let y = cap[2].parse::<f64>().unwrap();
+                    [x, y]
+                })
+                .collect::<Vec<[f64; 2]>>();
+            points.push(line_points);
+        }
+        println!("points {:?}", points);
+
         CyclabilityScore {
             id: response.id,
             name: response.name.clone(),
@@ -286,7 +293,6 @@ impl From<&CyclabilityScoreDb> for CyclabilityScore {
         }
     }
 }
-
 impl From<CyclabilityScoreDb> for CyclabilityScore {
     fn from(response: CyclabilityScoreDb) -> Self {
         CyclabilityScore::from(&response)

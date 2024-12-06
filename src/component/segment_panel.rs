@@ -461,7 +461,7 @@ async fn segment_panel_score_id(conn: &sqlx::Pool<Postgres>, id: i32, edit: bool
         }
     });
 
-    let geom_json = match serde_json::to_string(&[score.geom.clone()]) {
+    let geom_json = match serde_json::to_string(&score.geom.clone()) {
         Ok(geom) => geom,
         Err(e) => {
             eprintln!("Error while serializing geom: {}", e);
