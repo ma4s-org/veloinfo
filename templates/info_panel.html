@@ -2,11 +2,10 @@
 <div id="info_panel_down" class="absolute h-12 w-full md:w-[500px] bg-white z-10 bottom-0 rounded-lg"
     hx-on:click="info_panel_up()">
     {% else %}
-    <div id="info_panel_up" class="absolute w-full h-2/5 md:w-[500px] bg-white z-10 bottom-0 rounded-lg"
-        hx-get="/info_panel/down" hx-target="#info">
+    <div id="info_panel_up" class="absolute w-full h-2/5 md:w-[500px] bg-white z-10 bottom-0 rounded-lg">
         {% endif %}
         <img id="spinner" class="htmx-indicator z-30 bottom-8 mx-auto inset-x-0" src="/pub/bars.svg" />
-        <div class="w-full h-7 justify-center flex cursor-pointer">
+        <div class="w-full h-7 justify-center flex cursor-pointer" hx-get="/info_panel/down" hx-target="#info">
             <div class="uppercase font-bold">Contributions dans cette zone</div>
             <div class="absolute right-2">
                 {{ arrow }}
