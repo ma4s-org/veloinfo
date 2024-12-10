@@ -3409,6 +3409,21 @@
             ]
         },
         {
+            "id": "road_work",
+            "type": "fill",
+            "source": "road_work",
+            "source-layer": "road_work",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "layout": {
+                "visibility": "visible"
+            },
+            "paint": {
+                "fill-color": "hsl(0, 100%, 58%)",
+                "fill-opacity": 0.3
+            }
+        },
+        {
             "id": "bike_parking",
             "type": "symbol",
             "source": "veloinfo_all_node",
@@ -3438,7 +3453,7 @@
                     13
                 ],
                 "text-field": "{capacity}",
-                "visibility": "visible",
+                "visibility": "none",
                 "text-anchor": "center",
                 "text-offset": [
                     0.5,
@@ -3504,7 +3519,7 @@
                     13
                 ],
                 "text-field": "{capacity}",
-                "visibility": "visible",
+                "visibility": "none",
                 "icon-image": "drinking-water",
                 "icon-size": [
                     "interpolate",
@@ -3531,21 +3546,6 @@
                 "amenity",
                 "drinking_water"
             ]
-        },
-        {
-            "id": "road_work",
-            "type": "fill",
-            "source": "road_work",
-            "source-layer": "road_work",
-            "maxzoom": 24,
-            "minzoom": 0,
-            "layout": {
-                "visibility": "visible"
-            },
-            "paint": {
-                "fill-color": "hsl(0, 100%, 58%)",
-                "fill-opacity": 0.3
-            }
         },
         {
             "id": "bicycle_repair_station",
@@ -3577,7 +3577,7 @@
                     13
                 ],
                 "text-field": "{capacity}",
-                "visibility": "visible",
+                "visibility": "none",
                 "text-anchor": "center",
                 "text-offset": [
                     0.5,
@@ -3643,7 +3643,7 @@
                     13
                 ],
                 "text-field": "{capacity}",
-                "visibility": "visible",
+                "visibility": "none",
                 "text-anchor": "center",
                 "text-offset": [
                     0.5,
@@ -3705,7 +3705,7 @@
                     0,
                     -2
                 ],
-                "visibility": "visible",
+                "visibility": "none",
                 "icon-image": "bike-shop",
                 "icon-size": 0.5
             },

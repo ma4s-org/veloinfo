@@ -62,6 +62,21 @@ var map = new maplibregl.Map({
     zoom: zoom,
     minZoom: 8
 });
+// Load the layers from the local storage
+setTimeout(() => {
+    const layers = JSON.parse(localStorage.getItem("layers"));
+    if (layers) {
+        for (const layer in layers) {
+            if (layers[layer] == "visible") {
+                map.setLayoutProperty(layer, 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty(layer, 'visibility', 'none');
+            }
+        }
+    }
+}, 1000);
+
+// Load the images
 (async () => {
     const bike_image = await map.loadImage('/pub/bicycle-parking.png');
     map.addImage('bike-parking', bike_image.data);
@@ -73,18 +88,9 @@ var map = new maplibregl.Map({
     map.addImage('bicycle_repair_station', bicycle_repair_station.data);
     const bixi = await map.loadImage('/pub/bixi.png');
     map.addImage('bixi', bixi.data);
-
-    const layers = JSON.parse(localStorage.getItem("layers"));
-    if (layers) {
-        for (const layer in layers) {
-            if (layer.visible) {
-                map.setLayoutProperty(layer, 'visibility', 'visible');
-            } else {
-                map.setLayoutProperty(layer, 'visibility', 'none');
-            }
-        }
-    }
 })();
+
+
 
 map.addControl(new maplibregl.NavigationControl());
 let geolocate = new maplibregl.GeolocateControl({
