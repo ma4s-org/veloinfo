@@ -210,25 +210,17 @@ impl H for HBiggerSelection {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
             1. / 0.9
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string())
-            && SourceOrTarget::Source == edge.point
-        {
+        } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string()) {
             1. / 0.9
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string())
-            && SourceOrTarget::Target == edge.point
-        {
+        } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string()) {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway") == Some(&"lane".to_string()) {
             1. / 0.8
         } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
             1. / 0.8
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string())
-            && SourceOrTarget::Source == edge.point
-        {
+        } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string()) {
             1. / 0.8
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string())
-            && SourceOrTarget::Target == edge.point
-        {
+        } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string()) {
             1. / 0.8
         } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
             1. / 0.7
@@ -238,13 +230,9 @@ impl H for HBiggerSelection {
             1. / 0.7
         } else if edge.edge.tags.get("bicycle") == Some(&"designated".to_string()) {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-            && SourceOrTarget::Source == edge.point
-        {
+        } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string()) {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-            && SourceOrTarget::Target == edge.point
-        {
+        } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string()) {
             1. / 0.7
         } else {
             1. / 0.1
