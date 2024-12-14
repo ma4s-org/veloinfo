@@ -1,5 +1,5 @@
 <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-    <div class="flex">
+    <div id="follow" class="flex">
         <div>
             Suivre le trajet
         </div>
@@ -19,4 +19,23 @@
         window.geolocate.trigger();
         window.geolocate.trackUserLocation = true;
     }, 1000);
+
+    const interval = setInterval(() => {
+        if (!document.getElementById('follow')) {
+            clearInterval(interval);
+            return;
+        }
+        navigator.geolocation.getCurrentPosition((position) => {
+            const { latitude, longitude } = position.coords;
+            var bearing = calculateBearing(
+                longitude,
+                latitude,
+                coordinates[coordinates.length - 1][0],
+                coordinates[coordinates.length - 1][1]);
+            map.easeTo({
+                bearing,
+                duration: 800,
+            });
+        });
+    }, 20000);
 </script>
