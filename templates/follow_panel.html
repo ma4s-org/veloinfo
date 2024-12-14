@@ -20,13 +20,13 @@
         window.geolocate.trackUserLocation = true;
     }, 1000);
 
-    const interval = setInterval(() => {
+    let interval = setInterval(() => {
         if (!document.getElementById('follow')) {
             clearInterval(interval);
             return;
         }
         navigator.geolocation.getCurrentPosition((position) => {
-            const { latitude, longitude } = position.coords;
+            let { latitude, longitude } = position.coords;
             var bearing = calculateBearing(
                 longitude,
                 latitude,
@@ -36,6 +36,7 @@
                 bearing,
                 duration: 800,
             });
+            window.geolocate.trigger();
         });
     }, 20000);
 </script>
