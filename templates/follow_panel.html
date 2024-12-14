@@ -10,7 +10,7 @@
     </div>
 
 </div>
-<script type="text/javascript">
+<script type="module">
     map.easeTo({
         pitch: 60,
         duration: 800,
@@ -30,13 +30,15 @@
             var bearing = calculateBearing(
                 longitude,
                 latitude,
-                coordinates[coordinates.length - 1][0],
-                coordinates[coordinates.length - 1][1]);
+                window.coordinates[window.coordinates.length - 1][0],
+                window.coordinates[window.coordinates.length - 1][1]);
             map.easeTo({
                 bearing,
-                duration: 800,
+                duration: 10,
             });
-            window.geolocate.trigger();
+            setTimeout(() => {
+                window.geolocate.trigger();
+            }, 50);
         });
     }, 20000);
 </script>

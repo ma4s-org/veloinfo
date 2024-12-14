@@ -28,16 +28,16 @@
     </div>
 
 </div>
-<script type="text/javascript">
+<script type="module">
     {% if coordinates != "" %}
-    var coordinates = {{ coordinates }};
+    window.coordinates = {{ coordinates }};
     if (map.getLayer("selected")) {
         map.getSource("selected").setData({
             "type": "Feature",
             "properties": {},
             "geometry": {
                 "type": "MultiLineString",
-                "coordinates": [coordinates]
+                "coordinates": [window.coordinates]
             }
         });
     } else {
@@ -48,7 +48,7 @@
                 "properties": {},
                 "geometry": {
                     "type": "MultiLineString",
-                    "coordinates": [coordinates]
+                    "coordinates": [window.coordinates]
                 }
             }
         })
@@ -67,11 +67,11 @@
     }
 
     var bearing = calculateBearing(
-        coordinates[0][0],
-        coordinates[0][1],
-        coordinates[coordinates.length - 1][0],
-        coordinates[coordinates.length - 1][1]);
-    var bounds = fitBounds(coordinates);
+        window.coordinates[0][0],
+        window.coordinates[0][1],
+        window.coordinates[window.coordinates.length - 1][0],
+        window.coordinates[window.coordinates.length - 1][1]);
+    var bounds = fitBounds(window.coordinates);
     map.fitBounds(bounds, { bearing, pitch: 0, padding: 30, duration: 900 });
     {% endif %}
     (async () => {
@@ -83,7 +83,7 @@
         }
     })();
 
-    function follow_route() {
+    window.follow_route = () => {
         htmx.ajax('GET', '/follow', {
             target: "#info"
         })
