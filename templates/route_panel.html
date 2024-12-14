@@ -5,7 +5,7 @@
         </div>
         <div>
             <div>
-                Longueur: {{ total_length }} km
+                Longueur: <span id="total_distance" style="font-weight: bold;"></span>
             </div>
             <div>
                 <div>
@@ -65,6 +65,8 @@
         },
             "Road labels")
     }
+    let totalDistance = window.calculateTotalDistance(window.coordinates, 0);
+    document.getElementById('total_distance').innerText = `${totalDistance.toFixed(2)} kms`;
 
     var bearing = calculateBearing(
         window.coordinates[0][0],
