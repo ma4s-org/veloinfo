@@ -252,9 +252,35 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     let bearing = Math.atan2(y, x) * (180 / Math.PI);
     bearing = (bearing + 360) % 360; // Ensuring the bearing is positive
     return bearing;
+} function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distance = R * c;
+    return distance;
 }
 
-const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate };
+function calculateTotalDistance(coordinates, index = 0) {
+    let totalDistance = 0;
+    for (let i = index; i < coordinates.length - 1; i++) {
+        totalDistance += calculateDistance(
+            coordinates[i][1], coordinates[i][0],
+            coordinates[i + 1][1], coordinates[i + 1][0]
+        );
+    }
+    return totalDistance;
+}
+
+
+const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance };
 Object.assign(window, ex);
 
 export default ex;

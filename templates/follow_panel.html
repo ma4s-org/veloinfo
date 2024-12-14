@@ -1,16 +1,42 @@
 <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-    <div id="follow" class="flex">
-        <div>
-            Suivre le trajet
+    <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
+        <div style="display: flex;justify-content: center;">
+            <div>
+                disance à faire :
+            </div>
+            <div id="total_distance" style="margin-left: 2em; font-weight: bold;">
+
+            </div>
         </div>
         <div>
             {{ error }}
         </div>
-        <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
+        <div style="display: flex;justify-content: center;">
+            <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
+        </div>
     </div>
 
 </div>
 <script type="module">
+    function findClosestCoordinate(longitude, latitude, coordinates) {
+        let closestCoordinate = 0;
+        let closestDistance = Infinity;
+        for (let i = 0; i < coordinates.length; i++) {
+            let distance = Math.sqrt(
+                Math.pow(longitude - coordinates[i][0], 2) +
+                Math.pow(latitude - coordinates[i][1], 2));
+            if (distance < closestDistance) {
+                closestCoordinate = i;
+                closestDistance = distance;
+            }
+        }
+        return closestCoordinate;
+    }
+
+
+    let totalDistance = window.calculateTotalDistance(window.coordinates, 0);
+    document.getElementById('total_distance').innerText = `${totalDistance.toFixed(2)} kms`;
+
     map.easeTo({
         pitch: 60,
         duration: 800,
@@ -26,6 +52,15 @@
             return;
         }
         navigator.geolocation.getCurrentPosition((position) => {
+            let closestCoordinate = findClosestCoordinate(
+                position.coords.longitude,
+                position.coords.latitude,
+                window.coordinates);
+            let totalDistance = window.calculateTotalDistance(window.coordinates, closestCoordinate);
+            document.getElementById('total_distance').innerText = `${totalDistance.toFixed(2)} kms`;
+
+
+            // bearing between current position and last coordinate
             let { latitude, longitude } = position.coords;
             var bearing = calculateBearing(
                 longitude,
