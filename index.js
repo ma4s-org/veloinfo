@@ -1,6 +1,7 @@
 import '@material/web/all.js';
 import maplibregl from 'maplibre-gl';
 import './web-components/FollowPanel.js';
+import './web-components/RoutePanel.js';
 
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");

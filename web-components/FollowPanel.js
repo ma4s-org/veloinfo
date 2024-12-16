@@ -2,7 +2,6 @@ class FollowPanel extends HTMLElement {
     constructor() {
         super();
         let totalDistance = window.calculateTotalDistance(window.coordinates, 0);
-        document.getElementById('total_distance').innerText = `${totalDistance.toFixed(2)} kms`;
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
@@ -10,7 +9,7 @@ class FollowPanel extends HTMLElement {
                         <div>
                             distance à faire :
                         </div>
-                        <div id="total_distance" style="margin-left: 2em; font-weight: bold;">
+                        <div style="margin-left: 2em; font-weight: bold;">
                             ${totalDistance.toFixed(2)} kms
                         </div>
                     </div>
