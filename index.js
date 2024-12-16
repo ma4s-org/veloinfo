@@ -1,7 +1,6 @@
 import '@material/web/all.js';
-import typescaleStyles from 'https://esm.run/@material/web/typography/md-typescale-styles.js';
 import maplibregl from 'maplibre-gl';
-
+import './web-components/FollowPanel.js';
 
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
@@ -278,7 +277,6 @@ function calculateTotalDistance(coordinates, index = 0) {
     }
     return totalDistance;
 }
-
 
 const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance };
 Object.assign(window, ex);
