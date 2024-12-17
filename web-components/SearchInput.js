@@ -133,6 +133,7 @@ class SearchResult extends HTMLElement {
                     margin-top: 0.5rem;
                 }
                 search-result div {
+                    margin: 0.25rem;
                     width: 13.25rem;
                     display: flex;
                     align-items: center;
