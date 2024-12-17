@@ -12,7 +12,6 @@ use crate::{
 #[template(path = "route_panel.html", escape = "none")]
 pub struct RoutePanel {
     pub coordinates: String,
-    pub total_length: f64,
     pub error: String,
 }
 
@@ -20,7 +19,6 @@ impl RoutePanel {
     pub fn error(error: String) -> RoutePanel {
         RoutePanel {
             coordinates: "[]".to_string(),
-            total_length: 0.0,
             error,
         }
     }
@@ -75,7 +73,6 @@ pub async fn route(
     });
     let edges_coordinate: Vec<(f64, f64)> =
         points.iter().map(|point| (point.lng, point.lat)).collect();
-    let total_length: f64 = points.iter().map(|point| point.length).sum();
     RoutePanel {
         coordinates: match serde_json::to_string(&edges_coordinate) {
             Ok(edges_coordinate) => edges_coordinate,
@@ -83,7 +80,6 @@ pub async fn route(
                 return RoutePanel::error(format!("Error while serializing edges: {}", e));
             }
         },
-        total_length: (total_length / 10.0).round() / 100.0,
         error: "".to_string(),
     }
 }

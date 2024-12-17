@@ -9,15 +9,6 @@ use crate::{
     VeloinfoState,
 };
 
-#[derive(Template)]
-#[template(path = "search.html", escape = "none")]
-
-pub struct Search {
-    pub query: String,
-    pub lat: f64,
-    pub lng: f64,
-}
-
 #[derive(Template, Debug)]
 #[template(path = "search_result.html")]
 pub struct SearchResults {
@@ -82,13 +73,5 @@ pub async fn post(
                 search_results,
             }
         }
-    }
-}
-
-pub async fn open() -> Search {
-    Search {
-        query: "".to_string(),
-        lat: 0.0,
-        lng: 0.0,
     }
 }

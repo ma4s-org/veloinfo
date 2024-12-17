@@ -14,8 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <div id="map">
-    <div id="search" hx-trigger="load" hx-get="/search/open" class="flex justify-center">
-    </div>
+    <search-input id="search" class="flex justify-center"></search-input>
     <div id="info">
     </div>
     <div id="menu" hx-trigger="load" hx-get="/menu/closed" hx-swap="outerHTML">

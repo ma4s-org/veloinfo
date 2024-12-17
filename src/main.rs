@@ -112,7 +112,6 @@ async fn main() {
         )
         .route("/point_panel_lng_lat/:lng/:lat", get(point_panel_lng_lat))
         .route("/search", post(search::post))
-        .route("/search/open", get(search::open))
         .route("/menu/open/:lng/:lat/:zoom", get(menu_open))
         .route("/menu/closed", get(menu_close))
         .route("/route/:start_lng/:start_lat/:end_lgt/:end_lat", get(route))
