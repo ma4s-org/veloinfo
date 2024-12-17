@@ -9,7 +9,7 @@ class FollowPanel extends HTMLElement {
                         <div>
                             distance à faire :
                         </div>
-                        <div style="margin-left: 2em; font-weight: bold;">
+                        <div id="total_distance" style="margin-left: 2em; font-weight: bold;">
                             ${totalDistance.toFixed(2)} kms
                         </div>
                     </div>
