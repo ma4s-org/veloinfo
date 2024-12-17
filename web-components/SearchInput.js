@@ -1,7 +1,8 @@
-class SearchInput extends HTMLDivElement {
+class SearchInput extends HTMLElement {
     query = "";
     constructor() {
         super();
+        console.log("SearchInput constructor");
 
         // upgrade recentTargets to the new format
         // remove in six months that is in 2025-06-01
@@ -109,7 +110,7 @@ class SearchInput extends HTMLDivElement {
 
 }
 
-customElements.define('search-input', SearchInput, { extends: 'div' });
+customElements.define('search-input', SearchInput, {});
 
 class SearchResult extends HTMLElement {
     constructor() {
