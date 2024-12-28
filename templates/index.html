@@ -12,13 +12,14 @@
     <link href="/pub/veloinfo.css" rel="stylesheet" />
     <link href="/pub/webmanifest.json" rel="manifest" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 </head>
 <div id="map">
     <search-input id="search" class="flex justify-center"></search-input>
     <div id="info">
     </div>
-    <div id="menu" hx-trigger="load" hx-get="/menu/closed" hx-swap="outerHTML">
-    </div>
+    <veloinfo-menu></veloinfo-menu>
     <div id="buttons" class="absolute flex flex-col justify-center items-center top-36 right-2 z-10 cursor-pointer">
         <div class="flex w-[32px] h-[32px] rounded-md bg-gray-300 justify-center" hx-get="/layers" hx-target="#info"
             hx-swap="innerHTML">

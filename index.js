@@ -3,6 +3,9 @@ import maplibregl from 'maplibre-gl';
 import './web-components/FollowPanel.js';
 import './web-components/RoutePanel.js';
 import './web-components/SearchInput.js';
+import './web-components/VeloinfoMenu.js';
+import './web-components/VeloinfoInstallIos.js';
+import './web-components/VeloinfoInstallAndroid.js';
 
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");

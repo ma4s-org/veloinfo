@@ -2,7 +2,6 @@ use crate::auth::auth;
 use crate::auth::logout;
 use crate::component::info_panel::info_panel_down;
 use crate::component::info_panel::info_panel_up;
-use crate::component::menu::{menu_close, menu_open};
 use crate::component::photo_scroll::photo_scroll;
 use crate::component::point_panel::point_panel_lng_lat;
 use crate::component::search;
@@ -112,8 +111,6 @@ async fn main() {
         )
         .route("/point_panel_lng_lat/:lng/:lat", get(point_panel_lng_lat))
         .route("/search", post(search::post))
-        .route("/menu/open/:lng/:lat/:zoom", get(menu_open))
-        .route("/menu/closed", get(menu_close))
         .route("/route/:start_lng/:start_lat/:end_lgt/:end_lat", get(route))
         .route("/follow", get(follow))
         .route(

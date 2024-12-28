@@ -2,8 +2,6 @@ class SearchInput extends HTMLElement {
     query = "";
     constructor() {
         super();
-        console.log("SearchInput constructor");
-
         // upgrade recentTargets to the new format
         // remove in six months that is in 2025-06-01
         let recentTargets = JSON.parse(localStorage.getItem('recentTargets')) || [];
@@ -99,8 +97,6 @@ class SearchInput extends HTMLElement {
     }
 
     clearResult() {
-        console.log("clearing");
-
         setTimeout(() => {
             if (document.getElementById("search_results")) {
                 document.getElementById("search_results").innerHTML = "";
