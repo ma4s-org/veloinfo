@@ -99,12 +99,12 @@ class VeloinfoMenu extends HTMLElement {
         if (os === 'ios') {
             this.querySelector('#ios').style.display = 'block';
             this.querySelector('#ios').addEventListener('click', () => {
-                this.querySelector('#ios-install').setAttribute('open', 'true');
+                this.querySelector('veloinfo-install-ios').setAttribute('open', 'true');
             });
         } else if (os === 'android') {
             this.querySelector('#android').style.display = 'block';
             this.querySelector('#android').addEventListener('click', () => {
-                this.querySelector('#android-install').setAttribute('open', 'true');
+                this.querySelector('veloinfo-install-android').setAttribute('open', 'true');
             });
         }
     }
