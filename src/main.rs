@@ -76,20 +76,22 @@ async fn main() {
     println!("Starting cron scheduler");
     let sched = JobScheduler::new().await.unwrap();
 
-    sched
-        .add(
-            Job::new("0 0 7 * * *", move |_uuid, _l| {
-                // tokio spawn
-                let conn = conn.clone();
-                tokio::spawn(async move {
-                    import(&conn).await;
-                });
-            })
-            .unwrap(),
-        )
-        .await
-        .unwrap();
-    sched.start().await.unwrap();
+    if !dev {
+        sched
+            .add(
+                Job::new("0 0 7 * * *", move |_uuid, _l| {
+                    // tokio spawn
+                    let conn = conn.clone();
+                    tokio::spawn(async move {
+                        import(&conn).await;
+                    });
+                })
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        sched.start().await.unwrap();
+    }
 
     let mut app = Router::new()
         .route("/", get(index))
