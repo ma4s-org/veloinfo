@@ -41,7 +41,6 @@ RUN mkdir -p /app/dist
 RUN npm i 
 RUN esbuild --bundle index.js --outfile=dist/index.js --format=esm
 RUN cargo build --release
-RUN npm install
 
 FROM debian as prod
 
