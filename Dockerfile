@@ -1,4 +1,4 @@
-FROM rust:1.84 as base
+FROM rust:latest as base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
