@@ -185,14 +185,25 @@ pub async fn segment_panel_post(
             Ok(img)
         })();
         match img {
-            Ok(img) => {
-                img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
-                    .unwrap();
-                let img = img.resize(300, 300, image::imageops::FilterType::Lanczos3);
-                img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg")
-                    .unwrap();
+            Ok(mut img) => {
+                // Convert the image to RGB if it is in RGBA format
+                if img.color().has_alpha() {
+                    img = img.to_rgb8().into();
+                }
+                if let Err(e) =
+                    img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
+                {
+                    eprintln!("Error while saving image: {}", e);
+                } else {
+                    let img = img.resize(300, 300, image::imageops::FilterType::Lanczos3);
+                    if let Err(e) = img.save(
+                        IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg",
+                    ) {
+                        eprintln!("Error while saving thumbnail: {}", e);
+                    }
+                }
             }
-            Err(e) => eprintln!("Error while saving image: {}", e),
+            Err(e) => eprintln!("Error while processing image: {}", e),
         }
     }
 
