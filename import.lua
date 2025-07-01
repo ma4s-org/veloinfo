@@ -105,6 +105,28 @@ local landuse = osm2pgsql.define_table({
     }}
 })
 
+local city = osm2pgsql.define_table({
+    name = 'city',
+    columns = {{
+        column = 'name',
+        type = 'text'
+    }, {
+        column = 'geom',
+        type = 'multipolygon',
+        not_null = true
+    }, {
+        column = 'tags',
+        type = 'jsonb',
+        not_null = true
+    }, {
+        column = 'admin_level',
+        type = 'integer'
+    }},
+    indexes = {{
+        column = 'geom',
+        method = 'gist'
+    }}
+})
 local landcover = osm2pgsql.define_table({
     name = 'landcover',
     ids = {
@@ -551,6 +573,14 @@ function osm2pgsql.process_relation(object)
             natural = object.tags.natural,
             leisure = object.tags.leisure,
             landcover = object.tags.landcover
+        })
+    end
+    if object.tags.admin_level == "8" then
+        city:insert({
+            name = object.tags.name,
+            geom = object:as_multipolygon(),
+            tags = object.tags,
+            admin_level = object.tags.admin_level
         })
     end
     if object:as_multipolygon():area() > 1e-3 and (object.tags.natural == "water" or object.tags.landuse == "forest") then
