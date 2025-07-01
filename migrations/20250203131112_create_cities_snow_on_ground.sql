@@ -1,0 +1,1 @@
+CREATE TABLE city_snow_on_ground (name text PRIMARY KEY);
