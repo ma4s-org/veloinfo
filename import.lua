@@ -1,3 +1,5 @@
+local bicycle_route_ways = {}
+
 local cycleway = osm2pgsql.define_way_table("cycleway_way", {{
     column = 'name',
     type = 'text'
@@ -76,6 +78,11 @@ local all_way = osm2pgsql.define_way_table("all_way", {{
 }, {
     column = 'nodes',
     sql_type = 'int8[] NOT NULL'
+}, {
+    column = 'in_bicycle_route',
+    type = 'boolean',
+    not_null = true,
+    default = false
 }})
 
 local landuse = osm2pgsql.define_table({
@@ -436,214 +443,224 @@ local name = osm2pgsql.define_node_table('name', {{
     type = 'text'
 }})
 
-function osm2pgsql.process_way(object)
-    if (object.tags.highway == 'cycleway' or object.tags.cyclestreet == "yes" or object.tags.cycleway == "track" or
-        object.tags["cycleway:left"] == "track" or object.tags["cycleway:right"] == "track" or
-        object.tags["cycleway:both"] == "track") and object.tags.service ~= "parking_aisle" and object.tags.highway ~=
-        "proposed" then
+function osm2pgsql.process_way(way)
+    if (way.tags.highway == 'cycleway' or way.tags.cyclestreet == "yes" or way.tags.cycleway == "track" or
+        way.tags["cycleway:left"] == "track" or way.tags["cycleway:right"] == "track" or way.tags["cycleway:both"] ==
+        "track") and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         cycleway:insert({
-            name = object.tags.name,
-            geom = object:as_linestring(),
-            source = object.nodes[1],
-            target = object.nodes[#object.nodes],
+            name = way.tags.name,
+            geom = way:as_linestring(),
+            source = way.nodes[1],
+            target = way.nodes[#way.nodes],
             kind = 'cycleway',
-            tags = object.tags,
-            nodes = "{" .. table.concat(object.nodes, ",") .. "}"
+            tags = way.tags,
+            nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
-    elseif (object.tags["cycleway:left"] == "share_busway" or object.tags["cycleway:right"] == "share_busway" or
-        object.tags["cycleway:both"] == "share_busway" or object.tags["cycleway:right"] == "lane" or
-        object.tags["cycleway:left"] == "lane" or object.tags["cycleway:both"] == "lane") and object.tags.service ~=
-        "parking_aisle" then
+    elseif (way.tags["cycleway:left"] == "share_busway" or way.tags["cycleway:right"] == "share_busway" or
+        way.tags["cycleway:both"] == "share_busway" or way.tags["cycleway:right"] == "lane" or way.tags["cycleway:left"] ==
+        "lane" or way.tags["cycleway:both"] == "lane") and way.tags.service ~= "parking_aisle" then
         cycleway:insert({
-            name = object.tags.name,
-            geom = object:as_linestring(),
-            source = object.nodes[1],
-            target = object.nodes[#object.nodes],
+            name = way.tags.name,
+            geom = way:as_linestring(),
+            source = way.nodes[1],
+            target = way.nodes[#way.nodes],
             kind = 'designated',
-            tags = object.tags,
-            nodes = " {" .. table.concat(object.nodes, ",") .. "}"
+            tags = way.tags,
+            nodes = " {" .. table.concat(way.nodes, ",") .. "}"
         })
-    elseif (object.tags.cycleway == "shared_lane" or object.tags.cycleway == "lane" or object.tags["cycleway:left"] ==
-        "shared_lane" or object.tags["cycleway:left"] == "opposite_lane" or object.tags["cycleway:right"] ==
-        "shared_lane" or object.tags["cycleway:right"] == "opposite_lane" or object.tags["cycleway:both"] ==
-        "shared_lane" or (object.tags.highway == "footway" and object.tags.bicycle == "yes")) and object.tags.service ~=
-        "parking_aisle" then
+    elseif (way.tags.cycleway == "shared_lane" or way.tags.cycleway == "lane" or way.tags["cycleway:left"] ==
+        "shared_lane" or way.tags["cycleway:left"] == "opposite_lane" or way.tags["cycleway:right"] == "shared_lane" or
+        way.tags["cycleway:right"] == "opposite_lane" or way.tags["cycleway:both"] == "shared_lane" or
+        (way.tags.highway == "footway" and way.tags.bicycle == "yes")) and way.tags.service ~= "parking_aisle" then
         cycleway:insert({
-            name = object.tags.name,
-            geom = object:as_linestring(),
-            source = object.nodes[1],
-            target = object.nodes[#object.nodes],
+            name = way.tags.name,
+            geom = way:as_linestring(),
+            source = way.nodes[1],
+            target = way.nodes[#way.nodes],
             kind = 'shared_lane',
-            tags = object.tags,
-            nodes = "{" .. table.concat(object.nodes, ",") .. "}"
+            tags = way.tags,
+            nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     end
 
-    if (object.tags.highway == 'cycleway' or object.tags.cycleway == "track" or object.tags["cycleway:left"] == "track" or
-        object.tags["cycleway:right"] == "track" or object.tags["cycleway:both"] == "track") and object.tags.footway ~=
-        "sidewalk" and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
+    if (way.tags.highway == 'cycleway' or way.tags.cycleway == "track" or way.tags["cycleway:left"] == "track" or
+        way.tags["cycleway:right"] == "track" or way.tags["cycleway:both"] == "track") and way.tags.footway ~=
+        "sidewalk" and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         cycleway_far:insert({
-            name = object.tags.name,
-            geom = object:as_linestring(),
-            source = object.nodes[1],
-            target = object.nodes[#object.nodes],
+            name = way.tags.name,
+            geom = way:as_linestring(),
+            source = way.nodes[1],
+            target = way.nodes[#way.nodes],
             kind = 'cycleway',
-            tags = object.tags,
-            nodes = "{" .. table.concat(object.nodes, ",") .. "}"
+            tags = way.tags,
+            nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     end
 
-    if object.tags.building and object.tags.location ~= "underground" then
+    if way.tags.building and way.tags.location ~= "underground" then
         building:insert({
-            name = object.tags.name,
-            geom = object:as_polygon(),
-            tags = object.tags,
-            building = object.tags.building
+            name = way.tags.name,
+            geom = way:as_polygon(),
+            tags = way.tags,
+            building = way.tags.building
         })
     end
 
-    if (object.tags.highway or object.tags.railway) and object.tags.footway ~= "sidewalk" and object.tags.highway ~=
-        "steps" and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
+    if (way.tags.highway or way.tags.railway) and way.tags.footway ~= "sidewalk" and way.tags.highway ~= "steps" and
+        way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         transportation:insert({
-            name = object.tags.name,
-            name_fr = object.tags["name:fr"],
-            geom = object:as_linestring(),
-            tags = object.tags,
-            tunnel = object.tags.tunnel,
-            highway = object.tags.highway,
-            railway = object.tags.railway
+            name = way.tags.name,
+            name_fr = way.tags["name:fr"],
+            geom = way:as_linestring(),
+            tags = way.tags,
+            tunnel = way.tags.tunnel,
+            highway = way.tags.highway,
+            railway = way.tags.railway
 
         })
     end
 
-    if object.tags.aeroway then
+    if way.tags.aeroway then
         aeroway:insert({
-            name = object.tags.name,
-            geom = object:as_linestring(),
-            tags = object.tags,
-            aeroway = object.tags.aeroway
+            name = way.tags.name,
+            geom = way:as_linestring(),
+            tags = way.tags,
+            aeroway = way.tags.aeroway
         })
     end
 
-    if object.tags.highway and object.tags.service ~= "parking_aisle" and object.tags.highway ~= "proposed" then
+    if way.tags.highway and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         all_way:insert({
-            name = object.tags.name,
-            geom = object:as_linestring(),
-            source = object.nodes[1],
-            target = object.nodes[#object.nodes],
-            tags = object.tags,
-            nodes = "{" .. table.concat(object.nodes, ",") .. "}"
+            name = way.tags.name,
+            geom = way:as_linestring(),
+            source = way.nodes[1],
+            target = way.nodes[#way.nodes],
+            tags = way.tags,
+            nodes = "{" .. table.concat(way.nodes, ",") .. "}",
+            in_bicycle_route = bicycle_route_ways[way.id] or false
         })
     end
 
-    if (object.tags.landuse == "forest" or object.tags.landuse == "cemetery" or object.tags.natural == "wood" or
-        object.tags.natural == "water" or object.tags.waterway or object.tags.leisure == "park" or object.tags.landuse ==
-        "residential") then
+    if (way.tags.landuse == "forest" or way.tags.landuse == "cemetery" or way.tags.natural == "wood" or way.tags.natural ==
+        "water" or way.tags.waterway or way.tags.leisure == "park" or way.tags.landuse == "residential") then
         landcover:insert({
-            name = object.tags.name,
-            geom = object:as_polygon(),
-            tags = object.tags,
-            landuse = object.tags.landuse,
-            natural = object.tags.natural,
-            leisure = object.tags.leisure,
-            landcover = object.tags.landcover,
-            waterway = object.tags.waterway
+            name = way.tags.name,
+            geom = way:as_polygon(),
+            tags = way.tags,
+            landuse = way.tags.landuse,
+            natural = way.tags.natural,
+            leisure = way.tags.leisure,
+            landcover = way.tags.landcover,
+            waterway = way.tags.waterway
         })
     end
 
-    if object.tags["addr:interpolation"] then
+    if way.tags["addr:interpolation"] then
         address:insert({
-            geom = object:as_linestring(),
-            tags = object.tags,
-            odd_even = object.tags["addr:interpolation"],
-            housenumber1 = object.nodes[1],
-            housenumber2 = object.nodes[#object.nodes]
+            geom = way:as_linestring(),
+            tags = way.tags,
+            odd_even = way.tags["addr:interpolation"],
+            housenumber1 = way.nodes[1],
+            housenumber2 = way.nodes[#way.nodes]
         })
     end
 end
 
-function osm2pgsql.process_relation(object)
-    if object.tags.landuse == "forest" or object.tags.landuse == "cemetery" or object.tags.natural == "wood" or
-        object.tags.natural == "water" or object.tags.leisure == "park" or object.tags.landuse == "residential" then
+function osm2pgsql.process_relation(relation)
+    if relation.tags.landuse == "forest" or relation.tags.landuse == "cemetery" or relation.tags.natural == "wood" or
+        relation.tags.natural == "water" or relation.tags.leisure == "park" or relation.tags.landuse == "residential" then
         landcover:insert({
-            name = object.tags.name,
-            geom = object:as_multipolygon(),
-            tags = object.tags,
-            landuse = object.tags.landuse,
-            natural = object.tags.natural,
-            leisure = object.tags.leisure,
-            landcover = object.tags.landcover
+            name = relation.tags.name,
+            geom = relation:as_multipolygon(),
+            tags = relation.tags,
+            landuse = relation.tags.landuse,
+            natural = relation.tags.natural,
+            leisure = relation.tags.leisure,
+            landcover = relation.tags.landcover
         })
     end
-    if object.tags.admin_level == "8" then
+    if relation.tags.admin_level == "8" then
         city:insert({
-            name = object.tags.name,
-            geom = object:as_multipolygon(),
-            tags = object.tags,
-            admin_level = object.tags.admin_level
+            name = relation.tags.name,
+            geom = relation:as_multipolygon(),
+            tags = relation.tags,
+            admin_level = relation.tags.admin_level
         })
     end
-    if object:as_multipolygon():area() > 1e-3 and (object.tags.natural == "water" or object.tags.landuse == "forest") then
+    if relation:as_multipolygon():area() > 1e-3 and
+        (relation.tags.natural == "water" or relation.tags.landuse == "forest") then
         landcover_far:insert({
-            name = object.tags.name,
-            geom = object:as_multipolygon(),
-            tags = object.tags,
-            landuse = object.tags.landuse,
-            natural = object.tags.natural,
-            leisure = object.tags.leisure,
-            landcover = object.tags.landcover
+            name = relation.tags.name,
+            geom = relation:as_multipolygon(),
+            tags = relation.tags,
+            landuse = relation.tags.landuse,
+            natural = relation.tags.natural,
+            leisure = relation.tags.leisure,
+            landcover = relation.tags.landcover
         })
     end
 
-    if object.tags.building then
+    if relation.tags.building then
         building:insert({
-            name = object.tags.name,
-            geom = object:as_multipolygon(),
-            tags = object.tags,
-            building = object.tags.building
+            name = relation.tags.name,
+            geom = relation:as_multipolygon(),
+            tags = relation.tags,
+            building = relation.tags.building
         })
     end
-
 end
 
-function osm2pgsql.process_node(object)
-    if object.tags.place or object.tags.amenity or object.tags.shop == "bicycle" then
+function osm2pgsql.process_node(node)
+    if node.tags.place or node.tags.amenity or node.tags.shop == "bicycle" then
         all_node:insert({
-            name = object.tags.name,
-            geom = object:as_point(),
-            tags = object.tags,
-            place = object.tags.place,
-            amenity = object.tags.amenity,
-            network = object.tags.network,
-            bicycle_parking = object.tags["bicycle_parking"],
-            capacity = object.tags.capacity,
-            shop = object.tags.shop
+            name = node.tags.name,
+            geom = node:as_point(),
+            tags = node.tags,
+            place = node.tags.place,
+            amenity = node.tags.amenity,
+            network = node.tags.network,
+            bicycle_parking = node.tags["bicycle_parking"],
+            capacity = node.tags.capacity,
+            shop = node.tags.shop
         })
     end
 
-    if object.tags.place == "ocean" or object.tags.place == "sea" then
+    if node.tags.place == "ocean" or node.tags.place == "sea" then
         water_name:insert({
-            name = object.tags.name,
-            geom = object:as_point(),
-            tags = object.tags,
-            place = object.tags.place
+            name = node.tags.name,
+            geom = node:as_point(),
+            tags = node.tags,
+            place = node.tags.place
         })
     end
 
-    if object.tags["addr:street"] then
+    if node.tags["addr:street"] then
         address_node:insert({
-            geom = object:as_point(),
-            tags = object.tags,
-            city = object.tags["addr:city"],
-            street = object.tags["addr:street"],
-            housenumber = object.tags["addr:housenumber"]
+            geom = node:as_point(),
+            tags = node.tags,
+            city = node.tags["addr:city"],
+            street = node.tags["addr:street"],
+            housenumber = node.tags["addr:housenumber"]
         })
     end
-    if object.tags.name then
+    if node.tags.name then
         name:insert({
-            name = object.tags.name,
-            geom = object:as_point(),
-            tags = object.tags
+            name = node.tags.name,
+            geom = node:as_point(),
+            tags = node.tags
         })
     end
+end
+
+function osm2pgsql.select_relation_members(relation)
+    if relation.tags.route == "bicycle" then
+        for _, way_id in ipairs(osm2pgsql.way_member_ids(relation)) do
+            bicycle_route_ways[way_id] = true
+        end
+        return {
+            nodes = {},
+            ways = osm2pgsql.way_member_ids(relation)
+        }
+    end
+
 end

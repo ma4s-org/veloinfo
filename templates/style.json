@@ -48,10 +48,6 @@
             "type": "vector",
             "url": "{{martin_url}}/water_name"
         },
-        "veloinfo_all_area": {
-            "type": "vector",
-            "url": "{{martin_url}}/all_area"
-        },
         "veloinfo_all_way": {
             "type": "vector",
             "url": "{{martin_url}}/all_way"
@@ -67,6 +63,10 @@
         "road_work": {
             "type": "vector",
             "url": "{{martin_url}}/road_work"
+        },
+        "city_snow": {
+            "type": "vector",
+            "url": "{{martin_url}}/city_snow"
         }
     },
     "layers": [
@@ -3422,6 +3422,23 @@
                 "fill-color": "hsl(0, 100%, 58%)",
                 "fill-opacity": 0.3
             }
+        },
+        {
+            "id": "city_snow",
+            "type": "fill",
+            "source": "city_snow",
+            "source-layer": "city_snow",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "paint": {
+                "fill-pattern": "snow",
+                "fill-opacity": 0.5
+            },
+            "filter": [
+                "==",
+                "snow",
+                true
+            ]
         },
         {
             "id": "bike_parking",

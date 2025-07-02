@@ -6,6 +6,7 @@ import './web-components/SearchInput.js';
 import './web-components/VeloinfoMenu.js';
 import './web-components/VeloinfoInstallIos.js';
 import './web-components/VeloinfoInstallAndroid.js';
+import './web-components/SnowPanel.js';
 
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
@@ -66,6 +67,8 @@ var map = new maplibregl.Map({
     zoom: zoom,
     minZoom: 8
 });
+
+
 // Load the layers from the local storage
 setTimeout(() => {
     const layers = JSON.parse(localStorage.getItem("layers"));
@@ -92,6 +95,8 @@ setTimeout(() => {
     map.addImage('bicycle_repair_station', bicycle_repair_station.data);
     const bixi = await map.loadImage('/pub/bixi.png');
     map.addImage('bixi', bixi.data);
+    const snow = await map.loadImage('/pub/snow.png');
+    map.addImage('snow', snow.data);
 })();
 
 

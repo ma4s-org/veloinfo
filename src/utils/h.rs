@@ -3,8 +3,23 @@ use crate::db::utils::distance_meters;
 
 pub trait H: Send {
     fn get_cost(&self, edge: &EdgePoint) -> f64;
-    fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64;
     fn get_max_point(&self) -> i64;
+
+    fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64 {
+        let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.point {
+            (goal.edge.lon1, goal.edge.lat1)
+        } else {
+            (goal.edge.lon2, goal.edge.lat2)
+        };
+        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.point {
+            (destination.edge.lon1, destination.edge.lat1)
+        } else {
+            (destination.edge.lon2, destination.edge.lat2)
+        };
+        let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
+
+        distance * self.get_cost(destination) * 1.
+    }
 }
 
 pub fn get_h_moyen() -> Box<dyn H> {
@@ -35,8 +50,8 @@ impl H for HMoyen {
         }
 
         let mut cost = if edge.edge.tags.get("bicycle") == Some(&"no".to_string())
-            || edge.edge.tags.get("access") == Some(&"private".to_string()) 
-            || edge.edge.tags.get("access") == Some(&"customers".to_string()) 
+            || edge.edge.tags.get("access") == Some(&"private".to_string())
+            || edge.edge.tags.get("access") == Some(&"customers".to_string())
         {
             1. / 0.05
         } else if edge.edge.tags.get("higway") == Some(&"proposed".to_string()) {
@@ -80,6 +95,8 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1.
+        } else if edge.edge.in_bicycle_route {
+            1. / 0.9
         } else if edge.edge.tags.get("higway") == Some(&"footway".to_string())
             && edge.edge.tags.get("footway") == Some(&"crossing".to_string())
         {
@@ -180,24 +197,8 @@ impl H for HMoyen {
         cost / score
     }
 
-    fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64 {
-        let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.point {
-            (goal.edge.lon1, goal.edge.lat1)
-        } else {
-            (goal.edge.lon2, goal.edge.lat2)
-        };
-        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.point {
-            (destination.edge.lon1, destination.edge.lat1)
-        } else {
-            (destination.edge.lon2, destination.edge.lat2)
-        };
-        let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
-
-        distance * self.get_cost(destination)
-    }
-
     fn get_max_point(&self) -> i64 {
-        1000000000000000000
+        i64::MAX
     }
 }
 
@@ -244,22 +245,6 @@ impl H for HBiggerSelection {
         };
 
         cost
-    }
-
-    fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64 {
-        let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.point {
-            (goal.edge.lon1, goal.edge.lat1)
-        } else {
-            (goal.edge.lon2, goal.edge.lat2)
-        };
-        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.point {
-            (destination.edge.lon1, destination.edge.lat1)
-        } else {
-            (destination.edge.lon2, destination.edge.lat2)
-        };
-        let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
-
-        distance * self.get_cost(destination)
     }
 
     fn get_max_point(&self) -> i64 {
@@ -429,22 +414,6 @@ impl H for HRapid {
                 None => 1.,
             };
         cost * score
-    }
-
-    fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64 {
-        let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.point {
-            (goal.edge.lon1, goal.edge.lat1)
-        } else {
-            (goal.edge.lon2, goal.edge.lat2)
-        };
-        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.point {
-            (destination.edge.lon1, destination.edge.lat1)
-        } else {
-            (destination.edge.lon2, destination.edge.lat2)
-        };
-        let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
-
-        distance * self.get_cost(destination)
     }
 
     fn get_max_point(&self) -> i64 {

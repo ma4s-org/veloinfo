@@ -1,6 +1,9 @@
 #!/usr/bin/bash
-rm quebec-latest.osm.pbf
-wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf -O quebec-latest.osm.pbf
+#rm quebec-latest.osm.pbf
+#wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf -O quebec-latest.osm.pbf
+
+psql -h db -U postgres -d carte -c "
+                    CREATE EXTENSION IF NOT EXISTS postgis;"
 
 osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
@@ -31,10 +34,16 @@ psql -h db -U postgres -d carte -c "
                                                 case
                                                     when score is null then -1
                                                     else score
-                                                end as score
+                                                end as score,
+                                                case
+                                                    WHEN snow.name IS NOT NULL THEN true
+                                                    ELSE false
+                                                end AS has_snow
                                             FROM cycleway_way c
-                                            LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id;
-                                    CREATE UNIQUE INDEX bike_path_way_id_idx ON bike_path(way_id);
+                                            LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
+                                            LEFT JOIN city on ST_Within(c.geom, city.geom)
+                                            LEFT JOIN city_snow_on_ground snow on city.name = snow.name;
+                                    CREATE INDEX bike_path_way_id_idx ON bike_path(way_id);
                                     CREATE INDEX edge_geom_gist ON bike_path USING gist(geom);
                                     
                                     drop materialized view if exists bike_path_far;
@@ -50,9 +59,15 @@ psql -h db -U postgres -d carte -c "
                                                 case
                                                     when score is null then -1
                                                     else score
-                                                end as score
+                                                end as score,
+                                                case
+                                                    WHEN snow.name IS NOT NULL THEN true
+                                                    ELSE false
+                                                end AS has_snow
                                             FROM cycleway_way_far c
-                                            LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id;
+                                            LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
+                                            LEFT JOIN city on ST_Within(c.geom, city.geom)
+                                            LEFT JOIN city_snow_on_ground snow on city.name = snow.name;
                                     CREATE UNIQUE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);
                                     CREATE INDEX edge_geom_far_gist ON bike_path_far USING gist(geom);
                                     
@@ -67,7 +82,8 @@ psql -h db -U postgres -d carte -c "
                                             nodes, 
                                             ST_DumpSegments(geom) as segment,
                                             aw.name,
-                                            aw.tags
+                                            aw.tags,
+                                            in_bicycle_route
                                         from all_way aw;       
                                     create unique index _all_way_edge_id_idx on _all_way_edge (id);
                                     create index _all_way_edge_way_id_idx on _all_way_edge (way_id);
@@ -85,7 +101,8 @@ psql -h db -U postgres -d carte -c "
                                         awe.way_id,
                                         awe.tags,
                                         score,
-                                        (segment).geom
+                                        (segment).geom,
+                                        in_bicycle_route
                                     from _all_way_edge awe
                                     left join  last_cycleway_score cs on cs.way_id = awe.way_id
                                     where awe.nodes[(segment).path[1]+1] is not null;       
@@ -153,4 +170,17 @@ psql -h db -U postgres -d carte -c "
 
                                     CREATE INDEX name_query_textsearch_idx ON name_query USING GIN (tsvector);
                                     CREATE INDEX name_query_geom_idx ON name_query using gist(geom);
+
+                                    drop materialized view if exists city_snow;
+                                    create materialized view city_snow as
+                                        select c.name, 
+                                            c.geom,
+                                            CASE
+                                                WHEN snow.name IS NOT NULL THEN true
+                                                ELSE false
+                                            END AS snow
+                                        from city c
+                                        left join city_snow_on_ground snow 
+                                            on c.name = snow.name 
                                     "
+

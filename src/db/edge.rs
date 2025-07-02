@@ -4,7 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use crate::utils::h::H;
+use crate::{db::utils::distance_meters, utils::h::H};
 use crate::{db::utils::Score, utils::h::get_h_moyen};
 use futures::future::join_all;
 use lazy_static::lazy_static;
@@ -50,6 +50,7 @@ pub struct Edge {
     pub length: f64,
     pub tags: sqlx::types::Json<HashMap<String, String>>,
     pub road_work: bool,
+    pub in_bicycle_route: bool,
 }
 
 impl Eq for Edge {}
@@ -128,6 +129,7 @@ impl EdgePoint {
                 y2 as lat2,
                 tags,
                 way_id,
+                in_bicycle_route,
                 tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work
@@ -329,7 +331,8 @@ impl Edge {
                 way_id,
                 tags->>'name' as name, 
                 st_length(e.geom) as length,
-                rw.geom is not null as road_work
+                rw.geom is not null as road_work,
+                in_bicycle_route
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
             WHERE source = $1 or target = $1"#,

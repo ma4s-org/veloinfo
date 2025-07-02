@@ -23,6 +23,7 @@ use component::follow_panel::follow;
 use component::layers;
 use component::route_panel::route;
 use component::style::style;
+use db::city_snow::get_city_snow;
 use db::edge::Edge;
 use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
@@ -111,6 +112,7 @@ async fn main() {
             "/segment_panel_bigger/:start_lng/:start_lat/:end_lng/:end_lat",
             get(segment_panel_bigger_route),
         )
+        .route("/city_snow/:lng/:lat", get(get_city_snow))
         .route("/point_panel_lng_lat/:lng/:lat", get(point_panel_lng_lat))
         .route("/search", post(search::post))
         .route("/route/:start_lng/:start_lat/:end_lgt/:end_lat", get(route))

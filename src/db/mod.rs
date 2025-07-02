@@ -1,3 +1,4 @@
+pub mod city_snow;
 pub mod cyclability_score;
 pub mod cycleway;
 pub mod edge;
