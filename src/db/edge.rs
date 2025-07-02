@@ -4,7 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use crate::{db::utils::distance_meters, utils::h::H};
+use crate::utils::h::H;
 use crate::{db::utils::Score, utils::h::get_h_moyen};
 use futures::future::join_all;
 use lazy_static::lazy_static;
