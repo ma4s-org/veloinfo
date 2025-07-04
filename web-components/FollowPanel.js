@@ -61,7 +61,7 @@ class FollowPanel extends HTMLElement {
                     window.geolocate.trigger();
                 }, 1000);
             });
-        }, 20000);
+        }, 120_000);
     }
 
     findClosestCoordinate(longitude, latitude, coordinates) {
