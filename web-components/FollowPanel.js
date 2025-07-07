@@ -9,8 +9,8 @@ class FollowPanel extends HTMLElement {
                         <div>
                             distance à faire :
                         </div>
-                        <div id="total_distance" style="margin-left: 2em; font-weight: bold;">
-                            ${totalDistance.toFixed(2)} kms
+                        <div id="total_distance" style="margin-left: 2em; font-size: 1.2em;">
+                            ${totalDistance.toFixed(0)} kms
                         </div>
                     </div>
                     <div>
@@ -61,7 +61,7 @@ class FollowPanel extends HTMLElement {
                     window.geolocate.trigger();
                 }, 1000);
             });
-        }, 120_000);
+        }, 120000);
     }
 
     findClosestCoordinate(longitude, latitude, coordinates) {
