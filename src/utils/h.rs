@@ -95,8 +95,6 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1.
-        } else if edge.edge.in_bicycle_route {
-            1. / 0.9
         } else if edge.edge.tags.get("higway") == Some(&"footway".to_string())
             && edge.edge.tags.get("footway") == Some(&"crossing".to_string())
         {
@@ -143,13 +141,15 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
+        } else if edge.edge.in_bicycle_route {
+            1. / 0.65
         } else if edge.edge.tags.get("highway") == Some(&"residential".to_string()) {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
                 || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
             {
                 1. / 0.85
             } else {
-                1. / 0.7
+                1. / 0.6
             }
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.5
