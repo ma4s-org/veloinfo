@@ -127,18 +127,24 @@ impl H for HMoyen {
             } else {
                 1. / 0.1
             }
-        } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
+        } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string())
+            || edge.edge.tags.get("cycleway") == Some(&"share_busway".to_string())
+        {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
+        } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string())
+            || edge.edge.tags.get("cycleway:both") == Some(&"share_busway".to_string())
+        {
             1. / 0.7
         } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-            && (SourceOrTarget::Source == edge.point
-                || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+            || edge.edge.tags.get("cycleway:left") == Some(&"share_busway".to_string())
+                && (SourceOrTarget::Source == edge.point
+                    || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
         } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-            && (SourceOrTarget::Target == edge.point
-                || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
+            || edge.edge.tags.get("cycleway:right") == Some(&"share_busway".to_string())
+                && (SourceOrTarget::Target == edge.point
+                    || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
         } else if edge.edge.in_bicycle_route {
@@ -228,17 +234,25 @@ impl H for HBiggerSelection {
             1. / 0.8
         } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string()) {
             1. / 0.8
-        } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string()) {
+        } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string())
+            || edge.edge.tags.get("cycleway") == Some(&"share_busway".to_string())
+        {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string()) {
+        } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string())
+            || edge.edge.tags.get("cycleway:both") == Some(&"share_busway".to_string())
+        {
             1. / 0.7
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.7
         } else if edge.edge.tags.get("bicycle") == Some(&"designated".to_string()) {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string()) {
+        } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
+            || edge.edge.tags.get("cycleway:left") == Some(&"share_busway".to_string())
+        {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string()) {
+        } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
+            || edge.edge.tags.get("cycleway:right") == Some(&"share_busway".to_string())
+        {
             1. / 0.7
         } else {
             1. / 0.1
