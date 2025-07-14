@@ -90,38 +90,6 @@ impl Cycleway {
         }
     }
 
-    pub async fn get_many(
-        way_ids: &Vec<i64>,
-        conn: &sqlx::Pool<Postgres>,
-    ) -> Result<Vec<Cycleway>> {
-        let response: Result<Vec<CyclewayDb>, sqlx::Error> = sqlx::query_as(
-            r#"select
-                    c.name,  
-                    way_id,
-                    source,
-                    target,
-                    ST_AsText(ST_Transform(c.geom, 4326)) as geom,  
-                    score,
-                    cs.id as score_id
-                from cycleway_way c 
-                left join last_cycleway_score lcs on c.way_id = lcs.way_id 
-                where 
-                    c.way_id = lcs.way_id
-                    and c.way_id = ANY($1)"#,
-        )
-        .bind(way_ids)
-        .fetch_all(conn)
-        .await;
-
-        match response {
-            Ok(response) => Ok(response.iter().map(|response| response.into()).collect()),
-            Err(e) => {
-                eprintln!("Error getting cycleway {:?} {:?}", way_ids, e);
-                Err(e.into())
-            }
-        }
-    }
-
     pub async fn get_by_score_id(
         score_id: &i32,
         conn: &sqlx::Pool<Postgres>,

@@ -69,21 +69,13 @@ impl PartialEq for Edge {
 #[derive(Debug, Clone, Eq, Hash)]
 pub struct EdgePoint {
     pub edge: Edge,
-    pub point: SourceOrTarget,
+    pub direction: SourceOrTarget,
 }
 
 #[derive(Debug, Clone, Eq, Hash)]
 pub enum SourceOrTarget {
     Source,
     Target,
-}
-
-pub struct Shortcut {
-    pub source: ARc<EdgePoint>,
-    pub target: ARc<EdgePoint>,
-    pub path: Vec<ARc<EdgePoint>>,
-    pub length: f64,
-    pub score: f64,
 }
 
 impl PartialEq for SourceOrTarget {
@@ -98,13 +90,13 @@ impl PartialEq for SourceOrTarget {
 
 impl PartialEq for EdgePoint {
     fn eq(&self, other: &Self) -> bool {
-        self.edge.id == other.edge.id && self.point == other.point
+        self.edge.id == other.edge.id && self.direction == other.direction
     }
 }
 
 impl EdgePoint {
     pub fn get_node_id(&self) -> i64 {
-        match self.point {
+        match self.direction {
             SourceOrTarget::Source => self.edge.source,
             SourceOrTarget::Target => self.edge.target,
         }
@@ -149,12 +141,12 @@ impl EdgePoint {
                         if edge.source == node_id {
                             return ARc::new(EdgePoint {
                                 edge,
-                                point: SourceOrTarget::Target,
+                                direction: SourceOrTarget::Target,
                             });
                         } else {
                             return ARc::new(EdgePoint {
                                 edge,
-                                point: SourceOrTarget::Source,
+                                direction: SourceOrTarget::Source,
                             });
                         }
                     })
@@ -225,7 +217,7 @@ impl Edge {
                 let promises = path
                     .iter()
                     .map(|edge| async {
-                        match edge.point {
+                        match edge.direction {
                             SourceOrTarget::Source => {
                                 return Point {
                                     lng: edge.edge.lon1,
@@ -348,7 +340,10 @@ impl Edge {
                 } else {
                     SourceOrTarget::Target
                 };
-                Ok(ARc::new(EdgePoint { edge, point }))
+                Ok(ARc::new(EdgePoint {
+                    edge,
+                    direction: point,
+                }))
             }
             Err(e) => Err(e),
         }
