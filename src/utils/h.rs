@@ -6,12 +6,13 @@ pub trait H: Send {
     fn get_max_point(&self) -> i64;
 
     fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64 {
-        let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.point {
+        let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.direction {
             (goal.edge.lon1, goal.edge.lat1)
         } else {
             (goal.edge.lon2, goal.edge.lat2)
         };
-        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.point {
+        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.direction
+        {
             (destination.edge.lon1, destination.edge.lat1)
         } else {
             (destination.edge.lon2, destination.edge.lat2)
@@ -40,7 +41,7 @@ pub struct HMoyen {}
 impl H for HMoyen {
     fn get_cost(&self, edge: &EdgePoint) -> f64 {
         // if the target is the source we are reverse of the edge
-        if SourceOrTarget::Source == edge.point
+        if SourceOrTarget::Source == edge.direction
             && edge.edge.tags.get("oneway") == Some(&"yes".to_string())
             && edge.edge.tags.get("oneway:bicycle") != Some(&"no".to_string())
             && edge.edge.tags.get("cycleway:left:oneway") != Some(&"no".to_string())
@@ -86,12 +87,12 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
             1.
         } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string())
-            && (SourceOrTarget::Source == edge.point
+            && (SourceOrTarget::Source == edge.direction
                 || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1.
         } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string())
-            && (SourceOrTarget::Target == edge.point
+            && (SourceOrTarget::Target == edge.direction
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1.
@@ -104,12 +105,12 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string())
-            && (SourceOrTarget::Source == edge.point
+            && (SourceOrTarget::Source == edge.direction
                 || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string())
-            && (SourceOrTarget::Target == edge.point
+            && (SourceOrTarget::Target == edge.direction
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1. / 0.9
@@ -137,13 +138,13 @@ impl H for HMoyen {
             1. / 0.7
         } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
             || edge.edge.tags.get("cycleway:left") == Some(&"share_busway".to_string())
-                && (SourceOrTarget::Source == edge.point
+                && (SourceOrTarget::Source == edge.direction
                     || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
         } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
             || edge.edge.tags.get("cycleway:right") == Some(&"share_busway".to_string())
-                && (SourceOrTarget::Target == edge.point
+                && (SourceOrTarget::Target == edge.direction
                     || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             1. / 0.7
@@ -270,7 +271,7 @@ pub struct HRapid {}
 
 impl H for HRapid {
     fn get_cost(&self, edge: &EdgePoint) -> f64 {
-        if SourceOrTarget::Source == edge.point
+        if SourceOrTarget::Source == edge.direction
             && edge.edge.tags.get("oneway") == Some(&"yes".to_string())
             && (!edge.edge.tags.get("cycleway:both").is_some()
                 || edge.edge.tags.get("cycleway:both") == Some(&"no".to_string()))
@@ -315,11 +316,11 @@ impl H for HRapid {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
             1. / 0.95
         } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string())
-            && SourceOrTarget::Source == edge.point
+            && SourceOrTarget::Source == edge.direction
         {
             1. / 0.95
         } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string())
-            && SourceOrTarget::Target == edge.point
+            && SourceOrTarget::Target == edge.direction
         {
             1. / 0.95
         } else if edge.edge.tags.get("cycleway") == Some(&"lane".to_string()) {
@@ -327,11 +328,11 @@ impl H for HRapid {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string())
-            && SourceOrTarget::Source == edge.point
+            && SourceOrTarget::Source == edge.direction
         {
             1. / 0.9
         } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string())
-            && SourceOrTarget::Target == edge.point
+            && SourceOrTarget::Target == edge.direction
         {
             1. / 0.9
         } else if edge.edge.tags.get("footway") == Some(&"path".to_string()) {
@@ -355,11 +356,11 @@ impl H for HRapid {
         } else if edge.edge.tags.get("bicycle") == Some(&"designated".to_string()) {
             1. / 0.85
         } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-            && SourceOrTarget::Source == edge.point
+            && SourceOrTarget::Source == edge.direction
         {
             1. / 0.85
         } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-            && SourceOrTarget::Target == edge.point
+            && SourceOrTarget::Target == edge.direction
         {
             1. / 0.85
         } else if edge.edge.tags.get("highway") == Some(&"residential".to_string()) {
@@ -385,11 +386,11 @@ impl H for HRapid {
         } else if edge.edge.tags.get("cycleway:both") == Some(&"separate".to_string()) {
             1. / 0.8
         } else if edge.edge.tags.get("cycleway:left") == Some(&"separate".to_string())
-            && SourceOrTarget::Source == edge.point
+            && SourceOrTarget::Source == edge.direction
         {
             1. / 0.8
         } else if edge.edge.tags.get("cycleway:right") == Some(&"separate".to_string())
-            && SourceOrTarget::Target == edge.point
+            && SourceOrTarget::Target == edge.direction
         {
             1. / 0.8
         } else if edge.edge.tags.get("highway") == Some(&"secondary".to_string()) {
