@@ -78,7 +78,7 @@ impl H for HMoyen {
             1. / 0.3
         } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.7
+                1. / 0.5
             } else {
                 1.
             }
@@ -86,13 +86,13 @@ impl H for HMoyen {
             1.
         } else if edge.edge.tags.get("cycleway") == Some(&"track".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.7
+                1. / 0.5
             } else {
                 1.
             }
         } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.7
+                1. / 0.5
             } else {
                 1.
             }
@@ -101,7 +101,7 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.7
+                1. / 0.5
             } else {
                 1.
             }
@@ -110,19 +110,19 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.7
+                1. / 0.5
             } else {
                 1.
             }
         } else if edge.edge.tags.get("cycleway") == Some(&"lane".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.6
+                1. / 0.5
             } else {
                 1. / 0.9
             }
         } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.6
+                1. / 0.5
             } else {
                 1. / 0.9
             }
@@ -131,7 +131,7 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.6
+                1. / 0.5
             } else {
                 1. / 0.9
             }
@@ -140,7 +140,7 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.6
+                1. / 0.5
             } else {
                 1. / 0.9
             }
