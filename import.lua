@@ -452,7 +452,7 @@ function osm2pgsql.process_way(way)
             geom = way:as_linestring(),
             source = way.nodes[1],
             target = way.nodes[#way.nodes],
-            kind = 'cycleway',
+            kind = (way.tags.cycleway == 'crossing') and 'cycleway_crossing' or 'cycleway',
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
@@ -464,7 +464,7 @@ function osm2pgsql.process_way(way)
             geom = way:as_linestring(),
             source = way.nodes[1],
             target = way.nodes[#way.nodes],
-            kind = 'designated',
+            kind = (way.tags.cycleway == 'crossing') and 'designated_crossing' or 'designated',
             tags = way.tags,
             nodes = " {" .. table.concat(way.nodes, ",") .. "}"
         })
@@ -477,7 +477,7 @@ function osm2pgsql.process_way(way)
             geom = way:as_linestring(),
             source = way.nodes[1],
             target = way.nodes[#way.nodes],
-            kind = 'shared_lane',
+            kind = (way.tags.cycleway == 'crossing') and 'shared_lane_crossing' or 'shared_lane',
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
@@ -491,7 +491,7 @@ function osm2pgsql.process_way(way)
             geom = way:as_linestring(),
             source = way.nodes[1],
             target = way.nodes[#way.nodes],
-            kind = 'cycleway',
+            kind = (way.tags.cycleway == 'crossing') and 'cycleway_crossing' or 'cycleway',
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })

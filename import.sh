@@ -29,7 +29,7 @@ psql -h db -U postgres -d carte -c "
                                                 c.source,
                                                 c.target,
                                                 c.kind,
-                                                lcs.tags,
+                                                c.tags,
                                                 lcs.nodes,
                                                 case
                                                     when score is null then -1
@@ -54,7 +54,7 @@ psql -h db -U postgres -d carte -c "
                                                 c.source,
                                                 c.target,
                                                 c.kind,
-                                                lcs.tags,
+                                                c.tags,
                                                 lcs.nodes,
                                                 case
                                                     when score is null then -1
