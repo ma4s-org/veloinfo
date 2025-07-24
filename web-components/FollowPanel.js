@@ -1,6 +1,7 @@
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
+        window.clearDistanceCache();
         let totalDistance = window.calculateTotalDistance(window.coordinates, 0);
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
@@ -61,7 +62,7 @@ class FollowPanel extends HTMLElement {
                     window.geolocate.trigger();
                 }, 1000);
             });
-        }, 120000);
+        }, 20000);
     }
 
     findClosestCoordinate(longitude, latitude, coordinates) {

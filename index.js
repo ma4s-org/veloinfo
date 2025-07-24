@@ -277,7 +277,12 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     return distance;
 }
 
+let distanceCache = {};
 function calculateTotalDistance(coordinates, index = 0) {
+    if (index in distanceCache) {
+        return distanceCache[index];
+    }
+
     let totalDistance = 0;
     for (let i = index; i < coordinates.length - 1; i++) {
         totalDistance += calculateDistance(
@@ -285,10 +290,16 @@ function calculateTotalDistance(coordinates, index = 0) {
             coordinates[i + 1][1], coordinates[i + 1][0]
         );
     }
+
+    distanceCache[index] = totalDistance;
     return totalDistance;
 }
 
-const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance };
+function clearDistanceCache() {
+    distanceCache = {};
+}
+
+const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance, clearDistanceCache };
 Object.assign(window, ex);
 
 export default ex;
