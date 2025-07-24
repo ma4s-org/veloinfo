@@ -36,7 +36,8 @@ class RoutePanel extends HTMLElement {
             },
                 "Road labels")
         }
-        let totalDistance = window.calculateTotalDistance(window.coordinates, 0).toFixed(2);
+        window.clearDistanceCache();
+        let totalDistance = window.calculateTotalDistance(window.coordinates, 0).toFixed(1);
         let totalDuration = totalDistance / 15.0
         let durationString = "";
         let hours = Math.floor(totalDuration);
