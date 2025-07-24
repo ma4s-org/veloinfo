@@ -43,7 +43,7 @@ class FollowPanel extends HTMLElement {
                     position.coords.latitude,
                     window.coordinates);
                 let totalDistance = window.calculateTotalDistance(window.coordinates, closestCoordinate).toFixed(1);
-                document.getElementById('total_distance').innerText = `${totalDistance.toFixed(2)} kms`;
+                document.getElementById('total_distance').innerText = `${totalDistance} kms`;
 
 
                 // bearing between current position and last coordinate
