@@ -5,8 +5,8 @@
     "short_name": "Veloinfo",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#00f",
-    "theme_color": "#00f",
+    "background_color": "#0000ff",
+    "theme_color": "#0000ff",
     "orientation": "portrait",
     "lang": "fr",
     "screenshots": [
