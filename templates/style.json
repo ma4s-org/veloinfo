@@ -37,8 +37,7 @@
         },
         "transportation": {
             "type": "vector",
-            "url": "{{martin_url}}/transportation",
-            "minzoom": 12
+            "url": "{{martin_url}}/transportation"
         },
         "building": {
             "type": "vector",
@@ -559,6 +558,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "round",
                 "line-join": "round",
@@ -875,6 +875,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "round",
                 "line-join": "round",
@@ -919,6 +920,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "square",
                 "line-join": "miter",
@@ -1215,6 +1217,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-join": "round",
                 "visibility": "visible"
@@ -1267,6 +1270,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-join": "round",
                 "visibility": "visible"
@@ -1314,6 +1318,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "butt",
                 "line-join": "round",
@@ -1552,6 +1557,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "butt",
                 "line-join": "round",
@@ -1819,6 +1825,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "round",
                 "line-join": "round",
@@ -1887,6 +1894,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-cap": "round",
                 "line-join": "round",
@@ -1936,6 +1944,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-join": "round",
                 "visibility": "visible"
@@ -1987,6 +1996,7 @@
             "type": "line",
             "source": "transportation",
             "source-layer": "transportation",
+            "minzoom": 12,
             "layout": {
                 "line-join": "round",
                 "visibility": "visible"
@@ -3153,7 +3163,8 @@
             "type": "symbol",
             "source": "transportation",
             "source-layer": "transportation",
-            "minzoom": 12,
+            "minzoom": 10,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
@@ -3167,46 +3178,10 @@
                     [
                         "zoom"
                     ],
-                    12,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway"
-                        ],
-                        12,
-                        [
-                            "primary",
-                            "secondary",
-                            "tertiary",
-                            "residential"
-                        ],
-                        12,
-                        12
-                    ],
+                    10,
+                    8,
                     21,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway"
-                        ],
-                        22,
-                        [
-                            "primary",
-                            "secondary",
-                            "tertiary",
-                            "residential"
-                        ],
-                        21,
-                        21
-                    ]
+                    22
                 ],
                 "text-field": [
                     "get",
@@ -3231,7 +3206,7 @@
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
-            "minzoom": 12,
+            "minzoom": 8,
             "maxzoom": 22,
             "layout": {
                 "text-font": [
@@ -3241,20 +3216,15 @@
                 "text-size": [
                     "interpolate",
                     [
-                        "linear",
-                        1
+                        "linear"
                     ],
                     [
                         "zoom"
                     ],
-                    12,
+                    8,
                     10,
-                    13,
-                    12,
-                    14,
-                    14,
-                    16,
-                    13
+                    22,
+                    20
                 ],
                 "text-field": "{name}",
                 "visibility": "visible",
@@ -3333,8 +3303,8 @@
             "type": "symbol",
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
-            "minzoom": 11,
-            "maxzoom": 16,
+            "minzoom": 9,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
@@ -3348,12 +3318,10 @@
                     [
                         "zoom"
                     ],
+                    9,
                     10,
-                    11,
-                    13,
-                    14,
-                    14,
-                    15
+                    22,
+                    20
                 ],
                 "text-field": [
                     "coalesce",
