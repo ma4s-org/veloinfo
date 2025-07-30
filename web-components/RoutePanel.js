@@ -1,14 +1,15 @@
 class RoutePanel extends HTMLElement {
     constructor() {
         super();
-        window.coordinates = JSON.parse(this.getAttribute('coordinates'));
+        const coordinates = JSON.parse(this.getAttribute('coordinates'));
+
         if (map.getLayer("selected")) {
             map.getSource("selected").setData({
                 "type": "Feature",
                 "properties": {},
                 "geometry": {
                     "type": "MultiLineString",
-                    "coordinates": [window.coordinates]
+                    "coordinates": [coordinates]
                 }
             });
         } else {
@@ -19,7 +20,7 @@ class RoutePanel extends HTMLElement {
                     "properties": {},
                     "geometry": {
                         "type": "MultiLineString",
-                        "coordinates": [window.coordinates]
+                        "coordinates": [coordinates]
                     }
                 }
             })
@@ -37,7 +38,7 @@ class RoutePanel extends HTMLElement {
                 "Road labels")
         }
         window.clearDistanceCache();
-        let totalDistance = window.calculateTotalDistance(window.coordinates, 0).toFixed(1);
+        let totalDistance = window.calculateTotalDistance(coordinates, 0).toFixed(1);
         let totalDuration = totalDistance / 15.0
         let durationString = "";
         let hours = Math.floor(totalDuration);
@@ -70,11 +71,11 @@ class RoutePanel extends HTMLElement {
         `;
 
         var bearing = calculateBearing(
-            window.coordinates[0][0],
-            window.coordinates[0][1],
-            window.coordinates[window.coordinates.length - 1][0],
-            window.coordinates[window.coordinates.length - 1][1]);
-        var bounds = fitBounds(window.coordinates);
+            coordinates[0][0],
+            coordinates[0][1],
+            coordinates[coordinates.length - 1][0],
+            coordinates[coordinates.length - 1][1]);
+        var bounds = fitBounds(coordinates);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: 30, duration: 900 });
         (async () => {
             try {

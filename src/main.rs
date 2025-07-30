@@ -13,6 +13,7 @@ use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
 use crate::score_selector_controler::score_bounds_controler;
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderMap;
 use axum::http::HeaderValue;
@@ -99,30 +100,39 @@ async fn main() {
         .route("/auth", get(auth))
         .route("/logout", get(logout))
         .route("/info_panel/down", get(info_panel_down))
-        .route("/info_panel/up/:lng1/:lat1/:lng2/:lat2", get(info_panel_up))
-        .route("/segment_panel/id/:id", get(select_score_id))
         .route(
-            "/segment_panel_lng_lat/:lng/:lat",
+            "/info_panel/up/{lng1}/{lat1}/{lng2}/{lat2}",
+            get(info_panel_up),
+        )
+        .route("/segment_panel/id/{id}", get(select_score_id))
+        .route(
+            "/segment_panel_lng_lat/{lng}/{lat}",
             get(segment_panel_lng_lat),
         )
-        .route("/segment_panel/ways/:way_ids", get(segment_panel_get))
-        .route("/segment_panel/edit/ways/:way_ids", get(segment_panel_edit))
+        .route("/segment_panel/ways/{way_ids}", get(segment_panel_get))
+        .route(
+            "/segment_panel/edit/ways/{way_ids}",
+            get(segment_panel_edit),
+        )
         .route("/segment_panel", post(segment_panel_post))
         .route(
-            "/segment_panel_bigger/:start_lng/:start_lat/:end_lng/:end_lat",
+            "/segment_panel_bigger/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
             get(segment_panel_bigger_route),
         )
-        .route("/city_snow/:lng/:lat", get(get_city_snow))
-        .route("/point_panel_lng_lat/:lng/:lat", get(point_panel_lng_lat))
+        .route("/city_snow/{lng}/{lat}", get(get_city_snow))
+        .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))
         .route("/search", post(search::post))
-        .route("/route/:start_lng/:start_lat/:end_lgt/:end_lat", get(route))
+        .route(
+            "/route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
+            get(route),
+        )
         .route("/follow", get(follow))
         .route(
-            "/cyclability_score/geom/:cyclability_score_id",
+            "/cyclability_score/geom/{cyclability_score_id}",
             get(score_bounds_controler),
         )
-        .route("/score_selector/:score", get(score_selector_controler))
-        .route("/photo_scroll/:photo/:way_ids", get(photo_scroll))
+        .route("/score_selector/{score}", get(score_selector_controler))
+        .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
         .route("/layers", get(layers::layers))
         .nest_service("/dist/", ServeDir::new("dist"))
@@ -146,12 +156,13 @@ fn not_htmx_predicate<T>(req: &Request<T>) -> bool {
     !req.headers().contains_key("hx-request")
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "index.html", escape = "none")]
 pub struct IndexTemplate {
     pub matomo_server: String,
 }
 
+#[axum::debug_handler]
 pub async fn index() -> (HeaderMap, IndexTemplate) {
     let template = IndexTemplate {
         matomo_server: MATOMO_SERVER.clone(),

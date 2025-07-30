@@ -3,6 +3,7 @@ use crate::db::cyclability_score::CyclabilityScore;
 use crate::db::user::User;
 use crate::VeloinfoState;
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::{Path, State};
 use chrono::Locale;
 use chrono_tz::America::Montreal;
@@ -12,7 +13,7 @@ use sqlx::Postgres;
 use timeago;
 use timeago::languages::french::French;
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "info_panel.html", escape = "none")]
 pub struct InfoPanelTemplate {
     pub arrow: String,

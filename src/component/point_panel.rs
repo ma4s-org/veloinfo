@@ -1,8 +1,9 @@
 use crate::{db::search_db, VeloinfoState};
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::{Path, State};
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "point_panel.html", escape = "none")]
 pub struct PointPanel {
     name: String,

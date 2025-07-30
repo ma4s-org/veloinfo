@@ -19,7 +19,15 @@ pub trait H: Send {
         };
         let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
 
-        distance * self.get_cost(destination) * 1.
+        match distance {
+            d if d > 200_000.0 => d * 4.0,
+            d if d > 100_000.0 => d * 3.2,
+            d if d > 10_000.0 => d * 2.8,
+            d if d > 1_000.0 => d * 2.4,
+            d => d * 1.41,
+        }
+
+        // distance * 1.41
     }
 }
 
@@ -234,6 +242,8 @@ impl H for HMoyen {
             } else {
                 1. / 0.6
             }
+        } else if edge.edge.tags.get("highway") == Some(&"service".to_string()) {
+            1. / 0.6
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"tertiary".to_string()) {
@@ -241,8 +251,6 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("higway") == Some(&"tertiary_link".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("highway") == Some(&"service".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"secondary".to_string()) {
             1. / 0.4

@@ -18,6 +18,7 @@ fn main() {
             "index.js",
             "--outfile=dist/index.js",
             "--format=esm",
+            "--sourcemap",
         ])
         .status()
         .expect("Failed to npm build");

@@ -1,10 +1,10 @@
 use askama::Template;
-use axum::extract::State;
-use axum_macros::debug_handler;
+use askama_web::WebTemplate;
+use axum::{debug_handler, extract::State};
 
 use crate::VeloinfoState;
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "follow_panel.html")]
 pub struct FollowPanel {
     pub error: String,

@@ -1,4 +1,5 @@
 use askama::Template;
+use askama_web::WebTemplate;
 
 #[derive(PartialEq)]
 pub enum Category {
@@ -8,7 +9,7 @@ pub enum Category {
     Closed,
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "score_selector.html")]
 pub struct ScoreSelector {
     category: Category,

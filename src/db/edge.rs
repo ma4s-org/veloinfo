@@ -6,6 +6,7 @@ use std::{
 
 use crate::utils::h::H;
 use crate::{db::utils::Score, utils::h::get_h_moyen};
+use axum::extract::ws::WebSocket;
 use futures::future::join_all;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -173,6 +174,7 @@ impl Edge {
         end_node_id: i64,
         h: Box<dyn H>,
         conn: &sqlx::Pool<Postgres>,
+        mut socket: Option<&mut WebSocket>,
     ) -> Vec<Point> {
         let end_edge = Edge::get(end_node_id, conn)
             .await
@@ -204,6 +206,21 @@ impl Edge {
                 .first_entry()
                 .expect("open set should not be empty");
             let current = first_min_entry.get().clone();
+            if let Some(ref mut socket) = socket {
+                socket
+                    .send(axum::extract::ws::Message::Text(
+                        format!(
+                            "[[{},{}],[{},{}]]",
+                            current.edge.lon1,
+                            current.edge.lat1,
+                            current.edge.lon2,
+                            current.edge.lat2
+                        )
+                        .into(),
+                    ))
+                    .await
+                    .unwrap();
+            }
             // if we are at the end, return the path
             if current == end_edge {
                 let mut current = &end_edge;
@@ -387,7 +404,7 @@ impl Edge {
 
             for (source, target, description) in routes {
                 println!("Calculating route: {}", description);
-                Edge::a_star_route(source, target, get_h_moyen(), &conn).await;
+                Edge::a_star_route(source, target, get_h_moyen(), &conn, None).await;
             }
 
             println!("Cache prefill complete");
@@ -408,7 +425,7 @@ mod tests {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();
-        let points = Edge::a_star_route(321801851, 1764306722, get_h_moyen(), &conn).await;
+        let points = Edge::a_star_route(321801851, 1764306722, get_h_moyen(), &conn, None).await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }

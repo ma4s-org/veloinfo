@@ -7,11 +7,11 @@ use crate::db::user::User;
 use crate::utils::h::get_h_bigger_selection;
 use crate::{db::cyclability_score::CyclabilityScore, VeloinfoState};
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::multipart::Multipart;
 use axum::extract::{Path, State};
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
-use axum_macros::debug_handler;
 use futures::future::join_all;
 use image::DynamicImage;
 use lazy_static::lazy_static;
@@ -22,7 +22,7 @@ use sqlx::Postgres;
 use std::env;
 use uuid::Uuid;
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "segment_panel.html", escape = "none")]
 pub struct SegmentPanel {
     way_ids: String,
@@ -55,7 +55,6 @@ lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
 }
 
-#[debug_handler]
 pub async fn segment_panel_post(
     State(state): State<VeloinfoState>,
     jar: CookieJar,
@@ -416,6 +415,7 @@ pub async fn segment_panel_bigger_route(
         node2.node_id,
         get_h_bigger_selection(),
         &state.conn,
+        None,
     )
     .await;
 

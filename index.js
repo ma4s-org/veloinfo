@@ -2,11 +2,13 @@ import '@material/web/all.js';
 import maplibregl from 'maplibre-gl';
 import './web-components/FollowPanel.js';
 import './web-components/RoutePanel.js';
+import './web-components/RouteSearching.js';
 import './web-components/SearchInput.js';
 import './web-components/VeloinfoMenu.js';
 import './web-components/VeloinfoInstallIos.js';
 import './web-components/VeloinfoInstallAndroid.js';
 import './web-components/SnowPanel.js';
+import htmx from 'htmx.org';
 
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
@@ -205,6 +207,8 @@ async function selectBigger(event) {
 
 
 async function clear() {
+    console.log("Clearing selection");
+
     if (window.start_marker) {
         window.start_marker.remove();
         window.start_marker = null;
@@ -219,26 +223,23 @@ async function clear() {
     if (map.getSource("selected")) {
         map.removeSource("selected");
     }
+    if (map.getLayer("searched_route")) {
+        map.removeLayer("searched_route");
+    }
+    if (map.getSource("searched_route")) {
+        map.removeSource("searched_route");
+    }
 
     // Display info panel
     htmx.ajax("GET", "/info_panel/down", "#info");
 }
 
 async function route() {
-    var end = window.start_marker.getLngLat();
-    // get the position of the device
-    document.getElementById("search_position_dialog").removeAttribute("style");
-    document.getElementById("search_position_dialog").setAttribute("open", "true");
-    var start = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition((position) => {
-            resolve(position);
-            document.getElementById("search_position_dialog").removeAttribute("open");
-        });
-    });
-    document.getElementById("search_route_dialog").removeAttribute("style");
-    document.getElementById("search_route_dialog").setAttribute("open", "true");
-    await htmx.ajax("GET", "/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat, "#info");
-    document.getElementById("search_route_dialog").removeAttribute("open");
+    let info = document.getElementById("info");
+    info.innerHTML = `
+        <route-searching>
+        </route-searching>
+    `;
 }
 
 function fitBounds(geom) {

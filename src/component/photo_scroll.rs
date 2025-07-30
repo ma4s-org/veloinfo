@@ -1,11 +1,12 @@
 use crate::db::cyclability_score::CyclabilityScore;
 use crate::VeloinfoState;
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::{Path, State};
 use lazy_static::lazy_static;
 use regex::Regex;
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "photo_scroll.html")]
 pub struct PhotoScroll {
     pub photo: String,

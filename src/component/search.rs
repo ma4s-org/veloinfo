@@ -1,6 +1,6 @@
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::{extract::State, Form};
-use axum_macros::debug_handler;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -9,7 +9,7 @@ use crate::{
     VeloinfoState,
 };
 
-#[derive(Template, Debug)]
+#[derive(Template, WebTemplate, Debug)]
 #[template(path = "search_result.html")]
 pub struct SearchResults {
     query: String,
@@ -34,7 +34,6 @@ lazy_static! {
     static ref ADDRESS_RE: Regex = Regex::new(r"(\d+) (.*)").unwrap();
 }
 
-#[debug_handler]
 pub async fn post(
     State(state): State<VeloinfoState>,
     Form(query): Form<QueryParams>,

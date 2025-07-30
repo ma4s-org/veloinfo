@@ -1,4 +1,4 @@
-use askama_axum::IntoResponse;
+use axum::response::IntoResponse;
 use axum::{
     extract::{Path, State},
     Json,
