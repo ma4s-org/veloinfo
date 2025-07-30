@@ -235,7 +235,9 @@ impl H for HMoyen {
         } else if edge.edge.in_bicycle_route {
             1. / 0.65
         } else if edge.edge.tags.get("highway") == Some(&"residential".to_string()) {
-            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
+            if edge.edge.tags.get("surface") == Some(&"sett".to_string()) {
+                1. / 0.5
+            } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
                 || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
             {
                 1. / 0.85
