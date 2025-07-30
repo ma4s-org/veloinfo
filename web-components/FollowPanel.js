@@ -1,3 +1,5 @@
+import htmx from "htmx.org";
+
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
@@ -20,6 +22,7 @@ class FollowPanel extends HTMLElement {
                 </div>
             </div>
         `;
+        htmx.process(this);
 
         map.easeTo({
             pitch: 60,
