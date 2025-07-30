@@ -251,13 +251,25 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"tertiary".to_string()) {
-            1. / 0.5
+            if edge.edge.tags.get("surface") == Some(&"sett".to_string())
+                || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
+            {
+                1. / 0.4
+            } else {
+                1. / 0.5
+            }
         } else if edge.edge.tags.get("higway") == Some(&"tertiary_link".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"secondary".to_string()) {
-            1. / 0.4
+            if edge.edge.tags.get("surface") == Some(&"sett".to_string())
+                || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
+            {
+                1. / 0.3
+            } else {
+                1. / 0.4
+            }
         } else if edge.edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
             1. / 0.4
         } else if edge.edge.tags.get("higway") == Some(&"primary".to_string()) {
