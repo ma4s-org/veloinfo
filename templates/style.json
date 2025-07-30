@@ -3177,20 +3177,7 @@
                         [
                             "cycleway"
                         ],
-                        13,
-                        9
-                    ],
-                    15,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway"
-                        ],
-                        13,
+                        12,
                         [
                             "primary",
                             "secondary",
@@ -3199,46 +3186,6 @@
                         ],
                         12,
                         12
-                    ],
-                    16,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway"
-                        ],
-                        13,
-                        [
-                            "primary",
-                            "secondary",
-                            "tertiary",
-                            "residential"
-                        ],
-                        15,
-                        15
-                    ],
-                    18,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway"
-                        ],
-                        13,
-                        [
-                            "primary",
-                            "secondary",
-                            "tertiary",
-                            "residential"
-                        ],
-                        18,
-                        18
                     ],
                     21,
                     [
@@ -3267,110 +3214,17 @@
                 ],
                 "visibility": "visible",
                 "text-justify": "center",
-                "symbol-spacing": {
-                    "stops": [
-                        [
-                            6,
-                            200
-                        ],
-                        [
-                            16,
-                            250
-                        ],
-                        [
-                            20,
-                            250
-                        ],
-                        [
-                            22,
-                            600
-                        ]
-                    ]
-                },
                 "symbol-placement": "line",
                 "symbol-avoid-edges": false,
-                "text-letter-spacing": [
-                    "interpolate",
-                    [
-                        "linear",
-                        1
-                    ],
-                    [
-                        "zoom"
-                    ],
-                    13,
-                    0,
-                    16,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        "cycleway",
-                        0.2,
-                        0.1
-                    ]
-                ],
                 "text-pitch-alignment": "auto",
                 "text-rotation-alignment": "auto"
             },
             "paint": {
                 "text-color": "hsl(204, 11%, 47%)",
-                "text-opacity": [
-                    "step",
-                    [
-                        "zoom"
-                    ],
-                    1,
-                    14,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway"
-                        ],
-                        1,
-                        0
-                    ],
-                    15,
-                    [
-                        "match",
-                        [
-                            "get",
-                            "highway"
-                        ],
-                        [
-                            "cycleway",
-                            "primary",
-                            "secondary",
-                            "tertiary",
-                            "residential"
-                        ],
-                        1,
-                        0
-                    ],
-                    16,
-                    1
-                ],
                 "text-halo-blur": 0,
                 "text-halo-color": "hsl(0,0%,100%)",
                 "text-halo-width": 10
-            },
-            "filter": [
-                "in",
-                "highway",
-                "primary",
-                "secondary",
-                "tertiary",
-                "minor",
-                "service",
-                "residential",
-                "cycleway"
-            ]
+            }
         },
         {
             "id": "Village labels",
