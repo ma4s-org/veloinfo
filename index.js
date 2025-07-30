@@ -36,15 +36,6 @@ if (params.has("lat") && params.has("lng") && params.has("zoom")) {
     zoom = parseFloat(params.get("zoom"));
 }
 
-// keep the screen open
-setInterval(() => {
-    try {
-        navigator.wakeLock.request("screen");
-    } catch (err) {
-        // the wake lock request fails - usually system related, such being low on battery
-        console.log(`${err.name}, ${err.message}`);
-    }
-}, 30000);
 
 // Speed
 var speed = 0;

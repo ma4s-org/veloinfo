@@ -86,10 +86,9 @@ class RoutePanel extends HTMLElement {
             }
         })();
 
+
         window.follow_route = () => {
-            htmx.ajax('GET', '/follow', {
-                target: "#info"
-            })
+            document.getElementById("info").innerHTML = '<follow-panel coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>';
         };
     }
 }

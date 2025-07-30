@@ -1,4 +1,3 @@
-pub mod follow_panel;
 pub mod info_panel;
 pub mod layers;
 pub mod photo_scroll;

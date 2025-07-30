@@ -20,7 +20,6 @@ use axum::http::HeaderValue;
 use axum::http::Request;
 use axum::routing::post;
 use axum::routing::{get, Router};
-use component::follow_panel::follow;
 use component::layers;
 use component::route_panel::route;
 use component::style::style;
@@ -126,7 +125,6 @@ async fn main() {
             "/route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
             get(route),
         )
-        .route("/follow", get(follow))
         .route(
             "/cyclability_score/geom/{cyclability_score_id}",
             get(score_bounds_controler),

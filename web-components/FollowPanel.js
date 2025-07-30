@@ -1,7 +1,8 @@
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
-        let totalDistance = window.calculateTotalDistance(window.coordinates, 0).toFixed(1);
+        let coordinates = JSON.parse(this.getAttribute('coordinates'));
+        let totalDistance = window.calculateTotalDistance(coordinates, 0).toFixed(1);
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
@@ -12,9 +13,6 @@ class FollowPanel extends HTMLElement {
                         <div id="total_distance" style="margin-left: 2em; font-size: 1.2em; font-weight: bold;">
                             ${totalDistance} kms
                         </div>
-                    </div>
-                    <div>
-                        ${this.getAttribute('error')}
                     </div>
                     <div style="display: flex;justify-content: center;">
                         <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
@@ -37,12 +35,21 @@ class FollowPanel extends HTMLElement {
                 clearInterval(interval);
                 return;
             }
+
+            // keep the screen open
+            try {
+                navigator.wakeLock.request("screen");
+            } catch (err) {
+                // the wake lock request fails - usually system related, such being low on battery
+                console.log(`${err.name}, ${err.message}`);
+            }
+
             navigator.geolocation.getCurrentPosition((position) => {
                 let closestCoordinate = this.findClosestCoordinate(
                     position.coords.longitude,
                     position.coords.latitude,
-                    window.coordinates);
-                let totalDistance = window.calculateTotalDistance(window.coordinates, closestCoordinate).toFixed(1);
+                    coordinates);
+                let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
 
 
@@ -51,8 +58,8 @@ class FollowPanel extends HTMLElement {
                 var bearing = calculateBearing(
                     longitude,
                     latitude,
-                    window.coordinates[window.coordinates.length - 1][0],
-                    window.coordinates[window.coordinates.length - 1][1]);
+                    coordinates[coordinates.length - 1][0],
+                    coordinates[coordinates.length - 1][1]);
                 map.easeTo({
                     bearing,
                     duration: 800,
