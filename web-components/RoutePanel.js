@@ -77,14 +77,6 @@ class RoutePanel extends HTMLElement {
             coordinates[coordinates.length - 1][1]);
         var bounds = fitBounds(coordinates);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: 30, duration: 900 });
-        (async () => {
-            try {
-                const wakeLock = await navigator.wakeLock.request("screen");
-            } catch (err) {
-                // the wake lock request fails - usually system related, such being low on battery
-                console.log(`${err.name}, ${err.message}`);
-            }
-        })();
 
 
         window.follow_route = () => {

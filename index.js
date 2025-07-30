@@ -14,15 +14,6 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
 }
 
-(async () => {
-    try {
-        const wakeLock = await navigator.wakeLock.request("screen");
-    } catch (err) {
-        // the wake lock request fails - usually system related, such being low on battery
-        console.log(`${err.name}, ${err.message}`);
-    }
-})();
-
 // Set the initial map center and zoom level
 // the url parameters take precedence over the cookies
 const position = JSON.parse(localStorage.getItem("position"));

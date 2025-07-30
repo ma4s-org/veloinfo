@@ -1,8 +1,6 @@
 import htmx from "htmx.org";
 
 class FollowPanel extends HTMLElement {
-    wakeLock = null;
-
     constructor() {
         super();
         let coordinates = JSON.parse(this.getAttribute('coordinates'));
@@ -35,18 +33,19 @@ class FollowPanel extends HTMLElement {
             window.geolocate.trackUserLocation = true;
         }, 1000);
 
+        let wakeLock = null;
         let interval = setInterval(async () => {
             if (!document.getElementById('follow')) {
                 clearInterval(interval);
-                if (this.wakeLock) {
-                    this.wakeLock.release();
+                if (wakeLock) {
+                    wakeLock.release();
                 }
                 return;
             }
 
             // keep the screen open
             try {
-                this.wakeLock = navigator.wakeLock.request("screen");
+                wakeLock = await navigator.wakeLock.request("screen");
             } catch (err) {
                 // the wake lock request fails - usually system related, such being low on battery
                 console.log(`${err.name}, ${err.message}`);
