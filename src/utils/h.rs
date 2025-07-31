@@ -191,8 +191,10 @@ impl H for HMoyen {
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.6
-            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.6
+            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
+                || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+            {
+                1. / 0.5
             } else {
                 1. / 0.7
             }
@@ -201,8 +203,10 @@ impl H for HMoyen {
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.6
-            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.6
+            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
+                || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+            {
+                1. / 0.5
             } else {
                 1. / 0.7
             }
@@ -213,8 +217,10 @@ impl H for HMoyen {
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.6
-            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.6
+            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
+                || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+            {
+                1. / 0.5
             } else {
                 1. / 0.7
             }
@@ -225,8 +231,10 @@ impl H for HMoyen {
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.6
-            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.6
+            } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
+                || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+            {
+                1. / 0.5
             } else {
                 1. / 0.7
             }
