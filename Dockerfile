@@ -11,10 +11,9 @@ RUN apt-get update && apt-get install -y \
     gdal-bin \
     cmake make libclang-dev libssl-dev pkg-config 
 
-RUN cd
 RUN git clone https://github.com/strukturag/libheif.git
 RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
-run cd 
+
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
 RUN npm i -g esbuild
