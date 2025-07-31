@@ -21,7 +21,7 @@ pub trait H: Send {
 
         match distance {
             d if d > 100_000.0 => d * 3.2,
-            d if d > 10_000.0 => d * 2.8,
+            d if d > 10_000.0 => d * 2.6,
             d => d * 1.41,
         }
     }
