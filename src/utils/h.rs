@@ -20,10 +20,8 @@ pub trait H: Send {
         let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
 
         match distance {
-            d if d > 200_000.0 => d * 4.0,
             d if d > 100_000.0 => d * 3.2,
             d if d > 10_000.0 => d * 2.8,
-            d if d > 1_000.0 => d * 2.4,
             d => d * 1.41,
         }
 
