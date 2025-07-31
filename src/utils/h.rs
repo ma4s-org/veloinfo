@@ -24,8 +24,6 @@ pub trait H: Send {
             d if d > 10_000.0 => d * 2.8,
             d => d * 1.41,
         }
-
-        // distance * 1.41
     }
 }
 
