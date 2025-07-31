@@ -33,24 +33,7 @@ class FollowPanel extends HTMLElement {
             window.geolocate.trackUserLocation = true;
         }, 1000);
 
-        let wakeLock = null;
         let interval = setInterval(async () => {
-            if (!document.getElementById('follow')) {
-                clearInterval(interval);
-                if (wakeLock) {
-                    wakeLock.release();
-                }
-                return;
-            }
-
-            // keep the screen open
-            try {
-                wakeLock = await navigator.wakeLock.request("screen");
-            } catch (err) {
-                // the wake lock request fails - usually system related, such being low on battery
-                console.log(`${err.name}, ${err.message}`);
-            }
-
             navigator.geolocation.getCurrentPosition((position) => {
                 let closestCoordinate = this.findClosestCoordinate(
                     position.coords.longitude,

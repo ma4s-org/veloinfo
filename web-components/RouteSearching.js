@@ -14,11 +14,29 @@ class RouteSearching extends HTMLElement {
                 </div>
             </div>
         `;
+
         this.init();
         htmx.process(this);
     }
 
+
+
     async init() {
+        let wakeLock = null;
+        // keep the screen open
+        try {
+            wakeLock = await navigator.wakeLock.request("screen");
+        } catch (err) {
+            // the wake lock request fails - usually system related, such being low on battery
+            console.log(`${err.name}, ${err.message}`);
+        }
+        document.addEventListener("visibilitychange", async () => {
+            if (wakeLock !== null && document.visibilityState === "visible") {
+                // Re-acquérir le verrou si nécessaire
+                await navigator.wakeLock.request("screen");
+            }
+        });
+
         var end = window.start_marker.getLngLat();
         // get the position of the device
         document.getElementById("search_position_dialog").removeAttribute("style");
