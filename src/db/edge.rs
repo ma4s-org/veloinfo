@@ -184,6 +184,8 @@ impl Edge {
             .expect(format!("the start node should exist: {} ", start_node_id).as_str());
         // open_set is the set of nodes to be evaluated
         let mut open_set = HashSet::new();
+        let mut closed_set = HashSet::new();
+
         let mut min_in_open_set = BTreeMap::new();
         open_set.insert(start_edge.clone());
         min_in_open_set.insert(Score(0.), start_edge.clone());
@@ -208,6 +210,7 @@ impl Edge {
             let current = first_min_entry.get().clone();
             open_set.remove(&current);
             first_min_entry.remove();
+            closed_set.insert(current.clone());
 
             if let Some(ref mut socket) = socket {
                 socket
@@ -264,6 +267,9 @@ impl Edge {
             }
             let neighbors = current.get_neighbors(conn).await;
             for neighbor in neighbors.iter() {
+                if closed_set.contains(neighbor) {
+                    continue; // On ignore ce voisin
+                }
                 let tentative_g_score = g_score.get(&current).expect("current should have a score")
                     + neighbor.edge.length * h.get_cost(neighbor);
                 let neighbord_g_score = g_score.get(neighbor);
