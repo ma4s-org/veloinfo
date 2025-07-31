@@ -206,6 +206,9 @@ impl Edge {
                 .first_entry()
                 .expect("open set should not be empty");
             let current = first_min_entry.get().clone();
+            open_set.remove(&current);
+            first_min_entry.remove();
+
             if let Some(ref mut socket) = socket {
                 socket
                     .send(axum::extract::ws::Message::Text(
@@ -259,8 +262,6 @@ impl Edge {
                 let points = join_all(promises).await;
                 return points;
             }
-            open_set.remove(&current);
-            first_min_entry.remove();
             let neighbors = current.get_neighbors(conn).await;
             for neighbor in neighbors.iter() {
                 let tentative_g_score = g_score.get(&current).expect("current should have a score")
