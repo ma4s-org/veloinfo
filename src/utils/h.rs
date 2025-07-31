@@ -251,7 +251,11 @@ impl H for HMoyen {
                 1. / 0.6
             }
         } else if edge.edge.tags.get("highway") == Some(&"service".to_string()) {
-            1. / 0.6
+            if edge.edge.tags.get("surface") == Some(&"chipseal".to_string()) {
+                1. / 0.5
+            } else {
+                1. / 0.6
+            }
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"tertiary".to_string()) {
@@ -505,8 +509,6 @@ impl H for HRapid {
             1. / 0.75
         } else if edge.edge.tags.get("higway") == Some(&"trunk".to_string()) {
             1. / 0.75
-        } else if edge.edge.tags.get("highway") == Some(&"service".to_string()) {
-            1. / 0.7
         } else if edge.edge.tags.get("higway").is_some() {
             1. / 0.5
         } else if edge.edge.tags.get("higway") == Some(&"footway".to_string()) {
