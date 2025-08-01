@@ -244,7 +244,7 @@ impl H for HMoyen {
             if edge.edge.tags.get("surface") == Some(&"sett".to_string())
                 || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
             {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
                 || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
             {
@@ -264,7 +264,7 @@ impl H for HMoyen {
             if edge.edge.tags.get("surface") == Some(&"sett".to_string())
                 || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
             {
-                1. / 0.4
+                1. / 0.3
             } else {
                 1. / 0.5
             }
