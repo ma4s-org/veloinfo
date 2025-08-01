@@ -34,6 +34,10 @@ class FollowPanel extends HTMLElement {
         }, 1000);
 
         let interval = setInterval(async () => {
+            if (!document.body.contains(this)) {
+                clearInterval(interval);
+                return;
+            }
             navigator.geolocation.getCurrentPosition((position) => {
                 let closestCoordinate = this.findClosestCoordinate(
                     position.coords.longitude,
