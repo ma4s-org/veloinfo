@@ -59,7 +59,9 @@ impl H for HMoyen {
             || edge.edge.tags.get("access") == Some(&"customers".to_string())
         {
             1. / 0.05
-        } else if edge.edge.tags.get("higway") == Some(&"proposed".to_string()) {
+        } else if edge.edge.tags.get("higway") == Some(&"proposed".to_string())
+            || edge.edge.tags.get("abandoned") == Some(&"yes".to_string())
+        {
             1. / 0.05
         } else if edge.edge.tags.get("informal") == Some(&"yes".to_string()) {
             1. / 0.05
