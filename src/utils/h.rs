@@ -258,7 +258,6 @@ impl H for HMoyen {
             if edge.edge.tags.get("surface") == Some(&"sett".to_string())
                 || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
             {
-                println!("Using tertiary with surface sett or cobblestone");
                 1. / 0.2
             } else {
                 1. / 0.5
