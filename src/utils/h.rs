@@ -81,7 +81,7 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
             1. / 0.1
         } else if edge.edge.tags.get("bicycle") == Some(&"dismount".to_string()) {
-            1. / 0.3
+            1. / 0.2
         } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.6
@@ -172,12 +172,6 @@ impl H for HMoyen {
             && edge.edge.tags.get("footway") == Some(&"crossing".to_string())
         {
             1. / 0.7
-        } else if edge.edge.tags.get("footway") == Some(&"path".to_string()) {
-            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.6
-            } else {
-                1. / 0.1
-            }
         } else if edge.edge.tags.get("highway") == Some(&"footway".to_string()) {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
                 || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
