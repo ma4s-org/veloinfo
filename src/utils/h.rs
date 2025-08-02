@@ -75,7 +75,7 @@ impl H for HMoyen {
             && (edge.edge.tags.get("bicycle") == Some(&"dismount".to_string())
                 || edge.edge.tags.get("bicycle") == Some(&"discouraged".to_string()))
         {
-            1. / 0.05
+            1. / 0.1
         } else if edge.edge.tags.get("bicycle") == Some(&"discouraged".to_string()) {
             1. / 0.1
         } else if edge.edge.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
