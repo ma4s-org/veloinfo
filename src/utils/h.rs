@@ -250,6 +250,8 @@ impl H for HMoyen {
             } else {
                 1. / 0.6
             }
+        } else if edge.edge.in_bicycle_route {
+            1. / 0.6
         } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"tertiary".to_string()) {
@@ -260,8 +262,6 @@ impl H for HMoyen {
             } else {
                 1. / 0.5
             }
-        } else if edge.edge.in_bicycle_route {
-            1. / 0.65
         } else if edge.edge.tags.get("higway") == Some(&"tertiary_link".to_string()) {
             1. / 0.5
         } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
