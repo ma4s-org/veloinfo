@@ -318,6 +318,7 @@ impl Edge {
                         tags->>'highway' != 'footway'
                         OR (tags->>'highway' = 'footway' AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk'))
                     )
+                    AND (tags->>'bicycle' IS NULL OR tags->>'bicycle' != 'dismount')
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
