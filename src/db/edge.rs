@@ -213,7 +213,9 @@ impl Edge {
             closed_set.insert(current.clone());
 
             if let Some(ref mut socket) = socket {
-                socket
+                // Send the current edge to the client every 10 iterations to not overload the client
+                if closed_set.len() % 10 == 0 {
+                    socket
                     .send(axum::extract::ws::Message::Text(
                         format!(
                             "[[{},{}],[{},{}]]",
@@ -226,6 +228,7 @@ impl Edge {
                     ))
                     .await
                     .unwrap();
+                }
             }
             // if we are at the end, return the path
             if current == end_edge {
