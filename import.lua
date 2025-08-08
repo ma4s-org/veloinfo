@@ -114,6 +114,10 @@ local landuse = osm2pgsql.define_table({
 
 local city = osm2pgsql.define_table({
     name = 'city',
+    ids = {
+        type = 'area',
+        id_column = 'way_id'
+    },
     columns = {{
         column = 'name',
         type = 'text'
@@ -212,8 +216,8 @@ local landcover_far = osm2pgsql.define_table({
 local water_name = osm2pgsql.define_table({
     name = 'water_name',
     ids = {
-        type = 'area',
-        id_column = 'way_id'
+        type = 'node',
+        id_column = 'node_id'
     },
     columns = {{
         column = 'name',

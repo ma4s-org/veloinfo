@@ -1,11 +1,11 @@
 #!/usr/bin/bash
-rm quebec-latest.osm.pbf
-wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf -O quebec-latest.osm.pbf
+rm canada.osm.pbf
+wget https://download.geofabrik.de/north-america/canada-latest.osm.pbf -O canada.osm.pbf
 
 psql -h db -U postgres -d carte -c "
-                    CREATE EXTENSION IF NOT EXISTS postgis;"
-
-osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
+                     CREATE EXTENSION IF NOT EXISTS postgis;"
+ 
+osm2pgsql -H db -U postgres -d carte -O flex -S import.lua canada.osm.pbf
 
 psql -h db -U postgres -d carte -c "
                                     drop materialized view if exists last_cycleway_score cascade;
@@ -68,7 +68,7 @@ psql -h db -U postgres -d carte -c "
                                             LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
                                             LEFT JOIN city on ST_Within(c.geom, city.geom)
                                             LEFT JOIN city_snow_on_ground snow on city.name = snow.name;
-                                    CREATE UNIQUE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);
+                                    CREATE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);
                                     CREATE INDEX edge_geom_far_gist ON bike_path_far USING gist(geom);
                                     
                                     drop materialized view if exists _all_way_edge;
