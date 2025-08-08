@@ -568,7 +568,7 @@ end
 
 function osm2pgsql.process_relation(relation)
     if relation.tags.landuse == "forest" or relation.tags.landuse == "cemetery" or relation.tags.natural == "wood" or
-        relation.tags.natural == "water" or relation.tags.leisure == "park" or relation.tags.landuse == "residential" then
+        relation.tags.natural == "water" or relation.tags.natural == "bay" or relation.tags.leisure == "park" or relation.tags.landuse == "residential" then
         landcover:insert({
             name = relation.tags.name,
             geom = relation:as_multipolygon(),
@@ -588,7 +588,7 @@ function osm2pgsql.process_relation(relation)
         })
     end
     if relation:as_multipolygon():area() > 1e-3 and
-        (relation.tags.natural == "water" or relation.tags.landuse == "forest") then
+        (relation.tags.natural == "water" or relation.tags.natural == "bay" or relation.tags.landuse == "forest") then
         landcover_far:insert({
             name = relation.tags.name,
             geom = relation:as_multipolygon(),

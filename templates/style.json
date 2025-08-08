@@ -425,9 +425,10 @@
                 "fill-translate-anchor": "map"
             },
             "filter": [
-                "==",
+                "in",
                 "natural",
-                "water"
+                "water",
+                "bay"
             ]
         },
         {
@@ -478,9 +479,10 @@
                 "fill-translate-anchor": "map"
             },
             "filter": [
-                "==",
+                "in",
                 "natural",
-                "water"
+                "water",
+                "bay"
             ]
         },
         {
