@@ -1,11 +1,13 @@
 #!/usr/bin/bash
-rm canada.osm.pbf
-wget https://download.geofabrik.de/north-america/canada-latest.osm.pbf -O canada.osm.pbf
+rm *.pbf
+wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf -O quebec.osm.pbf
+wget https://download.geofabrik.de/north-america/canada/ontario-latest.osm.pbf -O ontario.osm.pbf
+wget https://download.geofabrik.de/north-america/canada/new-brunswick-latest.osm.pbf -O new-brunswick-latest.osm.pbf -O new-brunswick.osm.pbf
 
 psql -h db -U postgres -d carte -c "
                      CREATE EXTENSION IF NOT EXISTS postgis;"
  
-osm2pgsql -H db -U postgres -d carte -O flex -S import.lua canada.osm.pbf
+osm2pgsql -H db -U postgres -d carte -O flex --slim -S import.lua quebec.osm.pbf
 
 psql -h db -U postgres -d carte -c "
                                     drop materialized view if exists last_cycleway_score cascade;
@@ -184,3 +186,16 @@ psql -h db -U postgres -d carte -c "
                                             on c.name = snow.name 
                                     "
 
+osm2pgsql -H db -U postgres -d carte -O flex --slim --append -S import.lua ontario.osm.pbf
+osm2pgsql -H db -U postgres -d carte -O flex --slim --append --drop -S import.lua new-brunswick.osm.pbf
+
+psql -h db -U postgres -d carte -c "
+    REFRESH MATERIALIZED VIEW last_cycleway_score;
+    REFRESH MATERIALIZED VIEW bike_path;
+    REFRESH MATERIALIZED VIEW bike_path_far;
+    REFRESH MATERIALIZED VIEW _all_way_edge;
+    REFRESH MATERIALIZED VIEW edge;
+    REFRESH MATERIALIZED VIEW address_range;
+    REFRESH MATERIALIZED VIEW name_query;
+    REFRESH MATERIALIZED VIEW city_snow;
+    "
