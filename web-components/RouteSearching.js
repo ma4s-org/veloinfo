@@ -80,7 +80,7 @@ class RouteSearching extends HTMLElement {
             end.lat
         );
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
-        map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerWidth * .12, duration: 900 });
+        map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
         const socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
         let coordinates = [];
