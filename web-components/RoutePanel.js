@@ -76,7 +76,7 @@ class RoutePanel extends HTMLElement {
             coordinates[coordinates.length - 1][0],
             coordinates[coordinates.length - 1][1]);
         var bounds = fitBounds(coordinates);
-        map.fitBounds(bounds, { bearing, pitch: 0, padding: 30, duration: 900 });
+        map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerWidth * .12, duration: 900 });
 
 
         window.follow_route = () => {
