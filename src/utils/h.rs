@@ -61,6 +61,7 @@ impl H for HMoyen {
             1. / 0.05
         } else if edge.edge.tags.get("highway") == Some(&"proposed".to_string())
             || edge.edge.tags.get("abandoned") == Some(&"yes".to_string())
+            || edge.edge.tags.get("highway") == Some(&"motorway".to_string())
         {
             1. / 0.001
         } else if edge.edge.tags.get("informal") == Some(&"yes".to_string()) {
