@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     fish \
     rustfmt \
-    osm2pgsql osmium-tool \
+    osm2pgsql osmctools \
     nodejs \
     npm \
     gdal-bin \
