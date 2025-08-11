@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     fish \
     rustfmt \
-    osm2pgsql osmctools \
+    osm2pgsql osmium-tool \
     nodejs \
     npm \
     gdal-bin \
@@ -45,6 +45,7 @@ FROM debian as prod
 
 RUN apt-get update && apt-get install -y \
     osm2pgsql \
+    osmium-tool \
     gdal-bin \
     wget
 
