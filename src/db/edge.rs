@@ -184,7 +184,7 @@ impl Edge {
             .expect(format!("the start node should exist: {} ", start_node_id).as_str());
         // open_set is the set of nodes to be evaluated
         let mut open_set = HashSet::new();
-        let mut closed_set = HashSet::new();
+        let mut closed_set = HashMap::new();
 
         let mut min_in_open_set = BTreeMap::new();
         open_set.insert(start_edge.clone());
@@ -210,7 +210,11 @@ impl Edge {
             let current = first_min_entry.get().clone();
             open_set.remove(&current);
             first_min_entry.remove();
-            closed_set.insert(current.clone());
+            closed_set.insert(current.clone(), match closed_set.get(&current.clone()){
+                Some(entry) => entry+1,
+                None => 1
+                
+            });
 
             if let Some(ref mut socket) = socket {
                 // Send the current edge to the client every 10 iterations to not overload the client
@@ -270,13 +274,17 @@ impl Edge {
             }
             let neighbors = current.get_neighbors(conn).await;
             for neighbor in neighbors.iter() {
-                if closed_set.contains(neighbor) {
-                    continue; // On ignore ce voisin
-                }
                 let tentative_g_score = g_score.get(&current).expect("current should have a score")
                     + neighbor.edge.length * h.get_cost(neighbor);
                 let neighbord_g_score = g_score.get(neighbor);
                 if neighbord_g_score.is_none() || &tentative_g_score < neighbord_g_score.unwrap() {
+                    if let Some(entry) = closed_set.get(neighbor) {
+                        if *entry > 2 {
+                            // On empêche de revisiter trop souvent le même voisin.
+                            // Sinon ça bloque dans les coins (ex: allé à Oka de Montréal)
+                            continue;
+                        }
+                    }
                     came_from.insert(neighbor.clone(), current.clone());
                     g_score.insert(neighbor.clone(), tentative_g_score);
                     f_score.insert(

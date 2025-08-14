@@ -87,8 +87,6 @@ map.on("load", async () => {
     setTimeout(() => {
         const layers = JSON.parse(localStorage.getItem("layers"));
         ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"].forEach(layer => {
-            console.log(layer);
-
             if ( !layers || !layers[layer]) {
                 map.setLayoutProperty(layer, 'visibility', 'visible');
             } else if (layers[layer] == "none") {
