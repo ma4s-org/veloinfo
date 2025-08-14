@@ -53,20 +53,6 @@ var map = new maplibregl.Map({
 });
 
 
-// Load the layers from the local storage
-setTimeout(() => {
-    const layers = JSON.parse(localStorage.getItem("layers"));
-    if (layers) {
-        for (const layer in layers) {
-            if (layers[layer] == "visible") {
-                map.setLayoutProperty(layer, 'visibility', 'visible');
-            } else {
-                map.setLayoutProperty(layer, 'visibility', 'none');
-            }
-        }
-    }
-}, 1000);
-
 // Load the images
 (async () => {
     const bike_image = await map.loadImage('/pub/bicycle-parking.png');
@@ -98,6 +84,17 @@ let geolocate = new maplibregl.GeolocateControl({
 map.addControl(geolocate);
 
 map.on("load", async () => {
+    let total_layers = ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"];
+    const layers = JSON.parse(localStorage.getItem("layers"));
+    console.log("layers: ", total_layers);
+    total_layers.forEach(layer => {
+        if (layers[layer] == "none") {
+            map.setLayoutProperty(layer, 'visibility', 'none');
+        } else {
+            map.setLayoutProperty(layer, 'visibility', 'visible');
+        }
+    });
+
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })
