@@ -85,15 +85,18 @@ map.addControl(geolocate);
 
 map.on("load", async () => {
     setTimeout(() => {
-        let total_layers = ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"];
         const layers = JSON.parse(localStorage.getItem("layers"));
-        total_layers.forEach(layer => {
+        ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"].forEach(layer => {
             console.log(layer);
-            if (layer == "none" || !layer) {
-            map.setLayoutProperty(layer, 'visibility', 'none');
-        } else {
-            map.setLayoutProperty(layer, 'visibility', 'visible');
-        }
+
+            if ( !layers || !layers[layer]) {
+                map.setLayoutProperty(layer, 'visibility', 'visible');
+            } else if (layers[layer] == "none") {
+                map.setLayoutProperty(layer, 'visibility', 'none');
+            } else {
+                console.log(layer, layers[layer]);
+                map.setLayoutProperty(layer, 'visibility', 'visible');
+            }
     });
     }, 1000);
 
