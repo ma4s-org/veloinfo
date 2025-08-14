@@ -184,7 +184,7 @@ impl Edge {
             .expect(format!("the start node should exist: {} ", start_node_id).as_str());
         // open_set is the set of nodes to be evaluated
         let mut open_set = HashSet::new();
-        let mut closed_set = HashMap::new();
+        let mut revisited_map = HashMap::new();
 
         let mut min_in_open_set = BTreeMap::new();
         open_set.insert(start_edge.clone());
@@ -210,7 +210,7 @@ impl Edge {
             let current = first_min_entry.get().clone();
             open_set.remove(&current);
             first_min_entry.remove();
-            closed_set.insert(current.clone(), match closed_set.get(&current.clone()){
+            revisited_map.insert(current.clone(), match revisited_map.get(&current.clone()){
                 Some(entry) => entry+1,
                 None => 1
                 
@@ -218,7 +218,7 @@ impl Edge {
 
             if let Some(ref mut socket) = socket {
                 // Send the current edge to the client every 10 iterations to not overload the client
-                if closed_set.len() % 10 == 0 {
+                if revisited_map.len() % 10 == 0 {
                     socket
                     .send(axum::extract::ws::Message::Text(
                         format!(
@@ -278,8 +278,8 @@ impl Edge {
                     + neighbor.edge.length * h.get_cost(neighbor);
                 let neighbord_g_score = g_score.get(neighbor);
                 if neighbord_g_score.is_none() || &tentative_g_score < neighbord_g_score.unwrap() {
-                    if let Some(entry) = closed_set.get(neighbor) {
-                        if *entry > 2 {
+                    if let Some(revisited) = revisited_map.get(neighbor) {
+                        if *revisited > 3 {
                             // On empêche de revisiter trop souvent le même voisin.
                             // Sinon ça bloque dans les coins (ex: allé à Oka de Montréal)
                             continue;
