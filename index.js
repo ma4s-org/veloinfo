@@ -84,16 +84,19 @@ let geolocate = new maplibregl.GeolocateControl({
 map.addControl(geolocate);
 
 map.on("load", async () => {
-    let total_layers = ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"];
-    const layers = JSON.parse(localStorage.getItem("layers"));
-    console.log("layers: ", total_layers);
-    total_layers.forEach(layer => {
-        if (layers[layer] == "none") {
+    setTimeout(() => {
+        let total_layers = ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"];
+        const layers = JSON.parse(localStorage.getItem("layers"));
+        console.log("layers: ", total_layers);
+        total_layers.forEach(layer => {
+            console.log(layer);
+            if (layer == "none" || !layer) {
             map.setLayoutProperty(layer, 'visibility', 'none');
         } else {
             map.setLayoutProperty(layer, 'visibility', 'visible');
         }
     });
+    }, 1000);
 
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
