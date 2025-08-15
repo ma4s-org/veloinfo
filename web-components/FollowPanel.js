@@ -24,10 +24,6 @@ class FollowPanel extends HTMLElement {
         `;
         htmx.process(this);
 
-        map.easeTo({
-            pitch: 60,
-            duration: 800,
-        });
         setTimeout(() => {
             window.geolocate.trigger();
             window.geolocate.trackUserLocation = true;
