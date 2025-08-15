@@ -96,7 +96,7 @@ class FollowPanel extends HTMLElement {
                         longitude,
                         coord[1],
                         coord[0]
-                    ) >= 0.1
+                    ) >= 0.15
                 );
             hundredMeterAwayIndex = hundredMeterAwayIndex === -1
                 ? coordinates.length - 1
