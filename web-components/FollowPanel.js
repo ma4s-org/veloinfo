@@ -38,6 +38,8 @@ class FollowPanel extends HTMLElement {
                 clearInterval(interval);
                 return;
             }
+            let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+            document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             this.setBearing(coordinates);
             setTimeout(() => {
                 window.geolocate.trigger();
@@ -82,13 +84,10 @@ class FollowPanel extends HTMLElement {
                 position.coords.longitude,
                 position.coords.latitude,
                 coordinates);
-            let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
-            document.getElementById('total_distance').innerText = `${totalDistance} kms`;
-
 
             // bearing between current position and 100 meter away
-            let { latitude, longitude } = position.coords;
             // Find the first coordinate that is at least 100 meters away from current position (functional style)
+            let { latitude, longitude } = position.coords;
             let hundredMeterAwayIndex = coordinates
                 .slice(closestCoordinate)
                 .findIndex(coord =>
@@ -110,7 +109,7 @@ class FollowPanel extends HTMLElement {
             map.easeTo({
                 bearing,
                 pitch: 60,
-                duration: 800,
+                duration: 1_600,
             });
         });
     }
