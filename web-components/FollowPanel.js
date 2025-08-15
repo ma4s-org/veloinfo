@@ -38,8 +38,15 @@ class FollowPanel extends HTMLElement {
                 clearInterval(interval);
                 return;
             }
-            let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
-            document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+            navigator.geolocation.getCurrentPosition((position) => {
+                let closestCoordinate = this.findClosestCoordinate(
+                    position.coords.longitude,
+                    position.coords.latitude,
+                    coordinates
+                );
+                let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+                document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+            });
             this.setBearing(coordinates);
             setTimeout(() => {
                 window.geolocate.trigger();
