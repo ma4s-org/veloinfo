@@ -111,9 +111,14 @@ class FollowPanel extends HTMLElement {
                 coordinates[hundredMeterAwayIndex][1]);
             map.easeTo({
                 bearing,
-                pitch: 60,
                 duration: 1_600,
             });
+            setTimeout(() => {
+                map.easeTo({
+                    pitch: 60,
+                    duration: 1_600,
+                });
+            }, 2_000);
         });
     }
 
