@@ -32,36 +32,16 @@ class FollowPanel extends HTMLElement {
             window.geolocate.trigger();
             window.geolocate.trackUserLocation = true;
         }, 1000);
-
+        this.setBearing(coordinates);
         let interval = setInterval(async () => {
             if (!document.body.contains(this)) {
                 clearInterval(interval);
                 return;
             }
-            navigator.geolocation.getCurrentPosition((position) => {
-                let closestCoordinate = this.findClosestCoordinate(
-                    position.coords.longitude,
-                    position.coords.latitude,
-                    coordinates);
-                let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
-                document.getElementById('total_distance').innerText = `${totalDistance} kms`;
-
-
-                // bearing between current position and last coordinate
-                let { latitude, longitude } = position.coords;
-                var bearing = calculateBearing(
-                    longitude,
-                    latitude,
-                    coordinates[coordinates.length - 1][0],
-                    coordinates[coordinates.length - 1][1]);
-                map.easeTo({
-                    bearing,
-                    duration: 800,
-                });
-                setTimeout(() => {
-                    window.geolocate.trigger();
-                }, 1000);
-            });
+            this.setBearing(coordinates);
+            setTimeout(() => {
+                window.geolocate.trigger();
+            }, 1000);
         }, 20000);
     }
 
@@ -78,6 +58,61 @@ class FollowPanel extends HTMLElement {
             }
         }
         return closestCoordinate;
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in meters
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        const distance = R * c;
+        return distance;
+    }
+
+    setBearing(coordinates) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            let closestCoordinate = this.findClosestCoordinate(
+                position.coords.longitude,
+                position.coords.latitude,
+                coordinates);
+            let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+            document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+
+
+            // bearing between current position and 100 meter away
+            let { latitude, longitude } = position.coords;
+            // Find the first coordinate that is at least 100 meters away from current position (functional style)
+            let hundredMeterAwayIndex = coordinates
+                .slice(closestCoordinate)
+                .findIndex(coord =>
+                    this.calculateDistance(
+                        latitude,
+                        longitude,
+                        coord[1],
+                        coord[0]
+                    ) >= 0.1
+                );
+            hundredMeterAwayIndex = hundredMeterAwayIndex === -1
+                ? coordinates.length - 1
+                : hundredMeterAwayIndex + closestCoordinate;
+            var bearing = calculateBearing(
+                longitude,
+                latitude,
+                coordinates[hundredMeterAwayIndex][0],
+                coordinates[hundredMeterAwayIndex][1]);
+            map.easeTo({
+                bearing,
+                pitch: 60,
+                duration: 800,
+            });
+        });
     }
 
 }

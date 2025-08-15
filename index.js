@@ -244,7 +244,9 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     let bearing = Math.atan2(y, x) * (180 / Math.PI);
     bearing = (bearing + 360) % 360; // Ensuring the bearing is positive
     return bearing;
-} function calculateDistance(lat1, lon1, lat2, lon2) {
+} 
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in meters
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
