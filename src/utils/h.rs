@@ -304,7 +304,7 @@ impl H for HMoyen {
         };
 
         if edge.edge.road_work {
-            cost = 1. / 0.5;
+            cost = cost * 3.;
         }
         let score = match edge.edge.score {
             Some(score) => {
