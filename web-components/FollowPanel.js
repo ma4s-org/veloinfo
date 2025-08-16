@@ -28,6 +28,10 @@ class FollowPanel extends HTMLElement {
     
     connectedCallback() {
         this.intervalId = setInterval(async () => {
+            if (!document.body.contains(this)) {
+                clearInterval(this.intervalId);
+                return;
+            }
             this.updatePosition();
         }, 20_000);
         this.updatePosition();
