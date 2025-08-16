@@ -70,7 +70,7 @@ var map = new maplibregl.Map({
 })();
 
 
-
+let isGeolocateActive = false;
 map.addControl(new maplibregl.NavigationControl());
 let geolocate = new maplibregl.GeolocateControl({
     fitBoundsOptions: {
@@ -81,6 +81,9 @@ let geolocate = new maplibregl.GeolocateControl({
     },
     trackUserLocation: true
 });
+geolocate.on('trackuserlocationstart', () => { isGeolocateActive = true; });
+geolocate.on('trackuserlocationend', () => { isGeolocateActive = false; });
+geolocate.on('error', () => { isGeolocateActive = false; });
 map.addControl(geolocate);
 
 map.on("load", async () => {
@@ -284,7 +287,7 @@ function clearDistanceCache() {
     distanceCache = {};
 }
 
-const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance, clearDistanceCache };
+const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance, clearDistanceCache, isGeolocateActive };
 Object.assign(window, ex);
 
 export default ex;

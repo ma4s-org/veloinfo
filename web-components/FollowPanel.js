@@ -24,16 +24,21 @@ class FollowPanel extends HTMLElement {
         `;
         htmx.process(this);
 
-        setTimeout(() => {
-            window.geolocate.trigger();
-            window.geolocate.trackUserLocation = true;
-        }, 1000);
-        this.setBearing(coordinates);
-        let interval = setInterval(async () => {
-            if (!document.body.contains(this)) {
-                clearInterval(interval);
-                return;
-            }
+    }
+    
+    connectedCallback() {
+        this.intervalId = setInterval(async () => {
+            this.updatePosition();
+        }, 20_000);
+        this.updatePosition();
+    }
+
+    disconnectCallback() {
+        clearInterval(this.intervalId);
+    }
+
+    updatePosition(){
+            let coordinates = JSON.parse(this.getAttribute('coordinates'));            
             navigator.geolocation.getCurrentPosition((position) => {
                 let closestCoordinate = this.findClosestCoordinate(
                     position.coords.longitude,
@@ -41,13 +46,11 @@ class FollowPanel extends HTMLElement {
                     coordinates
                 );
                 let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
-                document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+                if (document.getElementById('total_distance')){
+                    document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+                }
             });
             this.setBearing(coordinates);
-            setTimeout(() => {
-                window.geolocate.trigger();
-            }, 1000);
-        }, 20000);
     }
 
     findClosestCoordinate(longitude, latitude, coordinates) {
@@ -118,6 +121,11 @@ class FollowPanel extends HTMLElement {
                     pitch: 60,
                     duration: 1_600,
                 });
+                setTimeout(() => {
+                    if (!window.isGeolocateActive){
+                        window.geolocate.trigger();
+                    }
+                }, 2_000);
             }, 2_000);
         });
     }
