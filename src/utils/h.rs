@@ -57,6 +57,7 @@ impl H for HMoyen {
         let mut cost = if edge.edge.tags.get("bicycle") == Some(&"no".to_string())
             || edge.edge.tags.get("access") == Some(&"private".to_string())
             || edge.edge.tags.get("access") == Some(&"customers".to_string())
+            || edge.edge.tags.get("access") == Some(&"no".to_string())
         {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()){
                 1. / 0.3
