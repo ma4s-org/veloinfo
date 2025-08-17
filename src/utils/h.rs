@@ -60,7 +60,7 @@ impl H for HMoyen {
             || edge.edge.tags.get("access") == Some(&"no".to_string())
         {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()){
-                1. / 0.3
+                1. / 0.4
             } else {
                 1. / 0.05
             }
