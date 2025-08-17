@@ -273,11 +273,9 @@ impl H for HMoyen {
             }
         } else if edge.edge.tags.get("higway") == Some(&"tertiary_link".to_string()) {
             1. / 0.5
-        } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
-            1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"secondary".to_string()) {
             if edge.edge.tags.get("surface") == Some(&"sett".to_string())
-                || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
+            || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
             {
                 1. / 0.3
             } else if edge.edge.in_bicycle_route {
@@ -287,6 +285,8 @@ impl H for HMoyen {
             }
         } else if edge.edge.in_bicycle_route {
             1. / 0.6
+        } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
+            1. / 0.4
         } else if edge.edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
             1. / 0.4
         } else if edge.edge.tags.get("higway") == Some(&"primary".to_string()) {
