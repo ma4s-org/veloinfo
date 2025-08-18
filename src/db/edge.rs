@@ -423,6 +423,7 @@ impl Edge {
                 (1477879177, 177522966, "Matane to Quebec"),                
                 (26233313, 1870784004, "Montreal to Sherbrooke"),
                 (26233313, 2352518821, "Montreal to Mont-Tremblant"),
+                (26233313, 555491818, "Montreal to Saint-Anicet"),
             ];
 
             for (source, target, description) in routes {
