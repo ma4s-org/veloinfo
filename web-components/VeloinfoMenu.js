@@ -94,7 +94,6 @@ class VeloinfoMenu extends HTMLElement {
 
         // Add install links
         const os = this.detectMobileOS();
-        console.log("os", os);
 
         if (os === 'ios') {
             this.querySelector('#ios').style.display = 'block';

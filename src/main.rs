@@ -4,6 +4,7 @@ use crate::component::info_panel::info_panel_down;
 use crate::component::info_panel::info_panel_up;
 use crate::component::photo_scroll::photo_scroll;
 use crate::component::point_panel::point_panel_lng_lat;
+use crate::component::route_panel::recalculate_route;
 use crate::component::search;
 use crate::component::segment_panel::segment_panel_bigger_route;
 use crate::component::segment_panel::segment_panel_edit;
@@ -124,6 +125,10 @@ async fn main() {
         .route(
             "/route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
             get(route),
+        )
+        .route(
+            "/recalculate_route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
+            get(recalculate_route),
         )
         .route(
             "/cyclability_score/geom/{cyclability_score_id}",

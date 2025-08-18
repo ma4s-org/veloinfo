@@ -42,19 +42,99 @@ class FollowPanel extends HTMLElement {
     }
 
     updatePosition(){
-            let coordinates = JSON.parse(this.getAttribute('coordinates'));            
-            navigator.geolocation.getCurrentPosition((position) => {
-                let closestCoordinate = this.findClosestCoordinate(
-                    position.coords.longitude,
-                    position.coords.latitude,
-                    coordinates
-                );
-                let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
-                if (document.getElementById('total_distance')){
-                    document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+        if (this.updating) {
+            return;
+        }
+        let coordinates = JSON.parse(this.getAttribute('coordinates'));            
+        navigator.geolocation.getCurrentPosition(async (position) => {
+
+            let closestCoordinate = this.findClosestCoordinate(
+                position.coords.longitude,
+                position.coords.latitude,
+                coordinates
+            );
+            let distanceToClosest = this.calculateDistance(
+                position.coords.latitude,
+                position.coords.longitude,
+                coordinates[closestCoordinate][1],
+                coordinates[closestCoordinate][0]
+            );
+            if (distanceToClosest > .15) { // 150 meters
+                // we are too far from the route. We calculate it again.
+                this.updating = true;
+                if (!map.getSource("searched_route2")) {
+                    map.addSource("searched_route2", {
+                        "type": "geojson",
+                        "data": {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "MultiLineString",
+                                "coordinates": []
+                            }
+                        }
+                    });
+                    map.addLayer({
+                        'id': 'searched_route2',
+                        'source': 'searched_route2',
+                        'type': 'line',
+                        "paint": {
+                            "line-width": 8,
+                            "line-color": "hsla(186, 45%, 61%, 1.00)",
+                            "line-blur": 0,
+                            "line-opacity": 0.50
+                        }
+                    });
                 }
-            });
-            this.setBearing(coordinates);
+                const socket = new WebSocket(`/recalculate_route/${position.coords.longitude}/${position.coords.latitude}/${coordinates[coordinates.length - 1][0]}/${coordinates[coordinates.length - 1][1]}`);
+                let coordinates2 = [];
+                socket.onmessage = async (event) => {                    
+                    if (event.data.startsWith("{\"coordinates\"")) {
+                        let coordinates = JSON.parse(event.data).coordinates;
+                        socket.close();
+                        if (map.getSource("searched_route2") != null) {
+                            map.removeLayer("searched_route2");
+                            map.removeSource("searched_route2");
+                        }
+                        map.getSource("selected").setData({
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "MultiLineString",
+                                "coordinates": [coordinates]
+                            }
+                        });
+                        this.setAttribute('coordinates', JSON.stringify(coordinates));
+                        this.updating = false;
+                        this.setBearing(coordinates);
+                        return;
+                    } else {
+                        if (coordinates2.length > 10000) {
+                            coordinates2 = [];
+                        }
+                        coordinates2.push(JSON.parse(event.data));
+                        if (coordinates2.length % 1000 == 0) {
+                            const data = {
+                                "type": "Feature",
+                                "properties": {},
+                                "geometry": {
+                                    "type": "MultiLineString",
+                                    "coordinates": coordinates2
+                                }
+        
+                            };
+                            map.getSource("searched_route2").setData(data);
+                        }
+                    }
+                }
+                this.updating = false;
+            }
+            let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+            if (document.getElementById('total_distance')){
+                document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+            }
+        });
+        this.setBearing(coordinates);
     }
 
     findClosestCoordinate(longitude, latitude, coordinates) {

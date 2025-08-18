@@ -95,7 +95,6 @@ map.on("load", async () => {
             } else if (layers[layer] == "none") {
                 map.setLayoutProperty(layer, 'visibility', 'none');
             } else {
-                console.log(layer, layers[layer]);
                 map.setLayoutProperty(layer, 'visibility', 'visible');
             }
     });
