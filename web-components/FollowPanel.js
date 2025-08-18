@@ -59,7 +59,7 @@ class FollowPanel extends HTMLElement {
                 coordinates[closestCoordinate][1],
                 coordinates[closestCoordinate][0]
             );
-            if (distanceToClosest > .15) { // 150 meters
+            if (distanceToClosest > .25) { // 250 meters
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
                 if (!map.getSource("searched_route2")) {
