@@ -59,52 +59,23 @@ class FollowPanel extends HTMLElement {
                 coordinates[closestCoordinate][1],
                 coordinates[closestCoordinate][0]
             );
-            if (distanceToClosest > .2) { // 200 meters
+            if (distanceToClosest > 0.2) { // 200 meters
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
-                if (!map.getSource("searched_route2")) {
-                    map.addSource("searched_route2", {
-                        "type": "geojson",
-                        "data": {
-                            "type": "Feature",
-                            "properties": {},
-                            "geometry": {
-                                "type": "MultiLineString",
-                                "coordinates": []
-                            }
-                        }
-                    });
-                    map.addLayer({
-                        'id': 'searched_route2',
-                        'source': 'searched_route2',
-                        'type': 'line',
-                        "paint": {
-                            "line-width": 8,
-                            "line-color": "hsla(186, 45%, 61%, 1.00)",
-                            "line-blur": 0,
-                            "line-opacity": 0.50
-                        }
-                    });
-                }
                 const socket = new WebSocket(`/recalculate_route/${position.coords.longitude}/${position.coords.latitude}/${coordinates[coordinates.length - 1][0]}/${coordinates[coordinates.length - 1][1]}`);
-                let coordinates2 = [];
-                socket.onmessage = async (event) => {                    
-                    if (event.data.startsWith("{\"coordinates\"")) {
-                        let coordinates = JSON.parse(event.data).coordinates;
+                socket.onmessage = async (event) => {   
+                    let data = JSON.parse(event.data);
+                    if (data.coordinates) {
                         socket.close();
-                        if (map.getSource("searched_route2") != null) {
-                            map.removeLayer("searched_route2");
-                            map.removeSource("searched_route2");
-                        }
                         map.getSource("selected").setData({
                             "type": "Feature",
                             "properties": {},
                             "geometry": {
                                 "type": "MultiLineString",
-                                "coordinates": [coordinates]
+                                "coordinates": [data.coordinates]
                             }
                         });
-                        this.setAttribute('coordinates', JSON.stringify(coordinates));
+                        this.setAttribute('coordinates', JSON.stringify(data.coordinates));
                         this.updating = false;
                         return;
                     } else{
