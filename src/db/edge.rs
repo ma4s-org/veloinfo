@@ -341,10 +341,6 @@ impl Edge {
             Ok(distance) => distance,
             Err(e) => return Err(e),
         };
-        println!(
-            "Closest node found: {}, {}, {}",
-            distance.lng, distance.lat, distance.node_id
-        );
         Ok((&distance).into())
     }
 
