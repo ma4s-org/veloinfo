@@ -325,6 +325,7 @@ impl Edge {
                     ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) 
                     AND tags->>'highway' is not null
                     AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
+                    AND (tags->>'access' IS NULL OR tags->>'access' != 'no')
                     AND (
                         tags->>'highway' != 'footway'
                         OR (tags->>'highway' = 'footway' AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk'))
