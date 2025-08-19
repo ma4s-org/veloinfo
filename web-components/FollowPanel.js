@@ -59,7 +59,7 @@ class FollowPanel extends HTMLElement {
                 coordinates[closestCoordinate][1],
                 coordinates[closestCoordinate][0]
             );
-            if (distanceToClosest > .25) { // 250 meters
+            if (distanceToClosest > .2) { // 200 meters
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
                 if (!map.getSource("searched_route2")) {
@@ -108,23 +108,8 @@ class FollowPanel extends HTMLElement {
                         this.updating = false;
                         this.setBearing(coordinates);
                         return;
-                    } else {
-                        if (coordinates2.length > 10000) {
-                            coordinates2 = [];
-                        }
-                        coordinates2.push(JSON.parse(event.data));
-                        if (coordinates2.length % 1000 == 0) {
-                            const data = {
-                                "type": "Feature",
-                                "properties": {},
-                                "geometry": {
-                                    "type": "MultiLineString",
-                                    "coordinates": coordinates2
-                                }
-        
-                            };
-                            map.getSource("searched_route2").setData(data);
-                        }
+                    } else{
+                        console.log(event.data);
                     }
                 }
                 this.updating = false;

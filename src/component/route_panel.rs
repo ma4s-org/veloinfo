@@ -153,7 +153,7 @@ pub async fn recalculate_route(
             end.node_id,
             get_h_moyen(),
             &state.conn,
-            Some(&mut socket),
+            None,
         )
         .await;
 
