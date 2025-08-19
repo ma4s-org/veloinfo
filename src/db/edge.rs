@@ -328,6 +328,9 @@ impl Edge {
                     AND (tags->>'highway' != 'track')
                     AND (tags->>'highway' != 'path')
                     AND (tags->>'highway' != 'steps')
+                    AND (tags->>'highway' != 'pedestrian')
+                    AND (tags->>'highway' != 'unclassified')
+                    AND (tags->>'highway' != 'motorway')
                     AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
                     AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
                     AND (tags->>'access' IS NULL)
@@ -344,6 +347,7 @@ impl Edge {
             Ok(distance) => distance,
             Err(e) => return Err(e),
         };
+        println!("Found closest node: {:?}", distance);
         Ok((&distance).into())
     }
 
