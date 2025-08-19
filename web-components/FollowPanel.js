@@ -106,7 +106,6 @@ class FollowPanel extends HTMLElement {
                         });
                         this.setAttribute('coordinates', JSON.stringify(coordinates));
                         this.updating = false;
-                        this.setBearing(coordinates);
                         return;
                     } else{
                         console.log(event.data);
