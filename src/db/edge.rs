@@ -324,10 +324,13 @@ impl Edge {
                 WHERE 
                     ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) 
                     AND tags->>'highway' is not null
-                    AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
-                    AND (tags->>'access' IS NULL OR tags->>'access' != 'no' OR tags->>'access' != 'customers')
                     AND (tags->>'highway' != 'footway')
+                    AND (tags->>'highway' != 'track')
+                    AND (tags->>'highway' != 'path')
+                    AND (tags->>'highway' != 'steps')
                     AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
+                    AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
+                    AND (tags->>'access' IS NULL)
                     AND (tags->>'bicycle' IS NULL OR tags->>'bicycle' != 'dismount')
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
