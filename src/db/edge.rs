@@ -333,7 +333,6 @@ impl Edge {
                     AND (tags->>'highway' != 'steps')
                     AND (tags->>'highway' != 'pedestrian' or 
                             (tags->>'highway' = 'pedestrian' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
-                    AND (tags->>'highway' != 'unclassified')
                     AND (tags->>'highway' != 'motorway')
                     AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
                     AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')

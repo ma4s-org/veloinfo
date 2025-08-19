@@ -62,7 +62,7 @@ impl H for HMoyen {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()){
                 1. / 0.4
             } else {
-                1. / 0.001
+                1. / 0.2
             }
         } else if edge.edge.tags.get("highway") == Some(&"proposed".to_string())
             || edge.edge.tags.get("abandoned") == Some(&"yes".to_string())
