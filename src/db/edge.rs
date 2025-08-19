@@ -210,28 +210,30 @@ impl Edge {
             let current = first_min_entry.get().clone();
             open_set.remove(&current);
             first_min_entry.remove();
-            revisited_map.insert(current.clone(), match revisited_map.get(&current.clone()){
-                Some(entry) => entry+1,
-                None => 1
-                
-            });
+            revisited_map.insert(
+                current.clone(),
+                match revisited_map.get(&current.clone()) {
+                    Some(entry) => entry + 1,
+                    None => 1,
+                },
+            );
 
             if let Some(ref mut socket) = socket {
                 // Send the current edge to the client every 10 iterations to not overload the client
                 if revisited_map.len() % 10 == 0 {
                     socket
-                    .send(axum::extract::ws::Message::Text(
-                        format!(
-                            "[[{},{}],[{},{}]]",
-                            current.edge.lon1,
-                            current.edge.lat1,
-                            current.edge.lon2,
-                            current.edge.lat2
-                        )
-                        .into(),
-                    ))
-                    .await
-                    .unwrap();
+                        .send(axum::extract::ws::Message::Text(
+                            format!(
+                                "[[{},{}],[{},{}]]",
+                                current.edge.lon1,
+                                current.edge.lat1,
+                                current.edge.lon2,
+                                current.edge.lat2
+                            )
+                            .into(),
+                        ))
+                        .await
+                        .unwrap();
                 }
             }
             // if we are at the end, return the path
@@ -324,17 +326,18 @@ impl Edge {
                 WHERE 
                     ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) 
                     AND tags->>'highway' is not null
-                    AND (tags->>'highway' != 'footway')
+                    AND (tags->>'highway' != 'footway' or
+                            (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
                     AND (tags->>'highway' != 'track')
                     AND (tags->>'highway' != 'path')
                     AND (tags->>'highway' != 'steps')
-                    AND (tags->>'highway' != 'pedestrian')
+                    AND (tags->>'highway' != 'pedestrian' or 
+                            (tags->>'highway' = 'pedestrian' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
                     AND (tags->>'highway' != 'unclassified')
                     AND (tags->>'highway' != 'motorway')
                     AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
                     AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
                     AND (tags->>'access' IS NULL)
-                    AND (tags->>'bicycle' IS NULL OR tags->>'bicycle' != 'dismount')
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
@@ -425,8 +428,8 @@ impl Edge {
 
             let routes = vec![
                 (235888032, 177522966, "Sainte-Anne-de-Bellevue to Quebec"),
-                (268157240, 177522966, "Alma to Quebec"),                
-                (1477879177, 177522966, "Matane to Quebec"),                
+                (268157240, 177522966, "Alma to Quebec"),
+                (1477879177, 177522966, "Matane to Quebec"),
                 (26233313, 1870784004, "Montreal to Sherbrooke"),
                 (26233313, 2352518821, "Montreal to Mont-Tremblant"),
                 (26233313, 555491818, "Montreal to Saint-Anicet"),
