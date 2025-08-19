@@ -2,7 +2,6 @@ FROM rust:latest as base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    software-properties-common \
     fish \
     rustfmt \
     osm2pgsql osmium-tool pyosmium \
