@@ -336,7 +336,7 @@ impl Edge {
                     AND (tags->>'highway' != 'motorway')
                     AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
                     AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
-                    AND (tags->>'access' IS NULL)
+                    AND (tags->>'access' IS NULL or tags->>'access'  in ('customers'))
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
@@ -349,7 +349,6 @@ impl Edge {
             Ok(distance) => distance,
             Err(e) => return Err(e),
         };
-        println!("Found closest node: {:?}", distance);
         Ok((&distance).into())
     }
 
