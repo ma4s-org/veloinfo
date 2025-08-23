@@ -9,6 +9,7 @@ pub async fn import(conn: &PgPool) {
         .output()
         .expect("failed to execute process");
     println!("status: {}", output.status);
+    Edge::clear_cache(&conn).await;
 
     // clearing cache
     println!("fetching montreal data");
