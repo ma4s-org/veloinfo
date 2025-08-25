@@ -54,18 +54,18 @@ impl H for HMoyen {
             return 1. / 0.05;
         }
 
-        let mut cost = if edge.edge.tags.get("bicycle") == Some(&"no".to_string()){
+        let mut cost = if edge.edge.tags.get("bicycle") == Some(&"no".to_string()) {
             1. / 0.001
-        }
-        else if edge.edge.tags.get("access") == Some(&"private".to_string())
-            || edge.edge.tags.get("access") == Some(&"customers".to_string())
+        } else if edge.edge.tags.get("access") == Some(&"private".to_string())
             || edge.edge.tags.get("access") == Some(&"no".to_string())
         {
-            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()){
+            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.4
             } else {
-                1. / 0.2
+                1. / 0.01
             }
+        } else if edge.edge.tags.get("access") == Some(&"customers".to_string()) {
+            1. / 0.2
         } else if edge.edge.tags.get("highway") == Some(&"proposed".to_string())
             || edge.edge.tags.get("abandoned") == Some(&"yes".to_string())
             || edge.edge.tags.get("highway") == Some(&"motorway".to_string())
@@ -88,8 +88,9 @@ impl H for HMoyen {
             1. / 0.1
         } else if edge.edge.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
             1. / 0.1
-        } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) 
-                || edge.edge.tags.get("bicyle") == Some(&"designated".to_string()) {
+        } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string())
+            || edge.edge.tags.get("bicyle") == Some(&"designated".to_string())
+        {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.6
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
@@ -279,7 +280,7 @@ impl H for HMoyen {
             1. / 0.5
         } else if edge.edge.tags.get("highway") == Some(&"secondary".to_string()) {
             if edge.edge.tags.get("surface") == Some(&"sett".to_string())
-            || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
+                || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
             {
                 1. / 0.3
             } else if edge.edge.in_bicycle_route {
