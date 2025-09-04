@@ -75,7 +75,7 @@ impl H for HMoyen {
             1. / 0.05
         } else if edge.edge.tags.get("highway") == Some(&"steps".to_string()) {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
-                1. / 0.1
+                1. / 0.05
             } else {
                 1. / 0.001
             }
