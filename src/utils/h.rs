@@ -51,7 +51,7 @@ impl H for HMoyen {
             && edge.edge.tags.get("cycleway:left:oneway") != Some(&"no".to_string())
             && edge.edge.tags.get("cycleway:right:oneway") != Some(&"no".to_string())
         {
-            return 1. / 0.05;
+            return 1. / 0.005;
         }
 
         let mut cost = if edge.edge.tags.get("bicycle") == Some(&"no".to_string()) {
@@ -62,15 +62,15 @@ impl H for HMoyen {
             if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
                 1. / 0.4
             } else {
-                1. / 0.01
+                1. / 0.001
             }
-        } else if edge.edge.tags.get("access") == Some(&"customers".to_string()) {
-            1. / 0.2
         } else if edge.edge.tags.get("highway") == Some(&"proposed".to_string())
             || edge.edge.tags.get("abandoned") == Some(&"yes".to_string())
             || edge.edge.tags.get("highway") == Some(&"motorway".to_string())
         {
-            1. / 0.001
+            1. / 0.0001
+        } else if edge.edge.tags.get("access") == Some(&"customers".to_string()) {
+            1. / 0.2
         } else if edge.edge.tags.get("informal") == Some(&"yes".to_string()) {
             1. / 0.05
         } else if edge.edge.tags.get("highway") == Some(&"steps".to_string()) {
@@ -274,7 +274,7 @@ impl H for HMoyen {
             {
                 1. / 0.3
             } else if edge.edge.in_bicycle_route {
-                1. / 0.6
+                1. / 0.60
             } else {
                 1. / 0.5
             }
@@ -286,12 +286,12 @@ impl H for HMoyen {
             {
                 1. / 0.3
             } else if edge.edge.in_bicycle_route {
-                1. / 0.6
+                1. / 0.60
             } else {
                 1. / 0.4
             }
         } else if edge.edge.in_bicycle_route {
-            1. / 0.6
+            1. / 0.60
         } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
             1. / 0.4
         } else if edge.edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
