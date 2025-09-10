@@ -44,13 +44,13 @@ class MobilizonEvents extends HTMLElement {
         `;
 
         const today = new Date();
-        const oneWeekFromNow = new Date();
-        oneWeekFromNow.setDate(today.getDate() + 7);
+        const twoWeekFromNow = new Date();
+        twoWeekFromNow.setDate(today.getDate() + 14);
 
         const variables = {
             // Convertit les dates au format ISO 8601 requis par l'API (ex: "2025-09-09T22:25:17.123Z")
             beginsOn: today.toISOString(),
-            endsOn: oneWeekFromNow.toISOString()
+            endsOn: twoWeekFromNow.toISOString()
         };
 
         try {
