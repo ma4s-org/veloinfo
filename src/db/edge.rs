@@ -219,8 +219,8 @@ impl Edge {
             );
 
             if let Some(ref mut socket) = socket {
-                // Send the current edge to the client every 10 iterations to not overload the client
-                if revisited_map.len() % 10 == 0 {
+                // Send the current edge to the client every 3 iterations to not overload the client
+                if revisited_map.len() % 3 == 0 {
                     socket
                         .send(axum::extract::ws::Message::Text(
                             format!(
