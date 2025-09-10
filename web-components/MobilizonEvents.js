@@ -9,7 +9,7 @@ class MobilizonEvents extends HTMLElement {
         this.render(events);
     }
 
-    
+
     render(events) {
     }
 
@@ -64,11 +64,6 @@ class MobilizonEvents extends HTMLElement {
                     variables: variables
                 })
             });
-
-            // Gérer les erreurs HTTP (ex: 404, 500)
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP ! Statut : ${response.status}`);
-            }
 
             // Extraire les données JSON de la réponse
             const result = await response.json();
@@ -127,20 +122,20 @@ class MobilizonEvents extends HTMLElement {
                         )
                         .addTo(map);
                     var listener = (e) => {
-                            window.clear();
-                            window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
-                            marker.getPopup().remove();
-                            route();
-                        }
+                        if (window.start_marker) {
+                            window.start_marker.remove();
+                            window.start_marker = null;
+                        } window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
+                        marker.getPopup().remove();
+                        route();
+                    }
                     marker.getPopup().on('open', () => {
                         const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
                         btn.addEventListener('click', listener);
                     });
                     marker.getPopup().on('close', () => {
                         const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
-                        if (btn) {
-                            btn.removeEventListener('click', listener);
-                        }
+                        btn.removeEventListener('click', listener);
                     });
                     marker.getElement().addEventListener('click', (e) => {
                         marker.togglePopup();

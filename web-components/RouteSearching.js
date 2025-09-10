@@ -2,7 +2,7 @@ import htmx from "htmx.org";
 
 class RouteSearching extends HTMLElement {
     constructor() {
-        super();
+        super();        
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
