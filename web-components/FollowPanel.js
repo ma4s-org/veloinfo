@@ -25,7 +25,7 @@ class FollowPanel extends HTMLElement {
         htmx.process(this);
 
     }
-    
+
     connectedCallback() {
         this.intervalId = setInterval(async () => {
             if (!document.body.contains(this)) {
@@ -41,11 +41,11 @@ class FollowPanel extends HTMLElement {
         clearInterval(this.intervalId);
     }
 
-    updatePosition(){
+    updatePosition() {
         if (this.updating) {
             return;
         }
-        let coordinates = JSON.parse(this.getAttribute('coordinates'));            
+        let coordinates = JSON.parse(this.getAttribute('coordinates'));
         navigator.geolocation.getCurrentPosition(async (position) => {
 
             let closestCoordinate = this.findClosestCoordinate(
@@ -63,7 +63,7 @@ class FollowPanel extends HTMLElement {
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
                 const socket = new WebSocket(`/recalculate_route/${position.coords.longitude}/${position.coords.latitude}/${coordinates[coordinates.length - 1][0]}/${coordinates[coordinates.length - 1][1]}`);
-                socket.onmessage = async (event) => {   
+                socket.onmessage = async (event) => {
                     let data = JSON.parse(event.data);
                     if (data.coordinates) {
                         socket.close();
@@ -78,14 +78,14 @@ class FollowPanel extends HTMLElement {
                         this.setAttribute('coordinates', JSON.stringify(data.coordinates));
                         this.updating = false;
                         return;
-                    } else{
+                    } else {
                         console.log(event.data);
                     }
                 }
                 this.updating = false;
             }
             let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
-            if (document.getElementById('total_distance')){
+            if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             }
         });
@@ -124,6 +124,9 @@ class FollowPanel extends HTMLElement {
     }
 
     setBearing(coordinates) {
+        if (!document.body.contains(this)) {
+            return;
+        }
         navigator.geolocation.getCurrentPosition((position) => {
             let closestCoordinate = this.findClosestCoordinate(
                 position.coords.longitude,
@@ -156,12 +159,18 @@ class FollowPanel extends HTMLElement {
                 duration: 1_600,
             });
             setTimeout(() => {
+                if (!document.body.contains(this)) {
+                    return;
+                }
                 map.easeTo({
                     pitch: 60,
                     duration: 1_600,
                 });
                 setTimeout(() => {
-                    if (!window.isGeolocateActive){
+                    if (!document.body.contains(this)) {
+                        return;
+                    }
+                    if (!window.isGeolocateActive) {
                         window.geolocate.trigger();
                     }
                 }, 2_000);
