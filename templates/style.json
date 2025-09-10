@@ -3201,7 +3201,11 @@
                 "text-halo-blur": 0,
                 "text-halo-color": "hsl(0,0%,100%)",
                 "text-halo-width": 10
-            }
+            },
+            "filter": [
+                "has",
+                "highway"
+            ]
         },
         {
             "id": "Village labels",
