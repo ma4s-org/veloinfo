@@ -117,7 +117,7 @@ class MobilizonEvents extends HTMLElement {
                                     <div>
                                         <h3><a href="https://evenement.facil.services/events/${event.uuid}">${event.title}</a></h3>
                                         <p><strong>Quand:</strong> ${formattedDate}</p>
-                                        <p><strong>Où:</strong> ${event.physicalAddress.street}, ${event.physicalAddress.municipality || event.physicalAddress.locality || ''}</p>
+                                        <p><strong>Où:</strong> ${event.physicalAddress.street || ''}, ${event.physicalAddress.municipality || event.physicalAddress.locality || ''}</p>
                                         ${event.picture ? `<img src="${event.picture.url}" alt="${event.title}" style="width:100%;height:auto;"/>` : ''}
                                         <div style="display: flex; justify-content: center; margin-top: 8px;">
                                             <md-filled-button id="route_md-filled-button" >
