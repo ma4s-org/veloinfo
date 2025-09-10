@@ -19,7 +19,12 @@ class RouteSearching extends HTMLElement {
         htmx.process(this);
     }
 
-
+    disconnectedCallback() {
+        // Clean up any event listeners or resources
+        if (this.socket) {
+            this.socket.close();
+        }
+    }
 
     async init() {
         let wakeLock = null;
@@ -82,11 +87,11 @@ class RouteSearching extends HTMLElement {
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
-        const socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
+        this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
         let coordinates = [];
-        socket.onmessage = async (event) => {
+        this.socket.onmessage = async (event) => {
             if (event.data.startsWith("<route-panel")) {
-                socket.close();
+                this.socket.close();
                 map.removeLayer("searched_route");
                 map.removeSource("searched_route");
                 coordinates = [];
