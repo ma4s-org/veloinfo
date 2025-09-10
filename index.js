@@ -219,6 +219,8 @@ async function clear() {
 }
 
 async function route() {
+    console.log("Routing from start to end");
+    
     let info = document.getElementById("info");
     info.innerHTML = `
         <route-searching>

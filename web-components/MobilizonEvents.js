@@ -79,7 +79,6 @@ class MobilizonEvents extends HTMLElement {
                 return;
             }
             const events = result.data.searchEvents.elements;
-            console.log(`évènements ✅ ${JSON.stringify(events)}`);
             //Afficher les événements sur la carte
             events.forEach(event => {
                 if (event.physicalAddress && event.physicalAddress.geom) {
@@ -127,15 +126,21 @@ class MobilizonEvents extends HTMLElement {
                                     </div>`)
                         )
                         .addTo(map);
-
-                    marker.getPopup().on('open', () => {
-                        const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
-                        btn.addEventListener('click', (e) => {
+                    var listener = (e) => {
                             window.clear();
                             window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
                             marker.getPopup().remove();
                             route();
-                        });
+                        }
+                    marker.getPopup().on('open', () => {
+                        const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
+                        btn.addEventListener('click', listener);
+                    });
+                    marker.getPopup().on('close', () => {
+                        const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
+                        if (btn) {
+                            btn.removeEventListener('click', listener);
+                        }
                     });
                     marker.getElement().addEventListener('click', (e) => {
                         marker.togglePopup();
