@@ -115,7 +115,7 @@ class MobilizonEvents extends HTMLElement {
                         .setPopup(new maplibregl.Popup({ offset: 25 })
                             .setHTML(`
                                     <div>
-                                        <h3>${event.title}</h3>
+                                        <h3><a href="https://evenement.facil.services/events/${event.uuid}">${event.title}</a></h3>
                                         <p><strong>Quand:</strong> ${formattedDate}</p>
                                         <p><strong>Où:</strong> ${event.physicalAddress.street}, ${event.physicalAddress.municipality || event.physicalAddress.locality || ''}</p>
                                         ${event.picture ? `<img src="${event.picture.url}" alt="${event.title}" style="width:100%;height:auto;"/>` : ''}
@@ -130,16 +130,14 @@ class MobilizonEvents extends HTMLElement {
 
                     marker.getPopup().on('open', () => {
                         const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
-                        if (btn) {
-                            btn.addEventListener('click', (e) => {
-                                window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
-                                marker.getPopup().remove();
-                                route();
-                            });
-                        }
+                        btn.addEventListener('click', (e) => {
+                            window.clear();
+                            window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
+                            marker.getPopup().remove();
+                            route();
+                        });
                     });
                     marker.getElement().addEventListener('click', (e) => {
-                        console.log(`Événement cliqué: ${event.title}`);
                         marker.togglePopup();
                         e.stopPropagation();
                     });

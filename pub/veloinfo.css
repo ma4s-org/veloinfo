@@ -26,3 +26,8 @@ h3 {
     font-size: larger;
     font-weight: bold;
 }
+
+.maplibregl-popup-content a {
+    color: rgb(94 94 94);
+    text-decoration: underline;
+}
