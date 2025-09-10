@@ -8,6 +8,7 @@ import './web-components/VeloinfoMenu.js';
 import './web-components/VeloinfoInstallIos.js';
 import './web-components/VeloinfoInstallAndroid.js';
 import './web-components/SnowPanel.js';
+import './web-components/MobilizonEvents.js';
 import htmx from 'htmx.org';
 
 if ("serviceWorker" in navigator) {
@@ -89,21 +90,20 @@ map.addControl(geolocate);
 map.on("load", async () => {
     setTimeout(() => {
         const layers = JSON.parse(localStorage.getItem("layers"));
-        ["bixi","bike_parking","bike_shop","drinking_water","bicycle_repair_station"].forEach(layer => {
-            if ( !layers || !layers[layer]) {
+        ["bixi", "bike_parking", "bike_shop", "drinking_water", "bicycle_repair_station"].forEach(layer => {
+            if (!layers || !layers[layer]) {
                 map.setLayoutProperty(layer, 'visibility', 'visible');
             } else if (layers[layer] == "none") {
                 map.setLayoutProperty(layer, 'visibility', 'none');
             } else {
                 map.setLayoutProperty(layer, 'visibility', 'visible');
             }
-    });
+        });
     }, 1000);
 
     const bounds = map.getBounds();
     htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
 })
-
 
 map.on("click", async function (event) {
     if (document.getElementById("info_panel_up") ||
@@ -246,7 +246,7 @@ function calculateBearing(lon1, lat1, lon2, lat2) {
     let bearing = Math.atan2(y, x) * (180 / Math.PI);
     bearing = (bearing + 360) % 360; // Ensuring the bearing is positive
     return bearing;
-} 
+}
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in meters
