@@ -59,7 +59,9 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("access") == Some(&"private".to_string())
             || edge.edge.tags.get("access") == Some(&"no".to_string())
         {
-            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
+            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
+                || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
+            {
                 1. / 0.4
             } else {
                 1. / 0.001
@@ -74,7 +76,9 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("informal") == Some(&"yes".to_string()) {
             1. / 0.05
         } else if edge.edge.tags.get("highway") == Some(&"steps".to_string()) {
-            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
+            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
+                || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
+            {
                 1. / 0.06
             } else {
                 1. / 0.001
@@ -88,9 +92,7 @@ impl H for HMoyen {
             1. / 0.1
         } else if edge.edge.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
             1. / 0.1
-        } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string())
-            || edge.edge.tags.get("bicyle") == Some(&"designated".to_string())
-        {
+        } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.5
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
@@ -181,7 +183,9 @@ impl H for HMoyen {
         {
             1. / 0.7
         } else if edge.edge.tags.get("highway") == Some(&"footway".to_string()) {
-            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()){
+            if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
+                || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
+            {
                 if edge.edge.tags.get("footway") == Some(&"sidewalk".to_string()) {
                     1. / 0.4
                 } else {
@@ -292,7 +296,9 @@ impl H for HMoyen {
             }
         } else if edge.edge.in_bicycle_route {
             1. / 0.60
-        } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string()) {
+        } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
+            || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
+        {
             1. / 0.4
         } else if edge.edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
             1. / 0.4

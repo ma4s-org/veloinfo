@@ -448,7 +448,7 @@ local name = osm2pgsql.define_node_table('name', {{
 }})
 
 function osm2pgsql.process_way(way)
-    if (way.tags.highway == 'cycleway' or way.tags.cyclestreet == "yes" or way.tags.bicycle == "designated" 
+    if (way.tags.highway == 'cycleway' or way.tags.cyclestreet == "yes"  
         or way.tags.cycleway == "track" or way.tags["cycleway:left"] == "track" or 
         way.tags["cycleway:right"] == "track" or way.tags["cycleway:both"] =="track") 
         and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
@@ -488,8 +488,7 @@ function osm2pgsql.process_way(way)
         })
     end
 
-    if (way.tags.highway == 'cycleway' or way.tags.cycleway == "track" or way.tags["cycleway:left"] == "track" or
-        way.tags["cycleway:right"] == "track" or way.tags["cycleway:both"] == "track") and way.tags.footway ~=
+    if (way.tags.highway == 'cycleway') and way.tags.footway ~=
         "sidewalk" and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         cycleway_far:insert({
             name = way.tags.name,
