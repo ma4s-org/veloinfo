@@ -92,9 +92,9 @@ impl H for HMoyen {
             || edge.edge.tags.get("bicyle") == Some(&"designated".to_string())
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1.
             }
@@ -102,17 +102,17 @@ impl H for HMoyen {
             1.
         } else if edge.edge.tags.get("cycleway") == Some(&"track".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1.
             }
         } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1.
             }
@@ -121,9 +121,9 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1.
             }
@@ -132,25 +132,25 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1.
             }
         } else if edge.edge.tags.get("cycleway") == Some(&"lane".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.9
             }
         } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.9
             }
@@ -159,9 +159,9 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.9
             }
@@ -170,9 +170,9 @@ impl H for HMoyen {
                 || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.9
             }
@@ -200,11 +200,11 @@ impl H for HMoyen {
             || edge.edge.tags.get("cycleway") == Some(&"share_busway".to_string())
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
                 || edge.edge.tags.get("surface") == Some(&"sett".to_string())
             {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.7
             }
@@ -212,11 +212,11 @@ impl H for HMoyen {
             || edge.edge.tags.get("cycleway:both") == Some(&"share_busway".to_string())
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
                 || edge.edge.tags.get("surface") == Some(&"sett".to_string())
             {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.7
             }
@@ -226,11 +226,11 @@ impl H for HMoyen {
                     || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
                 || edge.edge.tags.get("surface") == Some(&"sett".to_string())
             {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.7
             }
@@ -240,11 +240,11 @@ impl H for HMoyen {
                     || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
         {
             if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-                1. / 0.5
+                1. / 0.4
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
                 || edge.edge.tags.get("surface") == Some(&"sett".to_string())
             {
-                1. / 0.5
+                1. / 0.4
             } else {
                 1. / 0.7
             }
