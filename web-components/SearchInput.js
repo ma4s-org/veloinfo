@@ -60,7 +60,7 @@ class SearchInput extends HTMLElement {
     }
 
     search(event) {
-        setTimeout(() => {
+        setTimeout(async () => {
             this.query = this.querySelector("#query").value;
             if (!this.query) {
                 this.displayHistory();
@@ -70,19 +70,27 @@ class SearchInput extends HTMLElement {
             let lat = map.getCenter().lat;
             // Si enter on séléctionne le premier résultat
             if (event.key === "Enter") {
-                document.querySelector("#search_results div.result").click();
-                document.getElementById("search_results").innerHTML = "";
+                this.querySelector("#search_results div.result").click();
+                this.getElementById("search_results").innerHTML = "";
                 return;
             }
-            htmx.ajax('POST', '/search', { target: "#search_results", values: { query: this.query, lng, lat } });
+            let response = await fetch(`/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ query: this.query, lng, lat }).toString()
+            });
+            const searchResults = this.querySelector("#search_results");
+            if (searchResults) {
+                searchResults.innerHTML = await response.text();
+            }
         }, 1);
     }
 
     displayHistory() {
-        this.query = document.querySelector("#query");
+        this.query = this.querySelector("#query");
         if (query.value === "") { // Vérifier si le champ de recherche est vide
             let recentTargets = JSON.parse(localStorage.getItem('recentTargets')) || [];
-            let searchResults = document.querySelector("#search_results");
+            let searchResults = this.querySelector("#search_results");
             if (searchResults) {
                 searchResults.innerHTML = ""; // Effacer les résultats de recherche existants
                 for (let target of recentTargets) {
@@ -97,9 +105,10 @@ class SearchInput extends HTMLElement {
     }
 
     clearResult() {
-        setTimeout(() => {
-            if (document.getElementById("search_results")) {
-                document.getElementById("search_results").innerHTML = "";
+        setTimeout(() => {            
+            const searchResults = this.querySelector("#search_results");
+            if (searchResults) {
+                searchResults.innerHTML = "";
             }
         }, 250);
     }
@@ -175,8 +184,18 @@ class SearchResult extends HTMLElement {
             window.start_marker.remove();
         }
         window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
-        document.getElementById("search_results").innerHTML = '';
-        document.getElementById("query").value = '';
+        
+        const searchInput = this.closest('search-input');
+        if (searchInput) {
+            const searchResults = searchInput.querySelector("#search_results");
+            if (searchResults) {
+                searchResults.innerHTML = '';
+            }
+            const queryInput = searchInput.querySelector("#query");
+            if (queryInput) {
+                queryInput.value = '';
+            }
+        }
 
         htmx.ajax('GET', '/point_panel_lng_lat/' + lng + "/" + lat, "#info");
         map.flyTo({
