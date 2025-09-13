@@ -9,6 +9,7 @@ import './web-components/VeloinfoInstallIos.js';
 import './web-components/VeloinfoInstallAndroid.js';
 import './web-components/SnowPanel.js';
 import './web-components/MobilizonEvents.js';
+import './web-components/RouteDefine.js';
 import htmx from 'htmx.org';
 
 if ("serviceWorker" in navigator) {
@@ -220,7 +221,6 @@ async function clear() {
 
 async function route() {
     let info = document.getElementById("info");
-    let route_searching = info.querySelector("route-searching");
     info.innerHTML = `
         <route-searching>
         </route-searching>

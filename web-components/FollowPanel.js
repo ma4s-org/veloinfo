@@ -37,7 +37,10 @@ class FollowPanel extends HTMLElement {
         this.updatePosition();
     }
 
-    disconnectCallback() {
+    disconnectedCallback() {
+        if (window.isGeolocateActive) {
+            window.geolocate.trigger();
+        }
         clearInterval(this.intervalId);
     }
 
@@ -154,7 +157,11 @@ class FollowPanel extends HTMLElement {
                 latitude,
                 coordinates[hundredMeterAwayIndex][0],
                 coordinates[hundredMeterAwayIndex][1]);
+            if (window.isGeolocateActive) {
+                window.geolocate.trigger();
+            }
             map.easeTo({
+                pitch: 60,
                 bearing,
                 duration: 1_600,
             });
@@ -162,19 +169,10 @@ class FollowPanel extends HTMLElement {
                 if (!document.body.contains(this)) {
                     return;
                 }
-                map.easeTo({
-                    pitch: 60,
-                    duration: 1_600,
-                });
-                setTimeout(() => {
-                    if (!document.body.contains(this)) {
-                        return;
-                    }
-                    if (!window.isGeolocateActive) {
-                        window.geolocate.trigger();
-                    }
-                }, 2_000);
-            }, 2_000);
+                if (!window.isGeolocateActive) {
+                    window.geolocate.trigger();
+                }
+            }, 1_600);
         });
     }
 
