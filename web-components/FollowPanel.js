@@ -160,6 +160,9 @@ class FollowPanel extends HTMLElement {
             if (window.isGeolocateActive) {
                 window.geolocate.trigger();
             }
+            if (!document.body.contains(this)) {
+                return;
+            }
             map.easeTo({
                 pitch: 60,
                 bearing,
