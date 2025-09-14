@@ -1,3 +1,5 @@
+import { map, calculateBearing, fitBounds, calculateTotalDistance, clearDistanceCache } from "../index.js";
+
 class RoutePanel extends HTMLElement {
     constructor() {
         super();
@@ -37,8 +39,8 @@ class RoutePanel extends HTMLElement {
             },
                 "Road labels")
         }
-        window.clearDistanceCache();
-        let totalDistance = window.calculateTotalDistance(coordinates, 0).toFixed(1);
+        clearDistanceCache();
+        let totalDistance = calculateTotalDistance(coordinates, 0).toFixed(1);
         let totalDuration = totalDistance / 15.0
         let durationString = "";
         let hours = Math.floor(totalDuration);

@@ -1,3 +1,5 @@
+import { maplibregl, map, htmx } from "../index.js";
+
 class SearchInput extends HTMLElement {
     query = "";
     constructor() {

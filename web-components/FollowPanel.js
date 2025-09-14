@@ -1,11 +1,11 @@
 import htmx from "htmx.org";
-import { isGeolocateActive } from "../index.js";
+import { isGeolocateActive, geolocate, calculateTotalDistance} from "../index.js";
 
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
         let coordinates = JSON.parse(this.getAttribute('coordinates'));
-        let totalDistance = window.calculateTotalDistance(coordinates, 0).toFixed(1);
+        let totalDistance = calculateTotalDistance(coordinates, 0).toFixed(1);
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
@@ -40,7 +40,7 @@ class FollowPanel extends HTMLElement {
 
     disconnectedCallback() {
         if (isGeolocateActive) {
-            window.geolocate.trigger();
+            geolocate.trigger();
         }
         clearInterval(this.intervalId);
     }
@@ -88,7 +88,7 @@ class FollowPanel extends HTMLElement {
                 }
                 this.updating = false;
             }
-            let totalDistance = window.calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+            let totalDistance = calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
             if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             }
@@ -159,7 +159,7 @@ class FollowPanel extends HTMLElement {
                 coordinates[hundredMeterAwayIndex][0],
                 coordinates[hundredMeterAwayIndex][1]);
             if (isGeolocateActive) {
-                window.geolocate.trigger();
+                geolocate.trigger();
             }
             if (!document.body.contains(this)) {
                 return;
@@ -174,7 +174,7 @@ class FollowPanel extends HTMLElement {
                     return;
                 }
                 if (!isGeolocateActive) {
-                    window.geolocate.trigger();
+                    geolocate.trigger();
                 }
             }, 1_600);
         });

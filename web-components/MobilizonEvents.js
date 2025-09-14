@@ -1,3 +1,5 @@
+import { maplibregl, map } from "../index.js";
+
 class MobilizonEvents extends HTMLElement {
     constructor() {
         super();

@@ -290,4 +290,4 @@ function clearDistanceCache() {
 const ex = { map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance, clearDistanceCache, isGeolocateActive };
 Object.assign(window, ex);
 
-export default ex;
+export { htmx, map, clear, route, select, selectBigger, calculateBearing, fitBounds, maplibregl, geolocate, calculateTotalDistance, clearDistanceCache, isGeolocateActive };
