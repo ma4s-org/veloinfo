@@ -1,4 +1,5 @@
 import htmx from "htmx.org";
+import { isGeolocateActive } from "../index.js";
 
 class FollowPanel extends HTMLElement {
     constructor() {
@@ -38,7 +39,7 @@ class FollowPanel extends HTMLElement {
     }
 
     disconnectedCallback() {
-        if (window.isGeolocateActive) {
+        if (isGeolocateActive) {
             window.geolocate.trigger();
         }
         clearInterval(this.intervalId);
@@ -157,7 +158,7 @@ class FollowPanel extends HTMLElement {
                 latitude,
                 coordinates[hundredMeterAwayIndex][0],
                 coordinates[hundredMeterAwayIndex][1]);
-            if (window.isGeolocateActive) {
+            if (isGeolocateActive) {
                 window.geolocate.trigger();
             }
             if (!document.body.contains(this)) {
@@ -172,7 +173,7 @@ class FollowPanel extends HTMLElement {
                 if (!document.body.contains(this)) {
                     return;
                 }
-                if (!window.isGeolocateActive) {
+                if (!isGeolocateActive) {
                     window.geolocate.trigger();
                 }
             }, 1_600);
