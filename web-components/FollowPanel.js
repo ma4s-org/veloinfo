@@ -158,9 +158,6 @@ class FollowPanel extends HTMLElement {
                 latitude,
                 coordinates[hundredMeterAwayIndex][0],
                 coordinates[hundredMeterAwayIndex][1]);
-            if (isGeolocateActive) {
-                geolocate.trigger();
-            }
             if (!document.body.contains(this)) {
                 return;
             }
