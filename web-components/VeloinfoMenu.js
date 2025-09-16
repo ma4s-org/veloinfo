@@ -57,15 +57,13 @@ class VeloinfoMenu extends HTMLElement {
                         </div>
                     </a>
                 </md-menu-item>
-                <md-menu-item>
-                    <a href="https://www.openstreetmap.org/#map={{zoom}}/{{lat}}/{{lng}}&layers=Y" target="_blank" class="flex">
-                        <div class="flex" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
-                            <img src="/pub/osm.svg">
-                            <div class="text-lg">
-                                Editer sur OpenStreetMap
-                            </div>
+                <md-menu-item id="osm-edit">
+                    <div class="flex">
+                        <img src="/pub/osm.svg">
+                        <div class="text-lg">
+                            Editer sur OpenStreetMap
                         </div>
-                    </a>
+                    </div>
                 </md-menu-item>
             </md-menu>
 
@@ -106,6 +104,16 @@ class VeloinfoMenu extends HTMLElement {
                 this.querySelector('veloinfo-install-android').setAttribute('open', 'true');
             });
         }
+
+        this.querySelector('#osm-edit').addEventListener('click', () => this.clickOSMEdit());
+    }
+
+    clickOSMEdit() {
+        const map = document.querySelector('map-div').map;
+        let zoom = map && map.getZoom();
+        let lat = map && map.getCenter().lat;
+        let lng = map && map.getCenter().lng;
+        window.open(`https://www.openstreetmap.org/#map=${zoom}/${lat}/${lng}&layers=Y`, '_blank');
     }
 
     detectMobileOS() {
