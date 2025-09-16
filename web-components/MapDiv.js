@@ -17,7 +17,7 @@ class MapDiv extends HTMLElement {
                     </div>
                     <!-- <snow-panel></snow-panel> -->
                     <div id="speed_container" style="width: 29px; height: 29px;  background-color: white; margin-top: 4px; padding: 4px;"
-                        class="rounded-md outline outline-gray-300 outline-[2px] flex justify-center items-center>
+                        class="rounded-md outline outline-gray-300 outline-[2px] flex justify-center items-center">
                         <div id="speed_value" class="text-lg flex justify-center items-center">
                             0
                         </div>
@@ -46,6 +46,8 @@ class MapDiv extends HTMLElement {
         // Speed
         var speed = 0;
         var speed_text = 0;
+        console.log("speed_value", this.querySelector("#speed_value"));
+
         navigator.geolocation.watchPosition((position) => {
             speed = position.coords.speed * 3.6;
             if (document.getElementById("speed_value")) {
