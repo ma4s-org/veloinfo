@@ -16,9 +16,9 @@ class MapDiv extends HTMLElement {
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
                     <!-- <snow-panel></snow-panel> -->
-                    <div id="speed_container" style="width: 29px; height: 29px;  background-color: white; margin-top: 4px; padding: 4px;"
+                    <div id="speed_container" style="width: 29px; height: 29px;  background-color: white; margin-top: 4px; padding: 4px; display: none;"
                         class="rounded-md outline outline-gray-300 outline-[2px] flex justify-center items-center">
-                        <div id="speed_value" class="text-lg flex justify-center items-center">
+                        <div id="speed_value" class="flex justify-center items-center" style="font-size: 1.2em; font-weight: bold;">
                             0
                         </div>
                     </div>
