@@ -67,8 +67,8 @@ class SearchInput extends HTMLElement {
                 this.displayHistory();
                 return;
             }
-            let lng = ap.getCenter().lng;
-            let lat = ap.getCenter().lat;
+            let lng = map.getCenter().lng;
+            let lat = map.getCenter().lat;
             // Si enter on séléctionne le premier résultat
             if (event.key === "Enter") {
                 this.querySelector("#search_results div.result").click();
