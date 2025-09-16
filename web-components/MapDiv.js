@@ -10,14 +10,14 @@ class MapDiv extends HTMLElement {
                 <div id="info">
                 </div>
                 <veloinfo-menu></veloinfo-menu>
-                <div id="buttons" class="absolute flex flex-col justify-center items-end top-36 right-2 z-10 cursor-pointer">
+                <div id="buttons" class="absolute flex flex-col justify-center items-end top-36 right-2 z-10 cursor-pointer" style="top:142px; right:11px;">
                     <div class="flex w-[32px] h-[32px] rounded-md bg-gray-300 justify-center" hx-get="/layers" hx-target="#info"
                         hx-swap="innerHTML">
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
                     <!-- <snow-panel></snow-panel> -->
-                    <div id="speed_container"
-                        class="rounded-md outline outline-gray-300 outline-[2px] flex justify-center items-center bg-white w-[29px] h-[29px]">
+                    <div id="speed_container" style="width: 29px; height: 29px;  background-color: white; margin-top: 4px; padding: 4px;"
+                        class="rounded-md outline outline-gray-300 outline-[2px] flex justify-center items-center>
                         <div id="speed_value" class="text-lg flex justify-center items-center">
                             0
                         </div>
