@@ -2,7 +2,7 @@ import htmx from "htmx.org";
 
 class RouteSearching extends HTMLElement {
     constructor() {
-        super();        
+        super();
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
@@ -12,6 +12,14 @@ class RouteSearching extends HTMLElement {
                 <div class="flex justify-center">
                         <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
                 </div>
+                <md-dialog id="search_position_dialog" style="display: none;">
+                    <div slot="content" class="flex flex-col justify-center">
+                        <div style="align-self: center;">
+                            Recherche de votre position
+                        </div>
+                        <img src="/pub/search_location.png" style="width: 128px; align-self: center;" />
+                    </div>
+                </md-dialog>
             </div>
         `;
 
@@ -52,8 +60,6 @@ class RouteSearching extends HTMLElement {
                 document.getElementById("search_position_dialog").removeAttribute("open");
             });
         });
-        document.getElementById("search_route_dialog").removeAttribute("style");
-        document.getElementById("search_route_dialog").setAttribute("open", "true");
         if (map.getSource("searched_route") == null) {
             map.addSource("searched_route", {
                 "type": "geojson",
@@ -117,8 +123,6 @@ class RouteSearching extends HTMLElement {
                 }
             }
         }
-        document.getElementById("search_route_dialog").removeAttribute("open");
-
     }
 }
 
