@@ -1,11 +1,10 @@
 import htmx from "htmx.org";
-import { isGeolocateActive, geolocate, calculateTotalDistance } from "../index.js";
 
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
         let coordinates = JSON.parse(this.getAttribute('coordinates'));
-        let totalDistance = calculateTotalDistance(coordinates, 0).toFixed(1);
+        let totalDistance = document.querySelector('map-div').calculateTotalDistance(coordinates, 0).toFixed(1);
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
@@ -18,7 +17,7 @@ class FollowPanel extends HTMLElement {
                         </div>
                     </div>
                     <div style="display: flex;justify-content: center;">
-                        <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
+                        <md-filled-button hx-on:click="document.querySelector('map-div').clear()" hx-target="#info">annuler</md-filled-button>
                     </div>
                 </div>
             </div>
@@ -39,8 +38,8 @@ class FollowPanel extends HTMLElement {
     }
 
     disconnectedCallback() {
-        if (isGeolocateActive) {
-            geolocate.trigger();
+        if (document.querySelector('map-div').isGeolocateActive) {
+            document.querySelector('map-div').geolocate.trigger();
         }
         clearInterval(this.intervalId);
     }
@@ -88,7 +87,7 @@ class FollowPanel extends HTMLElement {
                 }
                 this.updating = false;
             }
-            let totalDistance = calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+            let totalDistance = document.querySelector('map-div').calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
             if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             }
@@ -153,7 +152,7 @@ class FollowPanel extends HTMLElement {
             hundredMeterAwayIndex = hundredMeterAwayIndex === -1
                 ? coordinates.length - 1
                 : hundredMeterAwayIndex + closestCoordinate;
-            var bearing = calculateBearing(
+            var bearing = document.querySelector('map-div').calculateBearing(
                 longitude,
                 latitude,
                 coordinates[hundredMeterAwayIndex][0],
@@ -161,6 +160,7 @@ class FollowPanel extends HTMLElement {
             if (!document.body.contains(this)) {
                 return;
             }
+            let map = document.querySelector('map-div').map;
             map.easeTo({
                 pitch: 60,
                 bearing,
@@ -170,8 +170,8 @@ class FollowPanel extends HTMLElement {
                 if (!document.body.contains(this)) {
                     return;
                 }
-                if (!isGeolocateActive) {
-                    geolocate.trigger();
+                if (!document.querySelector('map-div').isGeolocateActive) {
+                    document.querySelector('map-div').geolocate.trigger();
                 }
             }, 1_600);
         });

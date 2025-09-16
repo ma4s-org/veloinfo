@@ -1,4 +1,5 @@
-import { maplibregl, map } from "../index.js";
+import { maplibregl } from "../index.js";
+import MapDiv from "./MapDiv.js";
 
 class MobilizonEvents extends HTMLElement {
     constructor() {
@@ -105,7 +106,7 @@ class MobilizonEvents extends HTMLElement {
                     const dateStr = beginsDate.toLocaleDateString('fr-FR', options);
                     const hourStr = beginsDate.getHours() + "h";
                     const formattedDate = `${dateStr} à ${hourStr}`;
-
+                    let map = document.querySelector('map-div').map;
                     const marker = new maplibregl.Marker({ element: el })
                         .setLngLat([coords[0], coords[1]])
                         .setPopup(new maplibregl.Popup({ offset: 25 })
@@ -129,7 +130,7 @@ class MobilizonEvents extends HTMLElement {
                             window.start_marker = null;
                         } window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
-                        route();
+                        document.querySelector('map-div').route();
                     }
                     marker.getPopup().on('open', () => {
                         const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');

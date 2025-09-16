@@ -10,7 +10,7 @@ class RouteSearching extends HTMLElement {
                     <p>Veuillez patienter pendant que nous recherchons votre itinéraire...</p>
                 </div>
                 <div class="flex justify-center">
-                        <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
+                        <md-filled-button hx-on:click="document.querySelector('map-div').clear()" hx-target="#info">annuler</md-filled-button>
                 </div>
                 <md-dialog id="search_position_dialog" style="display: none;">
                     <div slot="content" class="flex flex-col justify-center">
@@ -60,6 +60,7 @@ class RouteSearching extends HTMLElement {
                 document.getElementById("search_position_dialog").removeAttribute("open");
             });
         });
+        let map = document.querySelector('map-div').map;
         if (map.getSource("searched_route") == null) {
             map.addSource("searched_route", {
                 "type": "geojson",
@@ -84,12 +85,14 @@ class RouteSearching extends HTMLElement {
                 }
             });
         }
+        let calculateBearing = document.querySelector('map-div').calculateBearing;
         var bearing = calculateBearing(
             start.coords.longitude,
             start.coords.latitude,
             end.lng,
             end.lat
         );
+        let fitBounds = document.querySelector('map-div').fitBounds;
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 

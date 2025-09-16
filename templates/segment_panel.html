@@ -33,14 +33,15 @@
                     Choisissez un second point pour aggrandir la sélection ou
                 </div>
                 <div class="flex flex-row justify-center">
-                    <md-filled-button id="route_md-filled-button" hx-on:click="route()"><img slot="icon"
+                    <md-filled-button id="route_md-filled-button"
+                        hx-on:click="document.querySelector('map-div').route()"><img slot="icon"
                             src="/pub/directions.png" class="w-4 h-4 mr-1">itinéraire</md-filled-button>
                     <md-filled-button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img slot="icon"
                             src="/pub/edit.png" class="w-4 h-4 mr-1">
                         Modifier</md-filled-button>
                 </div>
                 <div class="flex flex-row justify-center p-2">
-                    <md-filled-button hx-on:click="clear()">annuler</md-filled-button>
+                    <md-filled-button hx-on:click="document.querySelector('map-div').clear()">annuler</md-filled-button>
                 </div>
             </div>
         </div>
@@ -72,6 +73,7 @@
         window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
     }
     {% if !edit %}
+    let map = document.querySelector('map-div').map;
     if (map.getLayer("selected")) {
         console.log("updating selected layer");
         map.getSource("selected").setData({

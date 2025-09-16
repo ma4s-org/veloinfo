@@ -1,10 +1,8 @@
-import { map, calculateBearing, fitBounds, calculateTotalDistance, clearDistanceCache } from "../index.js";
-
 class RoutePanel extends HTMLElement {
     constructor() {
         super();
         const coordinates = JSON.parse(this.getAttribute('coordinates'));
-
+        let map = document.querySelector('map-div').map;
         if (map.getLayer("selected")) {
             map.getSource("selected").setData({
                 "type": "Feature",
@@ -39,8 +37,8 @@ class RoutePanel extends HTMLElement {
             },
                 "Road labels")
         }
-        clearDistanceCache();
-        let totalDistance = calculateTotalDistance(coordinates, 0).toFixed(1);
+        document.querySelector('map-div').clearDistanceCache();
+        let totalDistance = document.querySelector('map-div').calculateTotalDistance(coordinates, 0).toFixed(1);
         let totalDuration = totalDistance / 15.0
         let durationString = "";
         let hours = Math.floor(totalDuration);
@@ -66,18 +64,18 @@ class RoutePanel extends HTMLElement {
                     </div>
                     <div class="flex justify-center">
                         <md-filled-button hx-on:click="follow_route()" hx-target="#info">suivre</md-filled-button>
-                        <md-filled-button hx-on:click="clear()" hx-target="#info">annuler</md-filled-button>
+                        <md-filled-button hx-on:click="document.querySelector('map-div').clear()" hx-target="#info">annuler</md-filled-button>
                     </div>
                 </div>
             </div>
         `;
 
-        var bearing = calculateBearing(
+        var bearing = document.querySelector('map-div').calculateBearing(
             coordinates[0][0],
             coordinates[0][1],
             coordinates[coordinates.length - 1][0],
             coordinates[coordinates.length - 1][1]);
-        var bounds = fitBounds(coordinates);
+        var bounds = document.querySelector('map-div').fitBounds(coordinates);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
 

@@ -1,5 +1,3 @@
-import { maplibregl, map, htmx } from "../index.js";
-
 class SearchInput extends HTMLElement {
     query = "";
     constructor() {
@@ -63,13 +61,14 @@ class SearchInput extends HTMLElement {
 
     search(event) {
         setTimeout(async () => {
+            let map = document.querySelector('map-div').map;
             this.query = this.querySelector("#query").value;
             if (!this.query) {
                 this.displayHistory();
                 return;
             }
-            let lng = map.getCenter().lng;
-            let lat = map.getCenter().lat;
+            let lng = ap.getCenter().lng;
+            let lat = ap.getCenter().lat;
             // Si enter on séléctionne le premier résultat
             if (event.key === "Enter") {
                 this.querySelector("#search_results div.result").click();
@@ -107,7 +106,7 @@ class SearchInput extends HTMLElement {
     }
 
     clearResult() {
-        setTimeout(() => {            
+        setTimeout(() => {
             const searchResults = this.querySelector("#search_results");
             if (searchResults) {
                 searchResults.innerHTML = "";
@@ -160,6 +159,7 @@ class SearchResult extends HTMLElement {
     }
 
     clickSearchResult() {
+        let map = document.querySelector('map-div').map;
         let lng = this.getAttribute("lng");
         let lat = this.getAttribute("lat");
         // Stocker la cible dans le localStorage
@@ -186,7 +186,7 @@ class SearchResult extends HTMLElement {
             window.start_marker.remove();
         }
         window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
-        
+
         const searchInput = this.closest('search-input');
         if (searchInput) {
             const searchResults = searchInput.querySelector("#search_results");
