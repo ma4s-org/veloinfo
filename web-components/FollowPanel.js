@@ -1,5 +1,5 @@
 import htmx from "htmx.org";
-import { isGeolocateActive, geolocate, calculateTotalDistance} from "../index.js";
+import { isGeolocateActive, geolocate, calculateTotalDistance } from "../index.js";
 
 class FollowPanel extends HTMLElement {
     constructor() {
