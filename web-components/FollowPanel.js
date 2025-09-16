@@ -70,7 +70,7 @@ class FollowPanel extends HTMLElement {
                     let data = JSON.parse(event.data);
                     if (data.coordinates) {
                         socket.close();
-                        map.getSource("selected").setData({
+                        document.querySelector('map-div').map.getSource("selected").setData({
                             "type": "Feature",
                             "properties": {},
                             "geometry": {
