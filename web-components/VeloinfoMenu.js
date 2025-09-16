@@ -49,7 +49,7 @@ class VeloinfoMenu extends HTMLElement {
                 </md-menu-item>
                 <md-menu-item>
                     <a href="https://masto.bike/@veloinfo" target="_blank" class="flex">
-                        <div class="flex" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
+                        <div class="flex">
                             <img src="/pub/logo-big.png">
                             <div class="text-lg">
                                 Infos et nouvelles
