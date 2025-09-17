@@ -35,7 +35,7 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
 
     // Process tiles in parallel (limit concurrency to avoid resource exhaustion)
     stream::iter(sms)
-        .for_each_concurrent(8, |sm| async move {
+        .for_each_concurrent(16, |sm| async move {
             read_tile(&sm, conn).await;
         })
         .await;
@@ -128,7 +128,6 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
 #[cfg(test)]
 mod tests {
     use std::env;
-use futures::stream::{self, StreamExt};
 
     #[tokio::test]
     async fn read_one_tile() {

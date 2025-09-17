@@ -1,4 +1,4 @@
-use geo::{Geometry as GeoGeometry, LineString, Point, Polygon};
+use geo::{Geometry as GeoGeometry, LineString, MultiPolygon, Point, Polygon};
 use geojson::{Geometry as GeoJsonGeometry, Value as GeoJsonValue};
 use geozero::wkb;
 use sqlx::types::time::Date;
@@ -72,9 +72,31 @@ fn convert_geojson_to_geo(geometry: &GeoJsonGeometry) -> Result<GeoGeometry<f64>
                     .collect(),
             )))
         }
+        GeoJsonValue::MultiPolygon(polygons) => {
+            let multipolygons: Vec<Polygon<f64>> = polygons
+                .iter()
+                .map(|coords| {
+                    let rings: Vec<_> = coords
+                        .iter()
+                        .map(|ring| {
+                            ring.iter()
+                                .map(|c| (c[0], c[1]))
+                                .collect::<Vec<(f64, f64)>>()
+                        })
+                        .collect();
+                    Polygon::new(
+                        LineString::from(rings[0].clone()),
+                        rings[1..]
+                            .iter()
+                            .map(|r| LineString::from(r.clone()))
+                            .collect(),
+                    )
+                })
+                .collect();
+            Ok(GeoGeometry::MultiPolygon(MultiPolygon::from(multipolygons)))
+        }
         GeoJsonValue::MultiPoint(_) => Err("Unsupported geometry type MultiPoint"),
         GeoJsonValue::MultiLineString(_) => Err("Unsupported geometry type MultiLineString"),
-        GeoJsonValue::MultiPolygon(_) => Err("Unsupported geometry type MultiPolygon"),
         GeoJsonValue::GeometryCollection(_) => Err("Unsupported geometry type GeometryCollection"),
     }
 }
