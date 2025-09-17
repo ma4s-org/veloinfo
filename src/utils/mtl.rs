@@ -1,3 +1,4 @@
+use futures::{stream, StreamExt};
 use geojson::GeoJson;
 use reqwest;
 use sqlx::postgres::Postgres;
@@ -32,9 +33,13 @@ pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
         })
         .collect();
 
-    for sm in sms{
-        read_tile(&sm, &conn).await;
-    } 
+    // Process tiles in parallel (limit concurrency to avoid resource exhaustion)
+    stream::iter(sms)
+        .for_each_concurrent(8, |sm| async move {
+            read_tile(&sm, conn).await;
+        })
+        .await;
+
     println!("Done fetching montreal data");
 
     match std::fs::remove_dir_all("tiles") {
@@ -123,6 +128,7 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
 #[cfg(test)]
 mod tests {
     use std::env;
+use futures::stream::{self, StreamExt};
 
     #[tokio::test]
     async fn read_one_tile() {
