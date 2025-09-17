@@ -210,7 +210,7 @@ class MapDiv extends HTMLElement {
         if (this.end_marker) {
             this.end_marker.remove();
         }
-        this.end_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(map);
+        this.end_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
         var nodes = await htmx.ajax('GET', '/segment_panel_bigger/' + window.start_marker.getLngLat().lng + "/" + window.start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat, "#info");
     }
