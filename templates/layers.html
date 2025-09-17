@@ -80,10 +80,10 @@
             layers = layers ? JSON.parse(layers) : {};
             const layer = this.dataset.layer;
             if (this.checked) {
-                map.setLayoutProperty(layer, 'visibility', 'visible');
+                document.querySelector("veloinfo-map").map.setLayoutProperty(layer, 'visibility', 'visible');
                 layers[layer] = 'visible';
             } else {
-                map.setLayoutProperty(layer, 'visibility', 'none');
+                document.querySelector("veloinfo-map").map.setLayoutProperty(layer, 'visibility', 'none');
                 layers[layer] = 'none';
             }
             localStorage.setItem('layers', JSON.stringify(layers));
@@ -96,10 +96,10 @@
         const layer = input.dataset.layer;
         if (layers[layer] === 'visible' || layers[layer] === undefined) {
             input.checked = true;
-            map.setLayoutProperty(layer, 'visibility', 'visible');
+            document.querySelector("veloinfo-map").map.setLayoutProperty(layer, 'visibility', 'visible');
         } else {
             input.checked = false;
-            map.setLayoutProperty(layer, 'visibility', 'none');
+            document.querySelector("veloinfo-map").map.setLayoutProperty(layer, 'visibility', 'none');
         }
     });
 
