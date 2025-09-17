@@ -24,7 +24,7 @@
 {% endif %}
 <script>
     async function info_panel_up() {
-        let map = document.querySelector('map-div').map;
+        let map = document.querySelector('veloinfo-map').map;
         const bounds = map.getBounds();
         htmx.ajax("GET", "/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat, "#info");
     }

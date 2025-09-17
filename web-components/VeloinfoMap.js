@@ -1,6 +1,6 @@
 import { maplibregl, htmx } from "../index.js";
 
-class MapDiv extends HTMLElement {
+class VeloinfoMap extends HTMLElement {
     constructor() {
         super();
         this.innerHTML = `
@@ -124,7 +124,7 @@ class MapDiv extends HTMLElement {
             htmx.process(document.getElementById("info"));
         })
 
-        let mapDiv = this;
+        let veloinfoMap = this;
         this.map.on("click", async function (event) {
             if (document.getElementById("info_panel_up") ||
                 document.getElementById("info_panel_down") ||
@@ -132,7 +132,7 @@ class MapDiv extends HTMLElement {
                 document.getElementById("layers") ||
                 document.getElementById("point_panel")
             ) {
-                mapDiv.select(event);
+                veloinfoMap.select(event);
             }
         });
 
@@ -317,6 +317,6 @@ class MapDiv extends HTMLElement {
     }
 }
 
-customElements.define('map-div', MapDiv);
+customElements.define('veloinfo-map', VeloinfoMap);
 
-export default MapDiv;
+export default VeloinfoMap;

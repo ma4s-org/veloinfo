@@ -34,14 +34,14 @@
                 </div>
                 <div class="flex flex-row justify-center">
                     <md-filled-button id="route_md-filled-button"
-                        hx-on:click="document.querySelector('map-div').route()"><img slot="icon"
+                        hx-on:click="document.querySelector('veloinfo-map').route()"><img slot="icon"
                             src="/pub/directions.png" class="w-4 h-4 mr-1">itinéraire</md-filled-button>
                     <md-filled-button hx-get="/segment_panel/edit/ways/{{way_ids}}" hx-target="#info"><img slot="icon"
                             src="/pub/edit.png" class="w-4 h-4 mr-1">
                         Modifier</md-filled-button>
                 </div>
                 <div class="flex flex-row justify-center p-2">
-                    <md-filled-button hx-on:click="document.querySelector('map-div').clear()">annuler</md-filled-button>
+                    <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()">annuler</md-filled-button>
                 </div>
             </div>
         </div>
@@ -65,10 +65,10 @@
 </div>
 
 <script type="module">
-    let map = document.querySelector('map-div').map;
+    let map = document.querySelector('veloinfo-map').map;
     var geom = {{ geom_json }};
     {% if fit_bounds %}
-    map.fitBounds(document.querySelector('map-div').fitBounds(geom[0]), { padding: window.innerHeight * .12 });
+    map.fitBounds(document.querySelector('veloinfo-map').fitBounds(geom[0]), { padding: window.innerHeight * .12 });
     {% endif %}
     if (!window.start_marker) {
         window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);

@@ -109,7 +109,7 @@ class VeloinfoMenu extends HTMLElement {
     }
 
     clickOSMEdit() {
-        const map = document.querySelector('map-div').map;
+        const map = document.querySelector('veloinfo-map').map;
         let zoom = map && map.getZoom();
         let lat = map && map.getCenter().lat;
         let lng = map && map.getCenter().lng;

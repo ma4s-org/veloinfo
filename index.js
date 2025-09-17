@@ -1,6 +1,6 @@
 import '@material/web/all.js';
 import maplibregl from 'maplibre-gl';
-import './web-components/MapDiv.js';
+import './web-components/VeloinfoMap.js';
 import './web-components/FollowPanel.js';
 import './web-components/RoutePanel.js';
 import './web-components/RouteSearching.js';
