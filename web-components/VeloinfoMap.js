@@ -46,7 +46,6 @@ class VeloinfoMap extends HTMLElement {
         // Speed
         var speed = 0;
         var speed_text = 0;
-        console.log("speed_value", this.querySelector("#speed_value"));
 
         navigator.geolocation.watchPosition((position) => {
             speed = position.coords.speed * 3.6;
