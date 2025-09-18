@@ -66,9 +66,8 @@ class RouteSearching extends HTMLElement {
                 document.getElementById("search_position_dialog").removeAttribute("open");
             });
         });
-        let map = document.querySelector('veloinfo-map').map;
-        if (map.getSource("searched_route") == null) {
-            map.addSource("searched_route", {
+        if (this.map.getSource("searched_route") == null) {
+            this.map.addSource("searched_route", {
                 "type": "geojson",
                 "data": {
                     "type": "Feature",
@@ -79,7 +78,7 @@ class RouteSearching extends HTMLElement {
                     }
                 }
             });
-            map.addLayer({
+            this.map.addLayer({
                 'id': 'searched_route',
                 'source': 'searched_route',
                 'type': 'line',
@@ -100,15 +99,15 @@ class RouteSearching extends HTMLElement {
         );
         let fitBounds = document.querySelector('veloinfo-map').fitBounds;
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
-        map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
+        this.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
         this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
         let coordinates = [];
         this.socket.onmessage = async (event) => {
             if (event.data.startsWith("<route-panel")) {
                 this.socket.close();
-                map.removeLayer("searched_route");
-                map.removeSource("searched_route");
+                this.map.removeLayer("searched_route");
+                this.map.removeSource("searched_route");
                 coordinates = [];
                 document.getElementById("info").innerHTML = event.data;
                 htmx.process(document.getElementById("info"));
@@ -128,7 +127,7 @@ class RouteSearching extends HTMLElement {
                         }
 
                     };
-                    map.getSource("searched_route").setData(data);
+                    this.map.getSource("searched_route").setData(data);
                 }
             }
         }

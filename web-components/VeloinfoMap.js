@@ -246,10 +246,11 @@ class VeloinfoMap extends HTMLElement {
 
     async route() {
         let info = document.getElementById("info");
-        info.innerHTML = `
-        <route-searching>
-        </route-searching>
-    `;
+        info.innerHTML = /*html*/`
+            <route-searching>
+            </route-searching>
+        `;
+        info.querySelector('route-searching').map = this.map;
     }
 
     fitBounds(geom) {
