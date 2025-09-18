@@ -3,14 +3,19 @@ import htmx from "htmx.org";
 class RouteSearching extends HTMLElement {
     constructor() {
         super();
-        this.innerHTML = `
+        this.innerHTML = /*html*/`
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
-                    <h2 class="text-xl font-bold">Recherche de route</h2>
-                    <p>Veuillez patienter pendant que nous recherchons votre itinéraire...</p>
+                    <h2 class="text-xl font-bold">
+                        Recherche de route
+                    </h2>
+                    <p>
+                        Veuillez patienter pendant que nous recherchons votre itinéraire...</p>
                 </div>
                 <div class="flex justify-center">
-                        <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()" hx-target="#info">annuler</md-filled-button>
+                        <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()" hx-target="#info">
+                            annuler
+                        </md-filled-button>
                 </div>
                 <md-dialog id="search_position_dialog" style="display: none;">
                     <div slot="content" class="flex flex-col justify-center">
