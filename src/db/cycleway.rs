@@ -49,19 +49,6 @@ impl PartialEq for Node {
     }
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
-pub struct RouteDB {
-    seq: i32,
-    path_seq: i32,
-    node: i64,
-    edge: i64,
-    cost: f64,
-    agg_cost: f64,
-    pub x1: f64,
-    pub y1: f64,
-    pub way_id: i64,
-}
-
 impl Cycleway {
     pub async fn get(way_id: &i64, conn: &sqlx::Pool<Postgres>) -> Result<Cycleway> {
         let response: Result<CyclewayDb, sqlx::Error> = sqlx::query_as(

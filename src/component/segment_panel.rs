@@ -17,7 +17,6 @@ use image::DynamicImage;
 use lazy_static::lazy_static;
 use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
 use std::env;
 use uuid::Uuid;
@@ -37,14 +36,6 @@ pub struct SegmentPanel {
     fit_bounds: bool,
     user_name: String,
     martin_url: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PostValue {
-    pub score: f64,
-    pub comment: String,
-    pub way_ids: String,
-    pub photo: Option<i64>,
 }
 
 lazy_static! {
