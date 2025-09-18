@@ -10,7 +10,8 @@ class RouteSearching extends HTMLElement {
                         Recherche de route
                     </h2>
                     <p>
-                        Veuillez patienter pendant que nous recherchons votre itinéraire...</p>
+                        Veuillez patienter pendant que nous recherchons votre itinéraire...
+                    </p>
                 </div>
                 <div class="flex justify-center">
                         <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()" hx-target="#info">
