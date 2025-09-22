@@ -401,7 +401,7 @@ pub async fn segment_panel_bigger_route(
         }
     };
 
-    let edges = Edge::a_star_route(
+    let edges = Edge::a_star_bidirectional(
         node1.node_id,
         node2.node_id,
         get_h_bigger_selection(),

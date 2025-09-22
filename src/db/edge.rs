@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashMap},
     fmt::Debug,
     hash::Hash,
 };
@@ -96,6 +96,17 @@ impl PartialEq for EdgePoint {
 }
 
 impl EdgePoint {
+    pub fn reverse(&self) -> Self {
+        let new_direction = match self.direction {
+            SourceOrTarget::Source => SourceOrTarget::Target,
+            SourceOrTarget::Target => SourceOrTarget::Source,
+        };
+        EdgePoint {
+            edge: self.edge.clone(),
+            direction: new_direction,
+        }
+    }
+
     pub fn get_node_id(&self) -> i64 {
         match self.direction {
             SourceOrTarget::Source => self.edge.source,
@@ -169,138 +180,189 @@ lazy_static! {
 }
 
 impl Edge {
-    pub async fn a_star_route(
+    pub async fn a_star_bidirectional(
         start_node_id: i64,
         end_node_id: i64,
         h: Box<dyn H>,
         conn: &sqlx::Pool<Postgres>,
         mut socket: Option<&mut WebSocket>,
     ) -> Vec<Point> {
-        let end_edge = Edge::get(end_node_id, conn)
-            .await
-            .expect(format!("the end node should exist: {} ", end_node_id).as_str());
-        let start_edge = Edge::get(start_node_id, conn)
-            .await
-            .expect(format!("the start node should exist: {} ", start_node_id).as_str());
-        // open_set is the set of nodes to be evaluated
-        let mut open_set = HashSet::new();
-        let mut revisited_map = HashMap::new();
+        let start_node = Edge::get(start_node_id, conn).await.unwrap();
+        let end_node = Edge::get(end_node_id, conn).await.unwrap();
 
-        let mut min_in_open_set = BTreeMap::new();
-        open_set.insert(start_edge.clone());
-        min_in_open_set.insert(Score(0.), start_edge.clone());
-        let mut came_from: HashMap<ARc<EdgePoint>, ARc<EdgePoint>> = HashMap::new();
-        // g_score is the shortest distance from the start node to the current node
-        let mut g_score: HashMap<ARc<EdgePoint>, f64> = HashMap::new();
-        g_score.insert(start_edge.clone(), 0.0);
-        // f_score is the shortest distance from the start node to the end node
-        let mut f_score: HashMap<ARc<EdgePoint>, f64> = HashMap::new();
-        f_score.insert(start_edge.clone(), 0.0);
+        // --- Structures pour la recherche AVANT (start -> end) ---
+        let mut open_set_fwd = BTreeMap::new();
+        let mut came_from_fwd: HashMap<ARc<EdgePoint>, ARc<EdgePoint>> = HashMap::new();
+        let mut g_score_fwd: HashMap<ARc<EdgePoint>, f64> = HashMap::new();
+        g_score_fwd.insert(start_node.clone(), 0.0);
+        open_set_fwd.insert(Score(h.h(&start_node, &end_node)), start_node.clone());
 
-        // a* algorithm
+        // --- Structures pour la recherche ARRIÈRE (end -> start) ---
+        let mut open_set_bwd = BTreeMap::new();
+        let mut came_from_bwd: HashMap<ARc<EdgePoint>, ARc<EdgePoint>> = HashMap::new();
+        let mut g_score_bwd: HashMap<ARc<EdgePoint>, f64> = HashMap::new();
+        g_score_bwd.insert(end_node.clone(), 0.0);
+        open_set_bwd.insert(Score(h.h(&end_node, &start_node)), end_node.clone());
+
+        // --- Variables pour la rencontre ---
+        let mut meeting_point: Option<ARc<EdgePoint>> = None;
+        let mut best_path_score = f64::INFINITY;
+
         let mut number_of_nodes = 0;
-        while !open_set.is_empty() {
+
+        while !open_set_fwd.is_empty() && !open_set_bwd.is_empty() {
+            // Condition d'arrêt optimisée
+            if let (Some((f_score_fwd, _)), Some((f_score_bwd, _))) = (
+                open_set_fwd.first_key_value(),
+                open_set_bwd.first_key_value(),
+            ) {
+                if f_score_fwd.0 + f_score_bwd.0 >= best_path_score {
+                    break; // On a trouvé le chemin optimal
+                }
+            }
+
             number_of_nodes += 1;
             if number_of_nodes > h.get_max_point() {
+                // Augmenté la limite pour être sûr
                 break;
             }
-            let first_min_entry = min_in_open_set
-                .first_entry()
-                .expect("open set should not be empty");
-            let current = first_min_entry.get().clone();
-            open_set.remove(&current);
-            first_min_entry.remove();
-            revisited_map.insert(
-                current.clone(),
-                match revisited_map.get(&current.clone()) {
-                    Some(entry) => entry + 1,
-                    None => 1,
-                },
-            );
 
-            if let Some(ref mut socket) = socket {
-                // Send the current edge to the client every 3 iterations to not overload the client
-                if revisited_map.len() % 3 == 0 {
-                    socket
-                        .send(axum::extract::ws::Message::Text(
+            // --- Étape de la recherche AVANT ---
+            if let Some((_, current_fwd)) = open_set_fwd.pop_first() {
+                if let Some(ref mut s) = socket {
+                    if number_of_nodes % 3 == 0 {
+                        s.send(axum::extract::ws::Message::Text(
                             format!(
                                 "[[{},{}],[{},{}]]",
-                                current.edge.lon1,
-                                current.edge.lat1,
-                                current.edge.lon2,
-                                current.edge.lat2
+                                current_fwd.edge.lon1,
+                                current_fwd.edge.lat1,
+                                current_fwd.edge.lon2,
+                                current_fwd.edge.lat2
                             )
                             .into(),
                         ))
                         .await
-                        .unwrap();
-                }
-            }
-            // if we are at the end, return the path
-            if current == end_edge {
-                let mut current = &end_edge;
-                let mut path = vec![];
-                while current != &start_edge {
-                    path.push(current);
-                    current = came_from.get(current).unwrap();
-                }
-                path.push(&start_edge);
-                path.reverse();
-                let promises = path
-                    .iter()
-                    .map(|edge| async {
-                        match edge.direction {
-                            SourceOrTarget::Source => {
-                                return Point {
-                                    lng: edge.edge.lon1,
-                                    lat: edge.edge.lat1,
-                                    way_id: edge.edge.way_id,
-                                    node_id: edge.edge.source,
-                                    length: edge.edge.length,
-                                }
-                            }
-                            SourceOrTarget::Target => {
-                                return Point {
-                                    lng: edge.edge.lon2,
-                                    lat: edge.edge.lat2,
-                                    way_id: edge.edge.way_id,
-                                    node_id: edge.edge.target,
-                                    length: edge.edge.length,
-                                }
-                            }
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                let points = join_all(promises).await;
-                return points;
-            }
-            let neighbors = current.get_neighbors(conn).await;
-            for neighbor in neighbors.iter() {
-                let tentative_g_score = g_score.get(&current).expect("current should have a score")
-                    + neighbor.edge.length * h.get_cost(neighbor);
-                let neighbord_g_score = g_score.get(neighbor);
-                if neighbord_g_score.is_none() || &tentative_g_score < neighbord_g_score.unwrap() {
-                    if let Some(revisited) = revisited_map.get(neighbor) {
-                        if *revisited > 3 {
-                            // On empêche de revisiter trop souvent le même voisin.
-                            // Sinon ça bloque dans les coins (ex: allé à Oka de Montréal)
-                            continue;
-                        }
+                        .ok();
                     }
-                    came_from.insert(neighbor.clone(), current.clone());
-                    g_score.insert(neighbor.clone(), tentative_g_score);
-                    f_score.insert(
-                        neighbor.clone(),
-                        tentative_g_score + h.h(&neighbor, &end_edge),
-                    );
-                    if !open_set.contains(neighbor) {
-                        open_set.insert(neighbor.clone());
-                        min_in_open_set
-                            .insert(Score(*f_score.get(neighbor).unwrap()), neighbor.clone());
+                }
+
+                if g_score_bwd.contains_key(&current_fwd) {
+                    let current_score = g_score_fwd[&current_fwd] + g_score_bwd[&current_fwd];
+                    if current_score < best_path_score {
+                        best_path_score = current_score;
+                        meeting_point = Some(current_fwd.clone());
+                    }
+                }
+
+                for neighbor in current_fwd.get_neighbors(conn).await {
+                    let tentative_g_score =
+                        g_score_fwd[&current_fwd] + neighbor.edge.length * h.get_cost(&neighbor);
+                    if tentative_g_score < *g_score_fwd.get(&neighbor).unwrap_or(&f64::INFINITY) {
+                        came_from_fwd.insert(neighbor.clone(), current_fwd.clone());
+                        g_score_fwd.insert(neighbor.clone(), tentative_g_score);
+                        let f_score = tentative_g_score + h.h(&neighbor, &end_node);
+                        open_set_fwd.insert(Score(f_score), neighbor);
+                    }
+                }
+            }
+
+            // --- Étape de la recherche ARRIÈRE ---
+            if let Some((_, current_bwd)) = open_set_bwd.pop_first() {
+                if let Some(ref mut s) = socket {
+                    if number_of_nodes % 3 == 0 {
+                        s.send(axum::extract::ws::Message::Text(
+                            format!(
+                                "[[{},{}],[{},{}]]",
+                                current_bwd.edge.lon1,
+                                current_bwd.edge.lat1,
+                                current_bwd.edge.lon2,
+                                current_bwd.edge.lat2
+                            )
+                            .into(),
+                        ))
+                        .await
+                        .ok();
+                    }
+                }
+
+                if g_score_fwd.contains_key(&current_bwd) {
+                    let current_score = g_score_fwd[&current_bwd] + g_score_bwd[&current_bwd];
+                    if current_score < best_path_score {
+                        best_path_score = current_score;
+                        meeting_point = Some(current_bwd.clone());
+                    }
+                }
+
+                for neighbor in current_bwd.get_neighbors(conn).await {
+                    let tentative_g_score = g_score_bwd[&current_bwd]
+                        + neighbor.edge.length * h.get_cost(&neighbor.reverse());
+                    if tentative_g_score < *g_score_bwd.get(&neighbor).unwrap_or(&f64::INFINITY) {
+                        came_from_bwd.insert(neighbor.clone(), current_bwd.clone());
+                        g_score_bwd.insert(neighbor.clone(), tentative_g_score);
+                        let f_score = tentative_g_score + h.h(&neighbor, &start_node);
+                        open_set_bwd.insert(Score(f_score), neighbor);
                     }
                 }
             }
         }
+
+        if let Some(meeting_node) = meeting_point {
+            // --- Reconstruction du chemin AVANT (start -> meeting_node) ---
+            let mut path_fwd = vec![];
+            let mut current_fwd = meeting_node.clone();
+            while let Some(prev) = came_from_fwd.get(&current_fwd) {
+                path_fwd.push(current_fwd.clone());
+                current_fwd = prev.clone();
+            }
+            path_fwd.push(start_node);
+            path_fwd.reverse();
+
+            // --- Reconstruction du chemin ARRIÈRE (meeting_node -> end) ---
+            let mut path_bwd = vec![];
+            let mut current_bwd = meeting_node.clone();
+            // On suit les "prédécesseurs" de la recherche arrière, qui sont en fait les "successeurs" sur le chemin final.
+            while let Some(next_node) = came_from_bwd.get(&current_bwd) {
+                // La recherche arrière stocke le chemin de end -> meeting.
+                // Pour obtenir le chemin meeting -> end, nous devons l'inverser.
+                // came_from_bwd[current] = predecessor_in_backward_search
+                // Pour le chemin final, le segment est (predecessor, current)
+                path_bwd.push(current_bwd.clone());
+                current_bwd = next_node.clone();
+                if current_bwd == end_node {
+                    path_bwd.push(current_bwd.clone());
+                    break;
+                }
+            }
+            // Le chemin a été collecté dans l'ordre meeting -> end, donc pas besoin de reverse.
+
+            // Combiner les deux chemins, en retirant le meeting_node dupliqué
+            let mut path = path_fwd;
+            path.extend(path_bwd.into_iter().skip(1));
+
+            let promises = path
+                .iter()
+                .map(|edge| async {
+                    match edge.direction {
+                        SourceOrTarget::Source => Point {
+                            lng: edge.edge.lon1,
+                            lat: edge.edge.lat1,
+                            way_id: edge.edge.way_id,
+                            node_id: edge.edge.source,
+                            length: edge.edge.length,
+                        },
+                        SourceOrTarget::Target => Point {
+                            lng: edge.edge.lon2,
+                            lat: edge.edge.lat2,
+                            way_id: edge.edge.way_id,
+                            node_id: edge.edge.target,
+                            length: edge.edge.length,
+                        },
+                    }
+                })
+                .collect::<Vec<_>>();
+            return join_all(promises).await;
+        }
+
         vec![]
     }
 
@@ -436,7 +498,7 @@ impl Edge {
 
             for (source, target, description) in routes {
                 println!("Calculating route: {}", description);
-                Edge::a_star_route(source, target, get_h_moyen(), &conn, None).await;
+                Edge::a_star_bidirectional(source, target, get_h_moyen(), &conn, None).await;
             }
 
             println!("Cache prefill complete");
@@ -457,7 +519,8 @@ mod tests {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();
-        let points = Edge::a_star_route(321801851, 1764306722, get_h_moyen(), &conn, None).await;
+        let points =
+            Edge::a_star_bidirectional(321801851, 1764306722, get_h_moyen(), &conn, None).await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }

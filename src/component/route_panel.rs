@@ -63,7 +63,7 @@ pub async fn route(
                 return;
             }
         };
-        let mut points = Edge::a_star_route(
+        let mut points = Edge::a_star_bidirectional(
             start.node_id,
             end.node_id,
             get_h_moyen(),
@@ -127,10 +127,7 @@ pub async fn recalculate_route(
                     "Error while fetching start node for {}, {}: {}",
                     start_lng, start_lat, e
                 );
-                socket
-                    .send(error_panel.into())
-                    .await
-                    .unwrap();
+                socket.send(error_panel.into()).await.unwrap();
                 return;
             }
         };
@@ -141,14 +138,11 @@ pub async fn recalculate_route(
                     "Error while fetching start node for {}, {}: {}",
                     start_lng, start_lat, e
                 );
-                socket
-                    .send(error_panel.into())
-                    .await
-                    .unwrap();
+                socket.send(error_panel.into()).await.unwrap();
                 return;
             }
         };
-        let mut points = Edge::a_star_route(
+        let mut points = Edge::a_star_bidirectional(
             start.node_id,
             end.node_id,
             get_h_moyen(),
@@ -196,6 +190,9 @@ pub async fn recalculate_route(
                 return;
             }
         };
-        socket.send(format!("{{\"coordinates\": {}}}", json).into()).await.unwrap();
+        socket
+            .send(format!("{{\"coordinates\": {}}}", json).into())
+            .await
+            .unwrap();
     })
 }
