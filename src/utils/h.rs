@@ -92,7 +92,11 @@ impl H for HMoyen {
         } else if edge.edge.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
             1. / 0.1
         } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
-            if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
+            if edge.edge.tags.get("suface") == Some(&"fine_gravel".to_string())
+                || edge.edge.tags.get("surface") == Some(&"gravel".to_string())
+            {
+                1. / 0.75
+            } else if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
                 1. / 0.5
             } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
                 1. / 0.5
