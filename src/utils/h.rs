@@ -5,24 +5,20 @@ pub trait H: Send {
     fn get_cost(&self, edge: &EdgePoint) -> f64;
     fn get_max_point(&self) -> i64;
 
-    fn h(&self, destination: &EdgePoint, goal: &EdgePoint) -> f64 {
+    fn h(&self, startPoint: &EdgePoint, goal: &EdgePoint) -> f64 {
         let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.direction {
             (goal.edge.lon1, goal.edge.lat1)
         } else {
             (goal.edge.lon2, goal.edge.lat2)
         };
-        let (destination_lon, destination_lat) = if SourceOrTarget::Source == destination.direction
-        {
-            (destination.edge.lon1, destination.edge.lat1)
+        let (start_lon, start_lat) = if SourceOrTarget::Source == startPoint.direction {
+            (startPoint.edge.lon1, startPoint.edge.lat1)
         } else {
-            (destination.edge.lon2, destination.edge.lat2)
+            (startPoint.edge.lon2, startPoint.edge.lat2)
         };
-        let distance = distance_meters(destination_lat, destination_lon, goal_lat, goal_lon);
+        let distance = distance_meters(start_lat, start_lon, goal_lat, goal_lon);
 
-        match distance {
-            d if d > 50_000.0 => d * 1.9,
-            d => d * 1.41,
-        }
+        distance * 1.41
     }
 }
 
