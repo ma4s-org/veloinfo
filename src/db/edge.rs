@@ -230,7 +230,7 @@ impl Edge {
             // --- Étape de la recherche AVANT ---
             if let Some((_, current_fwd)) = open_set_fwd.pop_first() {
                 if let Some(ref mut s) = socket {
-                    if number_of_nodes % 3 == 0 {
+                    if number_of_nodes % 5 == 0 {
                         s.send(axum::extract::ws::Message::Text(
                             format!(
                                 "[[{},{}],[{},{}]]",
@@ -269,7 +269,7 @@ impl Edge {
             // --- Étape de la recherche ARRIÈRE ---
             if let Some((_, current_bwd)) = open_set_bwd.pop_first() {
                 if let Some(ref mut s) = socket {
-                    if number_of_nodes % 3 == 0 {
+                    if number_of_nodes % 5 == 0 {
                         s.send(axum::extract::ws::Message::Text(
                             format!(
                                 "[[{},{}],[{},{}]]",
