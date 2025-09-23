@@ -5,16 +5,16 @@ pub trait H: Send {
     fn get_cost(&self, edge: &EdgePoint) -> f64;
     fn get_max_point(&self) -> i64;
 
-    fn h(&self, startPoint: &EdgePoint, goal: &EdgePoint) -> f64 {
+    fn h(&self, start_point: &EdgePoint, goal: &EdgePoint) -> f64 {
         let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.direction {
             (goal.edge.lon1, goal.edge.lat1)
         } else {
             (goal.edge.lon2, goal.edge.lat2)
         };
-        let (start_lon, start_lat) = if SourceOrTarget::Source == startPoint.direction {
-            (startPoint.edge.lon1, startPoint.edge.lat1)
+        let (start_lon, start_lat) = if SourceOrTarget::Source == start_point.direction {
+            (start_point.edge.lon1, start_point.edge.lat1)
         } else {
-            (startPoint.edge.lon2, startPoint.edge.lat2)
+            (start_point.edge.lon2, start_point.edge.lat2)
         };
         let distance = distance_meters(start_lat, start_lon, goal_lat, goal_lon);
 
