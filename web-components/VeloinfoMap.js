@@ -10,14 +10,17 @@ class VeloinfoMap extends HTMLElement {
                 <div id="info">
                 </div>
                 <veloinfo-menu></veloinfo-menu>
-                <div id="buttons" class="absolute flex flex-col justify-center items-end top-36 right-2 z-10 cursor-pointer" style="top:142px; right:11px;">
-                    <div class="flex w-[32px] h-[32px] rounded-md bg-gray-300 justify-center" hx-get="/layers" hx-target="#info"
-                        hx-swap="innerHTML">
+                <div id="buttons"
+                    style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
+                    <div 
+                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219);"
+                        hx-get="/layers" hx-target="#info" hx-swap="innerHTML">
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
                     <!-- <snow-panel></snow-panel> -->
-                    <div id="speed_container" style="width: 29px; height: 29px;  background-color: white; margin-top: 4px; padding: 4px; display: none;"
-                        class="rounded-md outline outline-gray-300 outline-[2px] flex justify-center items-center">
+                    <div id="speed_container" 
+                        style="width: 31px; height: 31px;  background-color: white; margin-top: 4px; padding: 4px; display: none; 
+                                border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219);"
                         <div id="speed_value" class="flex justify-center items-center" style="font-size: 1.2em; font-weight: bold;">
                             0
                         </div>
