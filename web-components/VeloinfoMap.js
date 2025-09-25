@@ -6,7 +6,7 @@ class VeloinfoMap extends HTMLElement {
         this.innerHTML = `
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
-                <search-input id="search" class="flex justify-center"></search-input>
+                <search-input id="search"></search-input>
                 <div id="info">
                 </div>
                 <veloinfo-menu></veloinfo-menu>
@@ -19,9 +19,11 @@ class VeloinfoMap extends HTMLElement {
                     </div>
                     <!-- <snow-panel></snow-panel> -->
                     <div id="speed_container" 
-                        style="width: 31px; height: 31px;  background-color: white; margin-top: 4px; padding: 4px; display: none; 
-                                border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219);"
-                        <div id="speed_value" class="flex justify-center items-center" style="font-size: 1.2em; font-weight: bold;">
+                        style="justify-content: center; align-items: center; width: 31px; height: 31px; 
+                                background-color: white; margin-top: 4px; padding: 4px; border-radius: 0.375rem; 
+                                border-width: 1px; border-color: rgb(209 213 219); display: none;">
+                        <div id="speed_value" 
+                            style="font-size: 1.2em; font-weight: bold; justify-content: center; align-items: center;">
                             0
                         </div>
                     </div>
@@ -54,11 +56,10 @@ class VeloinfoMap extends HTMLElement {
             speed = position.coords.speed * 3.6;
             if (document.getElementById("speed_value")) {
                 speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
-
-                if (speed == 0 || speed == null) {
+                if (speed_text == 0 || speed == null) {
                     document.getElementById("speed_value").parentElement.style.display = "none";
                 } else {
-                    document.getElementById("speed_value").parentElement.style.display = "block";
+                    document.getElementById("speed_value").parentElement.style.display = "flex";
                 }
             }
         });
