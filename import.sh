@@ -22,19 +22,6 @@ osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 psql -h db -U postgres -d carte -c "
                      CREATE EXTENSION IF NOT EXISTS postgis;"
  
-FLAG_FILE="import/.initial_import_done"
-
-if [ ! -f "$FLAG_FILE" ]; then
-    echo "Initial import: creating tables."
-    osm2pgsql -H db -U postgres -d carte -O flex --slim -S import.lua import/quebec.osm.pbf
-    touch "$FLAG_FILE"
-else
-    echo "Incremental import: appending data."
-    osm2pgsql -H db -U postgres -d carte -O flex --slim --append -S import.lua import/quebec.osm.pbf
-fi
-
-osm2pgsql -H db -U postgres -d carte -O flex --slim --append -S import.lua import/ontario.osm.pbf
-osm2pgsql -H db -U postgres -d carte -O flex --slim --append -S import.lua import/new-brunswick.osm.pbf
 
 echo "Recreating materialized views to apply any changes."
 psql -h db -U postgres -d carte -c "
