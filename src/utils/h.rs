@@ -39,6 +39,10 @@ pub struct HMoyen {}
 
 impl H for HMoyen {
     fn get_cost(&self, edge: &EdgePoint) -> f64 {
+        if edge.edge.is_conditionally_closed == true {
+            return 1. / 0.001;
+        }
+
         // if the target is the source we are reverse of the edge
         if SourceOrTarget::Source == edge.direction
             && edge.edge.tags.get("oneway") == Some(&"yes".to_string())

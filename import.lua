@@ -24,6 +24,9 @@ local cycleway = osm2pgsql.define_way_table("cycleway_way", {{
     type = 'jsonb',
     not_null = true
 }, {
+    column = 'is_conditionally_closed',
+    type = 'boolean',
+},{
     column = 'nodes',
     sql_type = 'int8[] NOT NULL'
 }})
@@ -78,6 +81,10 @@ local all_way = osm2pgsql.define_way_table("all_way", {{
 }, {
     column = 'nodes',
     sql_type = 'int8[] NOT NULL'
+}, 
+{
+    column = 'is_conditionally_closed',
+    type = 'boolean',
 }, {
     column = 'in_bicycle_route',
     type = 'boolean',
@@ -447,6 +454,56 @@ local name = osm2pgsql.define_node_table('name', {{
     type = 'text'
 }})
 
+function month_str_to_number(month_str)
+    local months = {
+        jan = 1, feb = 2, mar = 3, apr = 4, may = 5, jun = 6,
+        jul = 7, aug = 8, sep = 9, oct = 10, nov = 11, dec = 12
+    }
+    return months[month_str:sub(1,3)]
+end
+
+function is_conditionally_closed(tags)
+    if not tags.conditional then
+        return false
+    end
+
+    local conditional_access = string.lower(tags.conditional)
+    local months_part = string.match(conditional_access, "no @ %((.-)%)")
+
+    if not months_part then
+        return false
+    end
+
+    local current_month = os.date("*t").month
+    
+    for month_range in string.gmatch(months_part, "[^,]+") do
+        month_range = string.gsub(month_range, "%s+", "") -- remove spaces
+        local start_month_str, end_month_str = string.match(month_range, "([a-z]+)-([a-z]+)")
+        if start_month_str and end_month_str then
+            local start_month = month_str_to_number(start_month_str)
+            local end_month = month_str_to_number(end_month_str)
+            if start_month and end_month then
+                if start_month <= end_month then
+                    if current_month >= start_month and current_month <= end_month then
+                        return true
+                    end
+                else -- Handles ranges like Nov-Mar
+                    if current_month >= start_month or current_month <= end_month then
+                        return true
+                    end
+                end
+            end
+        else
+            local month = month_str_to_number(month_range)
+            if month and current_month == month then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 function osm2pgsql.process_way(way)
     if (way.tags.highway == 'cycleway' or way.tags.cyclestreet == "yes"  
         or way.tags.cycleway == "track" or way.tags["cycleway:left"] == "track" or 
@@ -459,6 +516,7 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             kind = (way.tags.cycleway == 'crossing') and 'cycleway_crossing' or 'cycleway',
             tags = way.tags,
+            is_conditionally_closed = is_conditionally_closed(way.tags),
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     elseif (way.tags["cycleway:left"] == "share_busway" or way.tags["cycleway:right"] == "share_busway" or
@@ -471,6 +529,7 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             kind = (way.tags.cycleway == 'crossing') and 'designated_crossing' or 'designated',
             tags = way.tags,
+            is_conditionally_closed = is_conditionally_closed(way.tags),
             nodes = " {" .. table.concat(way.nodes, ",") .. "}"
         })
     elseif (way.tags.cycleway == "shared_lane" or way.tags.cycleway == "lane" or way.tags["cycleway:left"] ==
@@ -484,6 +543,7 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             kind = (way.tags.cycleway == 'crossing') and 'shared_lane_crossing' or 'shared_lane',
             tags = way.tags,
+            is_conditionally_closed = is_conditionally_closed(way.tags),
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     end
@@ -541,6 +601,7 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}",
+            is_conditionally_closed = is_conditionally_closed(way.tags),
             in_bicycle_route = bicycle_route_ways[way.id] or false
         })
     end
@@ -668,3 +729,4 @@ function osm2pgsql.select_relation_members(relation)
     end
 
 end
+

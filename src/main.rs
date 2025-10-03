@@ -24,7 +24,7 @@ use axum::routing::{get, Router};
 use component::layers;
 use component::route_panel::route;
 use component::style::style;
-use db::city_snow::get_city_snow;
+use db::city_snow::{city_snow_geojson, get_city_snow, post_city_snow};
 use db::edge::Edge;
 use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
@@ -72,7 +72,7 @@ async fn main() {
     sqlx::migrate!().run(&conn).await.unwrap();
 
     if !dev {
-        Edge::clear_cache(&conn).await;
+        Edge::clear_cache_and_reload(&conn).await;
     }
 
     println!("Starting cron scheduler");
@@ -120,6 +120,8 @@ async fn main() {
             get(segment_panel_bigger_route),
         )
         .route("/city_snow/{lng}/{lat}", get(get_city_snow))
+        .route("/city_snow", post(post_city_snow))
+        .route("/city_snow_geojson", get(city_snow_geojson))
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))
         .route("/search", post(search::post))
         .route(

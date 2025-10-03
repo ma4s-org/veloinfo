@@ -1,66 +1,63 @@
 class SnowPanel extends HTMLElement {
     constructor() {
         super();
-        this.innerHTML = `
-            <style>
-            snow-panel {
-                display: flex;
-                margin: 10px 0;
-                flex-direction: row;
-                justify-content: center;
-                outline: 1px solid #e5e7eb;
-                cursor: pointer;
-                z-index: 10;
-            }
-            snow-panel::before, ::after {
-                box-sizing: border-box;
-                border-width: 0;
-                border-style: solid;
-                border-color: #e5e7eb;
-            }
-            snow-panel #snow{
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                border-radius: 0.375rem;
-                background-color: #fff;
-                justify-content: center;
-                align-items: center;
-                width: 32px;
-                height: 32px;
-            }
-            snow-panel .snow{
-                padding: .5em;
-                font-size: 1rem;
-            }
-            </style>
-
-
-            <div id="snow" class="snow">
-                <img src="/pub/snow-icone.png" alt="Snow" style="width: 18px; height: 18px">
-            </div>
-
+        this.innerHTML = /*html*/`
             <md-dialog>
-                <div slot="headline" id="headline">Neige</div>
+                <div slot="headline" id="headline">Neige au sol à <span class="city_name"></span></div>
+                <div slot="content">
+                    <p>Indiquez si vous avez de la neige au sol sur votre itinéraire.</p>
+                </div>
+                <div slot="actions">
+                    <md-filled-button id="snow_yes">Il y a de la neige au sol</md-filled-button>
+                    <md-filled-button id="snow_no">Je ne vois pas de neige</md-filled-button>
+                </div>
             </md-dialog>
         `;
     }
     connectedCallback() {
-        this.querySelector("#snow").addEventListener("click", () => this.showDialog());
-    }
+        document.querySelector('#snow_button').addEventListener('click', () => {
+            const map = document.querySelector('veloinfo-map').map;
 
-    async showDialog() {
-        this.querySelector("md-dialog").show();
-        const urlParams = new URLSearchParams(window.location.search);
-        this.lng = urlParams.get('lng');
-        this.lat = urlParams.get('lat');
-        const response = await fetch(`city_snow/${this.lng}/${this.lat}`);
-        const data = await response.json();
-        console.log(data);
-        this.querySelector("#headline").innerHTML = `Neige au sol à ${data.name}`;
+            // Obtenir le point central du canvas de la carte
+            const canvas = map.getCanvas();
+            const centerPoint = [canvas.width / 2, canvas.height / 2];
 
+            // Récupérer les éléments au centre de la carte sur city
+            const dialog = this.querySelector('md-dialog');
+            const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
+            const cityName = features[0].properties.name;
+            dialog.querySelector('.city_name').textContent = cityName;
+
+            dialog.show();
+
+            this.querySelector('#snow_yes').onclick = async () => {
+                const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
+                const cityName = features[0].properties.name;
+                await fetch('/city_snow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: cityName, snow: true })
+                })
+                dialog.close();
+
+                document.querySelector('veloinfo-map').insertCitySnow();
+            };
+
+            this.querySelector('#snow_no').onclick = async () => {
+                const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
+                const cityName = features[0].properties.name;
+                await fetch('/city_snow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: cityName, snow: false })
+                });
+                dialog.close();
+                document.querySelector('veloinfo-map').insertCitySnow();
+            };
+
+        });
     }
 }
 
 
-customElements.define('snow-panel', SnowPanel, {});
+customElements.define('snow-panel', SnowPanel);

@@ -3,7 +3,7 @@ import { maplibregl, htmx } from "../index.js";
 class VeloinfoMap extends HTMLElement {
     constructor() {
         super();
-        this.innerHTML = `
+        this.innerHTML = /*html*/`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
                 <search-input id="search"></search-input>
@@ -13,11 +13,10 @@ class VeloinfoMap extends HTMLElement {
                 <div id="buttons"
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
                     <div 
-                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219);"
+                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;"
                         hx-get="/layers" hx-target="#info" hx-swap="innerHTML">
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
-                    <!-- <snow-panel></snow-panel> -->
                     <div id="speed_container" 
                         style="justify-content: center; align-items: center; width: 31px; height: 31px; 
                                 background-color: white; margin-top: 4px; padding: 4px; border-radius: 0.375rem; 
@@ -27,15 +26,25 @@ class VeloinfoMap extends HTMLElement {
                             0
                         </div>
                     </div>
+                    <div id="snow_button"
+                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;
+                               display: flex; justify-content: center; align-items: center; background-color: white;
+                               width: 31px; height: 31px; cursor: pointer;"
+                    >
+                        <img style="width: 24px; height: 24px;" src="/pub/snow.png">
+                    </div>
                 </div>
                 <mobilizon-events></mobilizon-events>
+                <snow-panel></snow-panel>
             </div>
         `;
     }
 
     connectedCallback() {
-        // Set the initial map center and zoom level
-        // the url parameters take precedence over the cookies
+        this.addMap();
+    }
+
+    addMap() {
         const position = JSON.parse(localStorage.getItem("position"));
         var lng = position?.lng || -73.39899762303611;
         var lat = position?.lat || 45.921066117828786;
@@ -46,7 +55,6 @@ class VeloinfoMap extends HTMLElement {
             lng = parseFloat(params.get("lng"));
             zoom = parseFloat(params.get("zoom"));
         }
-
 
         // Speed
         var speed = 0;
@@ -85,10 +93,9 @@ class VeloinfoMap extends HTMLElement {
             this.map.addImage('bicycle_repair_station', bicycle_repair_station.data);
             const bixi = await this.map.loadImage('/pub/bixi.png');
             this.map.addImage('bixi', bixi.data);
-            const snow = await this.map.loadImage('/pub/snow.png');
+            const snow = await this.map.loadImage('/pub/snow-margin.png');
             this.map.addImage('snow', snow.data);
         })();
-
 
         this.isGeolocateActive = false;
         this.map.addControl(new maplibregl.NavigationControl());
@@ -124,6 +131,7 @@ class VeloinfoMap extends HTMLElement {
             let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
             let html = await r.text();
             document.getElementById("info").innerHTML = html;
+            this.insertCitySnow();
             htmx.process(document.getElementById("info"));
         })
 
@@ -163,6 +171,43 @@ class VeloinfoMap extends HTMLElement {
             }, 1000);
 
         });
+    }
+
+    async insertCitySnow() {
+        let r = await fetch("/city_snow_geojson");
+        let geojson = await r.json();
+
+        console.log(geojson);
+        if (!geojson.features) {
+            if (this.map.getLayer("city_snow")) {
+                this.map.removeLayer("city_snow");
+            }
+            if (this.map.getSource("city_snow")) {
+                this.map.removeSource("city_snow");
+            }
+            return;
+        }
+
+        if (this.map.getSource("city_snow")) {
+            this.map.getSource("city_snow").setData(geojson);
+        } else {
+            this.map.addSource("city_snow", {
+                "type": "geojson",
+                "data": geojson
+            });
+            this.map.addLayer({
+                "id": "city_snow",
+                "type": "fill",
+                "source": "city_snow",
+                "layout": {
+                    "visibility": "visible"
+                },
+                "paint": {
+                    "fill-opacity": 0.5,
+                    "fill-pattern": "snow"
+                }
+            }, "bixi");
+        }
     }
 
     async select(event) {

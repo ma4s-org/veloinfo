@@ -1,0 +1,2 @@
+ALTER TABLE city
+ADD COLUMN snow BOOLEAN;

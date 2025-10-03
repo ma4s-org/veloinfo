@@ -63,9 +63,9 @@
             "type": "vector",
             "url": "{{martin_url}}/road_work"
         },
-        "city_snow": {
+        "city": {
             "type": "vector",
-            "url": "{{martin_url}}/city_snow"
+            "url": "{{martin_url}}/city"
         }
     },
     "layers": [
@@ -2542,12 +2542,23 @@
                 "line-width": 4
             },
             "filter": [
-                "==",
+                "all",
                 [
-                    "get",
-                    "kind"
+                    "==",
+                    [
+                        "get",
+                        "kind"
+                    ],
+                    "cycleway"
                 ],
-                "cycleway"
+                [
+                    "==",
+                    [
+                        "get",
+                        "is_conditionally_closed"
+                    ],
+                    false
+                ]
             ]
         },
         {
@@ -3461,21 +3472,15 @@
             }
         },
         {
-            "id": "city_snow",
+            "id": "city",
             "type": "fill",
-            "source": "city_snow",
-            "source-layer": "city_snow",
+            "source": "city",
+            "source-layer": "city",
             "maxzoom": 24,
             "minzoom": 0,
             "paint": {
-                "fill-pattern": "snow",
-                "fill-opacity": 0.5
-            },
-            "filter": [
-                "==",
-                "snow",
-                true
-            ]
+                "fill-opacity": 0
+            }
         },
         {
             "id": "bike_parking",

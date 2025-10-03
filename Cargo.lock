@@ -3939,6 +3939,7 @@ dependencies = [
  "image",
  "lazy_static",
  "libheif-rs",
+ "once_cell",
  "pathfinding",
  "postgres",
  "regex",

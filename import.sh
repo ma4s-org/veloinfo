@@ -1,20 +1,5 @@
 #!/usr/bin/bash
 
-# if [ ! -f import/quebec.osm.pbf ]; then
-#     wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf -O import/quebec.osm.pbf
-# else
-#     osmupdate import/quebec.osm.pbf import/quebec.osm.pbf.new && mv import/quebec.osm.pbf.new import/quebec.osm.pbf
-# fi
-# if [ ! -f import/ontario.osm.pbf ]; then
-#     wget https://download.geofabrik.de/north-america/canada/ontario-latest.osm.pbf -O import/ontario.osm.pbf
-# else
-#     osmupdate import/ontario.osm.pbf import/ontario.osm.pbf.new && mv import/ontario.osm.pbf.new import/ontario.osm.pbf
-# fi
-# if [ ! -f import/new-brunswick.osm.pbf ]; then
-#     wget https://download.geofabrik.de/north-america/canada/new-brunswick-latest.osm.pbf -O import/new-brunswick.osm.pbf
-# else
-#     osmupdate import/new-brunswick.osm.pbf import/new-brunswick.osm.pbf.new && mv import/new-brunswick.osm.pbf.new import/new-brunswick.osm.pbf
-# fi
 wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
 osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
@@ -48,18 +33,15 @@ psql -h db -U postgres -d carte -c "
                                             c.kind,
                                             c.tags,
                                             lcs.nodes,
+                                            c.is_conditionally_closed,
                                             case
                                                 when score is null then -1
                                                 else score
                                             end as score,
-                                            case
-                                                WHEN snow.name IS NOT NULL THEN true
-                                                ELSE false
-                                            end AS has_snow
+                                            city.snow
                                         FROM cycleway_way c
                                         LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
-                                        LEFT JOIN city on ST_Within(c.geom, city.geom)
-                                        LEFT JOIN city_snow_on_ground snow on city.name = snow.name;
+                                        LEFT JOIN city on ST_Within(c.geom, city.geom);
                                 CREATE INDEX bike_path_way_id_idx ON bike_path(way_id);
                                 CREATE INDEX edge_geom_gist ON bike_path USING gist(geom);
                                 
@@ -77,14 +59,10 @@ psql -h db -U postgres -d carte -c "
                                                 when score is null then -1
                                                 else score
                                             end as score,
-                                            case
-                                                WHEN snow.name IS NOT NULL THEN true
-                                                ELSE false
-                                            end AS has_snow
+                                            city.snow
                                         FROM cycleway_way_far c
                                         LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
-                                        LEFT JOIN city on ST_Within(c.geom, city.geom)
-                                        LEFT JOIN city_snow_on_ground snow on city.name = snow.name;
+                                        LEFT JOIN city on ST_Within(c.geom, city.geom);
                                 CREATE INDEX bike_path_far_way_id_idx ON bike_path_far(way_id);
                                 CREATE INDEX edge_geom_far_gist ON bike_path_far USING gist(geom);
                                 
@@ -100,6 +78,7 @@ psql -h db -U postgres -d carte -c "
                                         ST_DumpSegments(geom) as segment,
                                         aw.name,
                                         aw.tags,
+                                        aw.is_conditionally_closed,
                                         in_bicycle_route
                                     from all_way aw;       
                                 create unique index _all_way_edge_id_idx on _all_way_edge (id);
@@ -117,6 +96,7 @@ psql -h db -U postgres -d carte -c "
                                     st_y(st_transform(ST_PointN((segment).geom, 2), 4326)) as y2,
                                     awe.way_id,
                                     awe.tags,
+                                    awe.is_conditionally_closed,
                                     score,
                                     (segment).geom,
                                     in_bicycle_route
@@ -187,16 +167,4 @@ psql -h db -U postgres -d carte -c "
 
                                 CREATE INDEX name_query_textsearch_idx ON name_query USING GIN (tsvector);
                                 CREATE INDEX name_query_geom_idx ON name_query using gist(geom);
-
-                                drop materialized view if exists city_snow;
-                                create materialized view city_snow as
-                                    select c.name, 
-                                        c.geom,
-                                        CASE
-                                            WHEN snow.name IS NOT NULL THEN true
-                                            ELSE false
-                                        END AS snow
-                                    from city c
-                                    left join city_snow_on_ground snow 
-                                        on c.name = snow.name;
                                 "

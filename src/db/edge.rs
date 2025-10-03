@@ -51,6 +51,7 @@ pub struct Edge {
     pub length: f64,
     pub tags: sqlx::types::Json<HashMap<String, String>>,
     pub road_work: bool,
+    pub is_conditionally_closed: bool,
     pub in_bicycle_route: bool,
 }
 
@@ -134,6 +135,7 @@ impl EdgePoint {
                 tags,
                 way_id,
                 in_bicycle_route,
+                is_conditionally_closed,
                 tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work
@@ -433,6 +435,7 @@ impl Edge {
                 tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
+                is_conditionally_closed,
                 in_bicycle_route
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
@@ -465,7 +468,12 @@ impl Edge {
         }
     }
 
-    pub async fn clear_cache(conn: &sqlx::Pool<Postgres>) {
+    pub async fn clear_all_cache() {
+        let mut cache = NEIGHBORS_CACHE.lock().await;
+        cache.clear();
+    }
+
+    pub async fn clear_cache_and_reload(conn: &sqlx::Pool<Postgres>) {
         // Tenter d'acquérir le verrou avec timeout
         println!("Attempting to acquire cache lock...");
         match tokio::time::timeout(std::time::Duration::from_secs(5), NEIGHBORS_CACHE.lock()).await

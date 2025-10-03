@@ -6,3 +6,4 @@ docker-compose.yaml
 *pbf
 .git
 ./import
+*.pbf
