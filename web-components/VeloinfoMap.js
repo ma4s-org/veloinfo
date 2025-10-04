@@ -206,7 +206,7 @@ class VeloinfoMap extends HTMLElement {
                     "fill-opacity": 0.5,
                     "fill-pattern": "snow"
                 }
-            }, "bixi");
+            }, "city");
         }
     }
 

@@ -3,13 +3,13 @@ class SnowPanel extends HTMLElement {
         super();
         this.innerHTML = /*html*/`
             <md-dialog>
-                <div slot="headline" id="headline">Neige au sol à <span class="city_name"></span></div>
+                <div slot="headline" id="headline">Neige au sol à <span class="city_name" style="font-weight: bold;"></span></div>
                 <div slot="content">
-                    <p>Indiquez si vous avez de la neige au sol sur votre itinéraire.</p>
+                    <p>Indiquez si vous avez de la neige au sol dans les endroits non déneigés</p>
                 </div>
-                <div slot="actions">
-                    <md-filled-button id="snow_yes">Il y a de la neige au sol</md-filled-button>
-                    <md-filled-button id="snow_no">Je ne vois pas de neige</md-filled-button>
+                <div slot="actions" style="display: flex; gap: 8px; justify-content: center;">
+                    <md-filled-button id="snow_yes">Neige</md-filled-button>
+                    <md-filled-button id="snow_no">Pas de neige</md-filled-button>
                 </div>
             </md-dialog>
         `;
@@ -19,8 +19,7 @@ class SnowPanel extends HTMLElement {
             const map = document.querySelector('veloinfo-map').map;
 
             // Obtenir le point central du canvas de la carte
-            const canvas = map.getCanvas();
-            const centerPoint = [canvas.width / 2, canvas.height / 2];
+            const centerPoint = map.getCenter();
 
             // Récupérer les éléments au centre de la carte sur city
             const dialog = this.querySelector('md-dialog');
@@ -31,8 +30,6 @@ class SnowPanel extends HTMLElement {
             dialog.show();
 
             this.querySelector('#snow_yes').onclick = async () => {
-                const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
-                const cityName = features[0].properties.name;
                 await fetch('/city_snow', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -44,8 +41,6 @@ class SnowPanel extends HTMLElement {
             };
 
             this.querySelector('#snow_no').onclick = async () => {
-                const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
-                const cityName = features[0].properties.name;
                 await fetch('/city_snow', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

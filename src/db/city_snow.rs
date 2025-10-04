@@ -79,11 +79,11 @@ pub async fn city_snow_geojson(State(state): State<VeloinfoState>) -> impl IntoR
                     SELECT
                         jsonb_build_object(
                             'type', 'Feature',
-                            'geometry', ST_AsGeoJSON(ST_Transform(cs.geom, 4326))::jsonb,
-                            'properties', to_jsonb(cs) - 'geom'
+                            'geometry', ST_AsGeoJSON(ST_Transform(c.geom, 4326))::jsonb,
+                            'properties', to_jsonb(c) - 'geom'
                         ) AS feature
-                    FROM city cs
-                    WHERE cs.snow = true
+                    FROM city c
+                    WHERE c.snow = true
                 ) AS features;
             "#,
     )
