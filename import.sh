@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
+#wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
 osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
 
@@ -37,8 +37,7 @@ psql -h db -U postgres -d carte -c "
                                             case
                                                 when score is null then -1
                                                 else score
-                                            end as score,
-                                            city.snow
+                                            end as score
                                         FROM cycleway_way c
                                         LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
                                         LEFT JOIN city on ST_Within(c.geom, city.geom);
@@ -58,8 +57,7 @@ psql -h db -U postgres -d carte -c "
                                             case
                                                 when score is null then -1
                                                 else score
-                                            end as score,
-                                            city.snow
+                                            end as score
                                         FROM cycleway_way_far c
                                         LEFT JOIN last_cycleway_score lcs on lcs.way_id = c.way_id
                                         LEFT JOIN city on ST_Within(c.geom, city.geom);
