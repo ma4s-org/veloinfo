@@ -24,7 +24,7 @@ use axum::routing::{get, Router};
 use component::layers;
 use component::route_panel::route;
 use component::style::style;
-use db::city_snow::{city_snow_geojson, get_city_snow, post_city_snow};
+use db::city_snow::{city_snow_geojson, post_city_snow};
 use db::edge::Edge;
 use lazy_static::lazy_static;
 use score_selector_controler::score_selector_controler;
@@ -119,7 +119,6 @@ async fn main() {
             "/segment_panel_bigger/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
             get(segment_panel_bigger_route),
         )
-        .route("/city_snow/{lng}/{lat}", get(get_city_snow))
         .route("/city_snow", post(post_city_snow))
         .route("/city_snow_geojson", get(city_snow_geojson))
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))

@@ -1,8 +1,5 @@
 use axum::response::IntoResponse;
-use axum::{
-    extract::{Path, State},
-    Json,
-};
+use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
@@ -20,51 +17,36 @@ pub async fn post_city_snow(
     Json(payload): Json<CitySnow>,
 ) -> impl IntoResponse {
     let conn = &state.conn;
-    match sqlx::query(
-        r#"UPDATE city 
-            SET snow = $2 
-            WHERE name = $1;
-            "#,
-    )
-    .bind(&payload.name)
-    .bind(&payload.snow)
-    .execute(conn)
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => eprintln!("Error updating CitySnow: {}", e),
-    };
+    if payload.snow {
+        match sqlx::query(
+            r#"insert into city_snow (city_name)
+                select $1
+                where not exists (
+                    select 1 from city_snow where city_name = $1
+                )
+        "#,
+        )
+        .bind(&payload.name)
+        .execute(conn)
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => eprintln!("Error updating CitySnow: {}", e),
+        };
+    } else {
+        match sqlx::query(
+            r#"delete from city_snow where city_name = $1
+        "#,
+        )
+        .bind(&payload.name)
+        .execute(conn)
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => eprintln!("Error updating CitySnow: {}", e),
+        };
+    }
     Json(payload)
-}
-
-pub async fn get_city_snow(
-    Path((lng, lat)): Path<(f32, f32)>,
-    State(state): State<VeloinfoState>,
-) -> impl IntoResponse {
-    let conn = &state.conn;
-    let city_snow: CitySnow = match sqlx::query_as(
-        r#"SELECT
-                    name,
-                    snow
-                FROM city cs
-                WHERE ST_DWithin(cs.geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 0)
-            "#,
-    )
-    .bind(lng)
-    .bind(lat)
-    .fetch_one(conn)
-    .await
-    {
-        Ok(ar) => ar,
-        Err(e) => {
-            eprintln!("Error getting CitySnow: {}", e);
-            CitySnow {
-                name: "".to_string(),
-                snow: false,
-            }
-        }
-    };
-    Json(city_snow)
 }
 
 pub async fn city_snow_geojson(State(state): State<VeloinfoState>) -> impl IntoResponse {
@@ -80,10 +62,10 @@ pub async fn city_snow_geojson(State(state): State<VeloinfoState>) -> impl IntoR
                         jsonb_build_object(
                             'type', 'Feature',
                             'geometry', ST_AsGeoJSON(ST_Transform(c.geom, 4326))::jsonb,
-                            'properties', to_jsonb(c) - 'geom'
+                            'properties', to_jsonb(c) - 'geom' || jsonb_build_object('snow', true)
                         ) AS feature
                     FROM city c
-                    WHERE c.snow = true
+                    INNER JOIN city_snow cs ON c.name = cs.city_name
                 ) AS features;
             "#,
     )

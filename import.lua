@@ -139,11 +139,6 @@ local city = osm2pgsql.define_table({
     }, {
         column = 'admin_level',
         type = 'integer'
-    }, {
-        column = 'snow',
-        type = 'boolean',
-        not_null = true,
-        default = false
     }},
     indexes = {{
         column = 'geom',
@@ -650,7 +645,6 @@ function osm2pgsql.process_relation(relation)
         })
     end
     if relation.tags.admin_level == "8" then
-        print("Processing city relation: " .. tostring(relation.id) .. " with name: " .. tostring(relation.tags.name))
         city:insert({
             name = relation.tags.name,
             geom = relation:as_multipolygon(),
