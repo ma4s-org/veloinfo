@@ -88,7 +88,7 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
     let geojson_str = match std::fs::read_to_string(&geojson_path) {
         Ok(s) => s,
         Err(e) => {
-            println!("Error reading geojson file: {}", e);
+            println!("Error reading geojson file {:?}: {}", geojson_path, e);
             return;
         }
     };
