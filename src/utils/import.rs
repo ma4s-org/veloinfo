@@ -6,10 +6,12 @@ use std::process::Command;
 pub async fn import(conn: &PgPool) {
     Edge::clear_all_cache().await;
     println!("Importing data");
-    let output = Command::new("./import.sh")
-        .output()
-        .expect("failed to execute process");
-    println!("status: {}", output.status);
+    match Command::new("./import.sh").output() {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error importing: {:?}", e);
+        }
+    }
 
     // clearing cache
     println!("fetching montreal data");
