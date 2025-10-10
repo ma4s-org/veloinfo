@@ -1,15 +1,18 @@
 use crate::{db::edge::Edge, utils::mtl, VeloinfoState};
 use axum::extract::State;
 use sqlx::PgPool;
-use std::process::Command;
+use tokio::process::Command;
 
 pub async fn import(conn: &PgPool) {
     Edge::clear_all_cache().await;
     println!("Importing data");
-    match Command::new("./import.sh").output() {
+    match Command::new("./import.sh").output().await {
         Ok(output) => {
             if !output.status.success() {
-                println!("Error1 importing: {}", String::from_utf8_lossy(&output.stderr));
+                println!(
+                    "Error1 importing: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
             println!("{}", String::from_utf8_lossy(&output.stdout));
         }
