@@ -1,7 +1,7 @@
 #!/usr/bin/bash
-
+rm -f quebec-latest.osm.pbf
 wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
-osm2pgsql -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
+osm2pgsql --cache 4000 --drop -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
 
 psql -h db -U postgres -d carte -c "
