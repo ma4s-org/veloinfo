@@ -9,8 +9,10 @@ use crate::{db::utils::Score, utils::h::get_h_moyen};
 use axum::extract::ws::WebSocket;
 use futures::future::join_all;
 use lazy_static::lazy_static;
+use lru::LruCache;
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
+use std::num::NonZeroUsize;
 use std::sync::Arc as ARc;
 use tokio::sync::Mutex;
 
@@ -118,8 +120,8 @@ impl EdgePoint {
     pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> Vec<ARc<EdgePoint>> {
         let mut cache = NEIGHBORS_CACHE.lock().await;
         let node_id = self.get_node_id();
-        if cache.contains_key(&node_id) {
-            return cache.get(&node_id).unwrap().clone();
+        if let Some(neighbors) = cache.get(&node_id) {
+            return neighbors.clone();
         }
 
         match sqlx::query_as(
@@ -165,7 +167,7 @@ impl EdgePoint {
                         }
                     })
                     .collect();
-                cache.insert(node_id, result.clone());
+                cache.put(node_id, result.clone());
                 result
             }
             Err(e) => {
@@ -177,8 +179,8 @@ impl EdgePoint {
 }
 
 lazy_static! {
-    static ref NEIGHBORS_CACHE: Mutex<HashMap<i64, Vec<ARc<EdgePoint>>>> =
-        Mutex::new(HashMap::new());
+    static ref NEIGHBORS_CACHE: Mutex<LruCache<i64, Vec<ARc<EdgePoint>>>> =
+        Mutex::new(LruCache::new(NonZeroUsize::new(4_000_000).unwrap()));
 }
 
 impl Edge {
@@ -464,7 +466,7 @@ impl Edge {
     pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
         let mut cache = NEIGHBORS_CACHE.lock().await;
         for node_id in node_ids {
-            cache.remove(&node_id);
+            cache.pop(&node_id);
         }
     }
 
