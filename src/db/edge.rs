@@ -180,7 +180,7 @@ impl EdgePoint {
 
 lazy_static! {
     static ref NEIGHBORS_CACHE: Mutex<LruCache<i64, Vec<ARc<EdgePoint>>>> =
-        Mutex::new(LruCache::new(NonZeroUsize::new(4_000_000).unwrap()));
+        Mutex::new(LruCache::new(NonZeroUsize::new(3_000_000).unwrap()));
 }
 
 impl Edge {
