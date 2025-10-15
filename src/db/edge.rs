@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     fmt::Debug,
     hash::Hash,
 };
@@ -9,10 +9,8 @@ use crate::{db::utils::Score, utils::h::get_h_moyen};
 use axum::extract::ws::WebSocket;
 use futures::future::join_all;
 use lazy_static::lazy_static;
-use lru::LruCache;
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
-use std::num::NonZeroUsize;
 use std::sync::Arc as ARc;
 use tokio::sync::Mutex;
 
@@ -167,7 +165,17 @@ impl EdgePoint {
                         }
                     })
                     .collect();
-                cache.put(node_id, result.clone());
+                let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
+                if cache.len() > 2_000_000 {
+                    // Limiter la taille du cache pour éviter une consommation excessive de mémoire
+                    let oldest_key = keys.last().cloned();
+                    if let Some(key) = oldest_key {
+                        cache.remove(&key);
+                        keys.remove(&key);
+                    }
+                }
+                cache.insert(node_id, result.clone());
+                keys.insert(node_id);
                 result
             }
             Err(e) => {
@@ -179,8 +187,9 @@ impl EdgePoint {
 }
 
 lazy_static! {
-    static ref NEIGHBORS_CACHE: Mutex<LruCache<i64, Vec<ARc<EdgePoint>>>> =
-        Mutex::new(LruCache::new(NonZeroUsize::new(2_000_000).unwrap()));
+    static ref NEIGHBORS_CACHE: Mutex<HashMap<i64, Vec<ARc<EdgePoint>>>> =
+        Mutex::new(HashMap::new());
+    static ref NEIGHBORS_CACHE_KEYS_SET: Mutex<BTreeSet<i64>> = Mutex::new(BTreeSet::new());
 }
 
 impl Edge {
@@ -465,19 +474,25 @@ impl Edge {
 
     pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
         let mut cache = NEIGHBORS_CACHE.lock().await;
+        let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
         for node_id in node_ids {
-            cache.pop(&node_id);
+            cache.remove(&node_id);
+            keys.remove(&node_id);
         }
     }
 
     pub async fn clear_all_cache() {
         let mut cache = NEIGHBORS_CACHE.lock().await;
+        let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
         cache.clear();
+        keys.clear();
     }
 
     pub async fn clear_cache_and_reload(conn: &sqlx::Pool<Postgres>) {
         // Tenter d'acquérir le verrou avec timeout
         println!("Attempting to acquire cache lock...");
+        let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
+        keys.clear();
         match tokio::time::timeout(std::time::Duration::from_secs(5), NEIGHBORS_CACHE.lock()).await
         {
             Ok(mut guard) => {
