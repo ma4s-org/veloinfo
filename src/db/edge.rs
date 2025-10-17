@@ -70,7 +70,7 @@ impl PartialEq for Edge {
 
 #[derive(Debug, Clone, Eq, Hash)]
 pub struct EdgePoint {
-    pub edge: Edge,
+    pub edge: ARc<Edge>,
     pub direction: SourceOrTarget,
 }
 
@@ -115,10 +115,10 @@ impl EdgePoint {
         }
     }
 
-    pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> Vec<ARc<EdgePoint>> {
+    pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> ARc<Vec<ARc<EdgePoint>>> {
         let node_id = self.get_node_id();
         if let Some(neighbors) = NEIGHBORS_CACHE.lock().await.get(node_id).await {
-            return neighbors.clone();
+            return neighbors;
         }
 
         match sqlx::query_as(
@@ -153,34 +153,30 @@ impl EdgePoint {
                     .map(|edge: Edge| {
                         if edge.source == node_id {
                             return ARc::new(EdgePoint {
-                                edge,
+                                edge: ARc::new(edge),
                                 direction: SourceOrTarget::Target,
                             });
                         } else {
                             return ARc::new(EdgePoint {
-                                edge,
+                                edge: ARc::new(edge),
                                 direction: SourceOrTarget::Source,
                             });
                         }
                     })
                     .collect();
-                NEIGHBORS_CACHE
-                    .lock()
-                    .await
-                    .insert(node_id, result.clone())
-                    .await;
-                result
+                let mut cache = NEIGHBORS_CACHE.lock().await;
+                cache.insert(node_id, ARc::new(result)).await
             }
             Err(e) => {
                 eprintln!("Error while getting neighbors: {}", e);
-                return vec![];
+                return ARc::new(vec![]);
             }
         }
     }
 }
 
 struct EdgePointCache {
-    cache: HashMap<i64, Vec<ARc<EdgePoint>>>,
+    cache: HashMap<i64, ARc<Vec<ARc<EdgePoint>>>>,
     keys: BTreeSet<i64>,
 }
 
@@ -192,19 +188,24 @@ impl EdgePointCache {
         }
     }
 
-    pub async fn get(&self, node_id: i64) -> Option<Vec<ARc<EdgePoint>>> {
+    pub async fn get(&self, node_id: i64) -> Option<ARc<Vec<ARc<EdgePoint>>>> {
         self.cache.get(&node_id).cloned()
     }
 
-    pub async fn insert(&mut self, node_id: i64, neighbors: Vec<ARc<EdgePoint>>) {
+    pub async fn insert(
+        &mut self,
+        node_id: i64,
+        neighbors: ARc<Vec<ARc<EdgePoint>>>,
+    ) -> ARc<Vec<ARc<EdgePoint>>> {
         if self.cache.len() > 3_000_000 {
             // Limiter la taille du cache pour éviter une consommation excessive de mémoire
             if let Some(oldest_key) = self.keys.pop_first() {
                 self.cache.remove(&oldest_key);
             }
         }
-        self.cache.insert(node_id, neighbors);
         self.keys.insert(node_id);
+        self.cache.insert(node_id, neighbors.clone());
+        neighbors
     }
 
     pub async fn clear(&mut self) {
@@ -297,14 +298,14 @@ impl Edge {
                     }
                 }
 
-                for neighbor in current_fwd.get_neighbors(conn).await {
+                for neighbor in current_fwd.get_neighbors(conn).await.iter() {
                     let tentative_g_score =
                         g_score_fwd[&current_fwd] + neighbor.edge.length * h.get_cost(&neighbor);
-                    if tentative_g_score < *g_score_fwd.get(&neighbor).unwrap_or(&f64::INFINITY) {
+                    if tentative_g_score < *g_score_fwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_fwd.insert(neighbor.clone(), current_fwd.clone());
                         g_score_fwd.insert(neighbor.clone(), tentative_g_score);
                         let f_score = tentative_g_score + h.h(&neighbor, &end_node);
-                        open_set_fwd.insert(Score(f_score), neighbor);
+                        open_set_fwd.insert(Score(f_score), neighbor.clone());
                     }
                 }
             }
@@ -336,14 +337,14 @@ impl Edge {
                     }
                 }
 
-                for neighbor in current_bwd.get_neighbors(conn).await {
+                for neighbor in current_bwd.get_neighbors(conn).await.iter() {
                     let tentative_g_score = g_score_bwd[&current_bwd]
                         + neighbor.edge.length * h.get_cost(&neighbor.reverse());
-                    if tentative_g_score < *g_score_bwd.get(&neighbor).unwrap_or(&f64::INFINITY) {
+                    if tentative_g_score < *g_score_bwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_bwd.insert(neighbor.clone(), current_bwd.clone());
                         g_score_bwd.insert(neighbor.clone(), tentative_g_score);
                         let f_score = tentative_g_score + h.h(&neighbor, &start_node);
-                        open_set_bwd.insert(Score(f_score), neighbor);
+                        open_set_bwd.insert(Score(f_score), neighbor.clone());
                     }
                 }
             }
@@ -494,7 +495,7 @@ impl Edge {
                     SourceOrTarget::Target
                 };
                 Ok(ARc::new(EdgePoint {
-                    edge,
+                    edge: ARc::new(edge),
                     direction: point,
                 }))
             }
