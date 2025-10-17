@@ -116,9 +116,8 @@ impl EdgePoint {
     }
 
     pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> Vec<ARc<EdgePoint>> {
-        let mut cache = NEIGHBORS_CACHE.lock().await;
         let node_id = self.get_node_id();
-        if let Some(neighbors) = cache.get(&node_id) {
+        if let Some(neighbors) = NEIGHBORS_CACHE.lock().await.get(node_id).await {
             return neighbors.clone();
         }
 
@@ -165,17 +164,11 @@ impl EdgePoint {
                         }
                     })
                     .collect();
-                let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
-                if cache.len() > 2_000_000 {
-                    // Limiter la taille du cache pour éviter une consommation excessive de mémoire
-                    let oldest_key = keys.last().cloned();
-                    if let Some(key) = oldest_key {
-                        cache.remove(&key);
-                        keys.remove(&key);
-                    }
-                }
-                cache.insert(node_id, result.clone());
-                keys.insert(node_id);
+                NEIGHBORS_CACHE
+                    .lock()
+                    .await
+                    .insert(node_id, result.clone())
+                    .await;
                 result
             }
             Err(e) => {
@@ -186,10 +179,47 @@ impl EdgePoint {
     }
 }
 
+struct EdgePointCache {
+    cache: HashMap<i64, Vec<ARc<EdgePoint>>>,
+    keys: BTreeSet<i64>,
+}
+
+impl EdgePointCache {
+    pub fn new() -> Self {
+        EdgePointCache {
+            cache: HashMap::new(),
+            keys: BTreeSet::new(),
+        }
+    }
+
+    pub async fn get(&self, node_id: i64) -> Option<Vec<ARc<EdgePoint>>> {
+        self.cache.get(&node_id).cloned()
+    }
+
+    pub async fn insert(&mut self, node_id: i64, neighbors: Vec<ARc<EdgePoint>>) {
+        if self.cache.len() > 3_000_000 {
+            // Limiter la taille du cache pour éviter une consommation excessive de mémoire
+            if let Some(oldest_key) = self.keys.pop_first() {
+                self.cache.remove(&oldest_key);
+            }
+        }
+        self.cache.insert(node_id, neighbors);
+        self.keys.insert(node_id);
+    }
+
+    pub async fn clear(&mut self) {
+        self.cache = HashMap::new();
+        self.keys = BTreeSet::new();
+    }
+
+    pub async fn remove(&mut self, node_id: i64) {
+        self.cache.remove(&node_id);
+        self.keys.remove(&node_id);
+    }
+}
+
 lazy_static! {
-    static ref NEIGHBORS_CACHE: Mutex<HashMap<i64, Vec<ARc<EdgePoint>>>> =
-        Mutex::new(HashMap::new());
-    static ref NEIGHBORS_CACHE_KEYS_SET: Mutex<BTreeSet<i64>> = Mutex::new(BTreeSet::new());
+    static ref NEIGHBORS_CACHE: Mutex<EdgePointCache> = Mutex::new(EdgePointCache::new());
 }
 
 impl Edge {
@@ -473,40 +503,17 @@ impl Edge {
     }
 
     pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
-        let mut cache = NEIGHBORS_CACHE.lock().await;
-        let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
         for node_id in node_ids {
-            cache.remove(&node_id);
-            keys.remove(&node_id);
+            NEIGHBORS_CACHE.lock().await.remove(node_id).await;
         }
     }
 
     pub async fn clear_all_cache() {
-        let mut cache = NEIGHBORS_CACHE.lock().await;
-        let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
-        cache.clear();
-        keys.clear();
+        NEIGHBORS_CACHE.lock().await.clear().await;
     }
 
     pub async fn clear_cache_and_reload(conn: &sqlx::Pool<Postgres>) {
-        // Tenter d'acquérir le verrou avec timeout
-        println!("Attempting to acquire cache lock...");
-        let mut keys = NEIGHBORS_CACHE_KEYS_SET.lock().await;
-        keys.clear();
-        match tokio::time::timeout(std::time::Duration::from_secs(5), NEIGHBORS_CACHE.lock()).await
-        {
-            Ok(mut guard) => {
-                println!("Cache lock acquired, clearing...");
-                guard.clear();
-                println!("Cache cleared");
-            }
-            Err(_) => {
-                println!("Failed to acquire cache lock after 5 seconds");
-                return;
-            }
-        };
-
-        // Remplir le cache de manière synchrone
+        Edge::clear_all_cache().await;
         let conn = conn.clone();
         tokio::spawn(async move {
             println!("Starting cache prefill...");
