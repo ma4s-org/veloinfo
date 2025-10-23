@@ -19,7 +19,7 @@ class SearchInput extends HTMLElement {
     }
 
     connectedCallback() {
-        this.innerHTML = `
+        this.innerHTML = /*html*/ `
             <div id="top">
                 <form onsubmit="return false;">
                     <input id="query" name="query" type="search"

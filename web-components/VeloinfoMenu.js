@@ -2,7 +2,7 @@ class VeloinfoMenu extends HTMLElement {
     constructor() {
         super();
 
-        this.innerHTML = `
+        this.innerHTML = /*html*/ `
             <style>
                 veloinfo-menu {
                     position: absolute;

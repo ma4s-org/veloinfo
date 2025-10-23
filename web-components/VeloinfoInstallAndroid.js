@@ -3,7 +3,7 @@ class veloinfoInstallAndroid extends HTMLElement {
 
     constructor() {
         super();
-        this.innerHTML = `
+        this.innerHTML = /*html*/ `
             <style>
                 .install-dialog {
                     max-width: 400px;
