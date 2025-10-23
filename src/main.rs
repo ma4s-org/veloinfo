@@ -128,7 +128,7 @@ async fn main() {
             get(route),
         )
         .route(
-            "/recalculate_route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
+            "/recalculate_route/{route}/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
             get(recalculate_route),
         )
         .route(

@@ -1,10 +1,11 @@
-use crate::utils::h::get_h_moyen;
+use crate::utils::h::{get_h_moyen, get_h_rapid};
 use askama::Template;
 use axum::{
     debug_handler,
     extract::{ws::WebSocketUpgrade, Path, State},
     response::Response,
 };
+use tokio::join;
 
 use crate::{
     db::edge::{Edge, Point},
@@ -63,14 +64,23 @@ pub async fn route(
                 return;
             }
         };
-        let mut points = Edge::a_star_bidirectional(
-            start.node_id,
-            end.node_id,
-            get_h_moyen(),
-            &state.conn,
-            Some(&mut socket),
-        )
-        .await;
+        let (points, points_rapide) = join!(
+            Edge::a_star_bidirectional(
+                start.node_id,
+                end.node_id,
+                get_h_moyen(),
+                &state.conn,
+                Some(&mut socket),
+            ),
+            Edge::a_star_bidirectional(
+                start.node_id,
+                end.node_id,
+                get_h_rapid(),
+                &state.conn,
+                None,
+            )
+        );
+        let mut points = points;
 
         if points.len() == 0 {
             let error_panel =
@@ -99,10 +109,14 @@ pub async fn route(
             way_id: 0,
             node_id: 0,
         });
-        let edges_coordinate: Vec<(f64, f64)> =
+        let edges_coordinate_safe: Vec<(f64, f64)> =
             points.iter().map(|point| (point.lng, point.lat)).collect();
+        let edges_coordinate_fast: Vec<(f64, f64)> = points_rapide
+            .iter()
+            .map(|point| (point.lng, point.lat))
+            .collect();
         let panel = RoutePanel {
-            coordinates: serde_json::to_string(&edges_coordinate)
+            coordinates: serde_json::to_string(&[edges_coordinate_safe, edges_coordinate_fast])
                 .unwrap_or_else(|e| format!("Error serializing edges: {}", e)),
             error: "".to_string(),
         }
@@ -116,7 +130,7 @@ pub async fn route(
 pub async fn recalculate_route(
     ws: WebSocketUpgrade,
     State(state): State<VeloinfoState>,
-    Path((start_lng, start_lat, end_lng, end_lat)): Path<(f64, f64, f64, f64)>,
+    Path((route, start_lng, start_lat, end_lng, end_lat)): Path<(String, f64, f64, f64, f64)>,
 ) -> Response {
     ws.on_upgrade(async move |mut socket| {
         let state = state.clone();
@@ -142,13 +156,27 @@ pub async fn recalculate_route(
                 return;
             }
         };
-        let mut points = Edge::a_star_bidirectional(
-            start.node_id,
-            end.node_id,
-            get_h_moyen(),
-            &state.conn,
-            None,
-        )
+        let mut points = match route.as_str() {
+            "safe" => Edge::a_star_bidirectional(
+                start.node_id,
+                end.node_id,
+                get_h_moyen(),
+                &state.conn,
+                None,
+            ),
+            "fast" => Edge::a_star_bidirectional(
+                start.node_id,
+                end.node_id,
+                get_h_rapid(),
+                &state.conn,
+                None,
+            ),
+            _ => {
+                let error_panel = format!("Invalid route type: {}", route);
+                socket.send(error_panel.into()).await.unwrap();
+                return;
+            }
+        }
         .await;
 
         if points.len() == 0 {

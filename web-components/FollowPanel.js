@@ -3,8 +3,26 @@ import htmx from "htmx.org";
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
+        let map = document.querySelector('veloinfo-map').map;
         let coordinates = JSON.parse(this.getAttribute('coordinates'));
-        let totalDistance = document.querySelector('veloinfo-map').calculateTotalDistance(coordinates, 0).toFixed(1);
+        let route = this.getAttribute('route');
+        if (route === "safe") {
+            this.routeCoordinates = coordinates[0];
+            if (map.getLayer("selected_fast")) {
+                map.removeLayer("selected_fast");
+            } if (map.getSource("selected_fast")) {
+                map.removeSource("selected_fast");
+            }
+        } else if (route === "fast") {
+            this.routeCoordinates = coordinates[1];
+            if (map.getLayer("selected_safe")) {
+                map.removeLayer("selected_safe");
+            } if (map.getSource("selected_safe")) {
+                map.removeSource("selected_safe");
+            }
+        }
+
+        let totalDistance = document.querySelector('veloinfo-map').calculateTotalDistance(this.routeCoordinates, 0).toFixed(1);
         this.innerHTML = `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
@@ -48,29 +66,33 @@ class FollowPanel extends HTMLElement {
         if (this.updating) {
             return;
         }
-        let coordinates = JSON.parse(this.getAttribute('coordinates'));
         navigator.geolocation.getCurrentPosition(async (position) => {
 
             let closestCoordinate = this.findClosestCoordinate(
                 position.coords.longitude,
                 position.coords.latitude,
-                coordinates
+                this.routeCoordinates
             );
             let distanceToClosest = this.calculateDistance(
                 position.coords.latitude,
                 position.coords.longitude,
-                coordinates[closestCoordinate][1],
-                coordinates[closestCoordinate][0]
+                this.routeCoordinates[closestCoordinate][1],
+                this.routeCoordinates[closestCoordinate][0]
             );
+            console.log("position actuelle: " + position.coords.longitude + ", " + position.coords.latitude);
+            console.log("coordonnée la plus proche: " + this.routeCoordinates[closestCoordinate][0] + ", " + this.routeCoordinates[closestCoordinate][1]);
+            console.log("distance au point le plus proche: " + distanceToClosest);
+
             if (distanceToClosest > 0.2) { // 200 meters
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
-                const socket = new WebSocket(`/recalculate_route/${position.coords.longitude}/${position.coords.latitude}/${coordinates[coordinates.length - 1][0]}/${coordinates[coordinates.length - 1][1]}`);
+                const socket = new WebSocket(`/recalculate_route/${this.getAttribute('route')}/${position.coords.longitude}/${position.coords.latitude}/${this.routeCoordinates[this.routeCoordinates.length - 1][0]}/${this.routeCoordinates[0][this.routeCoordinates[0].length - 1][1]}`);
                 socket.onmessage = async (event) => {
                     let data = JSON.parse(event.data);
                     if (data.coordinates) {
                         socket.close();
-                        document.querySelector('veloinfo-map').map.getSource("selected").setData({
+                        let sourceId = this.getAttribute('route') === "safe" ? "selected_safe" : "selected_fast";
+                        document.querySelector('veloinfo-map').map.getSource(sourceId).setData({
                             "type": "Feature",
                             "properties": {},
                             "geometry": {
@@ -78,7 +100,7 @@ class FollowPanel extends HTMLElement {
                                 "coordinates": [data.coordinates]
                             }
                         });
-                        this.setAttribute('coordinates', JSON.stringify(data.coordinates));
+                        this.routeCoordinates = data.coordinates;
                         this.updating = false;
                         return;
                     } else {
@@ -87,12 +109,12 @@ class FollowPanel extends HTMLElement {
                 }
                 this.updating = false;
             }
-            let totalDistance = document.querySelector('veloinfo-map').calculateTotalDistance(coordinates, closestCoordinate).toFixed(1);
+            let totalDistance = document.querySelector('veloinfo-map').calculateTotalDistance(this.routeCoordinates, closestCoordinate).toFixed(1);
             if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             }
         });
-        this.setBearing(coordinates);
+        this.setBearing(this.routeCoordinates);
     }
 
     findClosestCoordinate(longitude, latitude, coordinates) {

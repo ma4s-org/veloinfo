@@ -276,11 +276,17 @@ class VeloinfoMap extends HTMLElement {
             this.end_marker.remove();
             this.end_marker = null;
         }
-        if (this.map.getLayer("selected")) {
-            this.map.removeLayer("selected");
+        if (this.map.getLayer("selected_safe")) {
+            this.map.removeLayer("selected_safe");
         }
-        if (this.map.getSource("selected")) {
-            this.map.removeSource("selected");
+        if (this.map.getSource("selected_safe")) {
+            this.map.removeSource("selected_safe");
+        }
+        if (this.map.getLayer("selected_fast")) {
+            this.map.removeLayer("selected_fast");
+        }
+        if (this.map.getSource("selected_fast")) {
+            this.map.removeSource("selected_fast");
         }
         if (this.map.getLayer("searched_route")) {
             this.map.removeLayer("searched_route");
