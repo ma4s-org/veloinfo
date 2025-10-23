@@ -67,7 +67,7 @@ class RoutePanel extends HTMLElement {
                 "source": "selected_fast",
                 "paint": {
                     "line-width": 8,
-                    "line-color": "hsla(2, 100%, 50%, 1.00)",
+                    "line-color": "hsla(310, 100%, 50%, 1.00)",
                     "line-blur": 0,
                     "line-opacity": 0.50
                 }
@@ -109,7 +109,7 @@ class RoutePanel extends HTMLElement {
                         </div>
                         ${this.getAttribute('error')}
                     </md-filled-button>
-                    <md-filled-button hx-on:click="follow_route('fast')" hx-target="#info" style="--md-sys-color-primary: #f5c8c8">
+                    <md-filled-button hx-on:click="follow_route('fast')" hx-target="#info" style="--md-sys-color-primary: #ffa2f9ff">
                         <div style="font-weight: bold;">
                             Itinéraire rapide
                         </div>
