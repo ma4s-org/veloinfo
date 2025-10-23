@@ -96,7 +96,7 @@ class RoutePanel extends HTMLElement {
         }
         durationStringFast += ` ${minutes} minutes à 15 km/h`
 
-        this.innerHTML = `
+        this.innerHTML = /*html*/ ` 
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg" 
                 style="display: flex; justify-content: center; flex-direction: column">
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding: 1em;">
