@@ -109,7 +109,7 @@ class RoutePanel extends HTMLElement {
                         </div>
                         ${this.getAttribute('error')}
                     </md-filled-button>
-                    <md-filled-button hx-on:click="follow_route('fast')" hx-target="#info" style="--md-sys-color-primary: #ffa2f9ff">
+                    <md-filled-button hx-on:click="follow_route('fast')" hx-target="#info" style="--md-sys-color-primary: #ffcbfcff">
                         <div style="font-weight: bold;">
                             Itinéraire rapide
                         </div>
