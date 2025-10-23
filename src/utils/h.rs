@@ -285,7 +285,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
                 1. / 0.3
             }
         } else {
-            1. / 0.1
+            return 1. / 0.1;
         }
     } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string())
         || edge.edge.tags.get("cycleway") == Some(&"share_busway".to_string())

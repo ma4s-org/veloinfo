@@ -86,7 +86,7 @@ class FollowPanel extends HTMLElement {
             if (distanceToClosest > 0.2) { // 200 meters
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
-                const socket = new WebSocket(`/recalculate_route/${this.getAttribute('route')}/${position.coords.longitude}/${position.coords.latitude}/${this.routeCoordinates[this.routeCoordinates.length - 1][0]}/${this.routeCoordinates[0][this.routeCoordinates[0].length - 1][1]}`);
+                const socket = new WebSocket(`/recalculate_route/${this.getAttribute('route')}/${position.coords.longitude}/${position.coords.latitude}/${this.routeCoordinates[this.routeCoordinates.length - 1][0]}/${this.routeCoordinates[this.routeCoordinates.length - 1][1]}`);
                 socket.onmessage = async (event) => {
                     let data = JSON.parse(event.data);
                     if (data.coordinates) {
