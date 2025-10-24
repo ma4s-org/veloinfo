@@ -1,6 +1,6 @@
 #!/usr/bin/bash
-rm -f quebec-latest.osm.pbf
-wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
+# rm -f quebec-latest.osm.pbf
+# wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
 osm2pgsql --cache 4000 --drop -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
 
@@ -97,14 +97,17 @@ psql -h db -U postgres -d carte -c "
                                     awe.is_conditionally_closed,
                                     score,
                                     (segment).geom,
+                                    case when csnow.city_name is not null then true else false end as snow,
                                     in_bicycle_route
                                 from _all_way_edge awe
                                 left join  last_cycleway_score cs on cs.way_id = awe.way_id
+                                left join city c on ST_Within((segment).geom, c.geom)
+                                left join city_snow csnow on csnow.city_name = c.name
                                 where awe.nodes[(segment).path[1]+1] is not null;       
 
                                 CREATE INDEX edge_way_id_idx ON edge(way_id);
                                 CREATE INDEX edge_geom_idx ON edge using gist(geom);
-                                CREATE UNIQUE INDEX edge_id_idx ON edge(id);
+                                CREATE INDEX edge_id_idx ON edge(id);
                                 CREATE INDEX edge_source_idx ON public.edge ("source");
                                 CREATE INDEX edge_target_idx ON public.edge ("target");
 

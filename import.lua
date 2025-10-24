@@ -143,6 +143,10 @@ local city = osm2pgsql.define_table({
     indexes = {{
         column = 'geom',
         method = 'gist'
+    },
+    {
+        column = 'name',
+        method = 'btree'
     }}
 })
 local landcover = osm2pgsql.define_table({
