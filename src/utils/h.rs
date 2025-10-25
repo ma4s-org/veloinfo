@@ -141,6 +141,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         return 1. / 0.0001;
     } else if edge.edge.tags.get("access") == Some(&"private".to_string())
         || edge.edge.tags.get("access") == Some(&"no".to_string())
+        || edge.edge.tags.get("informal") == Some(&"yes".to_string())
     {
         if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
             || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
