@@ -12,13 +12,19 @@ class PointPanel extends HTMLElement {
 
                 <div class="flex flex-row justify-center">
 
-                    <md-filled-button id="route_button" hx-on:click="document.querySelector('veloinfo-map').route()"><img slot="icon"
-                            src="/pub/directions.png" class="w-4 h-4 mr-1">itinéraire</md-filled-button>
-                    <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()"
-                        hx-target="#info">annuler</md-filled-button>
+                    <md-filled-button id="route_button" >
+                    <img slot="icon" src="/pub/directions.png" class="w-4 h-4 mr-1">itinéraire</md-filled-button>
+                    <md-filled-button id="cancel_button">annuler</md-filled-button>
                 </div>
             </div>
         `;
+
+        this.querySelector("#route_button").addEventListener("click", () => {
+            document.querySelector('veloinfo-map').route();
+        });
+        this.querySelector("#cancel_button").addEventListener("click", () => {
+            document.querySelector('veloinfo-map').clear();
+        });
     }
 }
 

@@ -158,7 +158,7 @@ class SearchResult extends HTMLElement {
         this.querySelector("div").addEventListener("click", () => this.clickSearchResult());
     }
 
-    clickSearchResult() {
+    async clickSearchResult() {
         let map = document.querySelector('veloinfo-map').map;
         let lng = this.getAttribute("lng");
         let lat = this.getAttribute("lat");
@@ -199,7 +199,10 @@ class SearchResult extends HTMLElement {
             }
         }
 
-        htmx.ajax('GET', '/point_panel_lng_lat/' + lng + "/" + lat, "#info");
+        let result = await fetch(`/point_panel_lng_lat/${lng}/${lat}`);
+        let json = await result.json();
+        document.querySelector("#info").innerHTML = `<point-panel name="${json.name}"></point-panel>`;
+
         map.flyTo({
             center: [lng, lat],
         });
