@@ -60,7 +60,7 @@ class SegmentPanel extends HTMLElement {
             `;
         }
 
-        this.innerHTML = /*html*/`
+        let innerHTML = /*html*/`
             <div id="segment_panel"
                 class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <img id="spinner" class="htmx-indicator absolute z-30 bottom-8 mx-auto inset-x-0 top-1" src="/pub/bars.svg" />
@@ -96,6 +96,7 @@ class SegmentPanel extends HTMLElement {
                 </div>
             </div>
         `;
+        this.innerHTML = innerHTML;
         htmx.process(this);
 
         this.querySelector('#save')?.addEventListener('click', async (event) => {
@@ -109,7 +110,8 @@ class SegmentPanel extends HTMLElement {
             document.querySelector('segment-panel').data = data;
         });
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
-            document.querySelector('#info').innerHTML = await fetch(`/info_panel/down`);
+            let innerHTML = await fetch(`/info_panel/down`);
+            document.querySelector('#info').innerHTML = innerHTML;
             document.querySelector('veloinfo-map').clear();
             event.preventDefault();
         });

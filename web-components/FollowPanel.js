@@ -23,7 +23,7 @@ class FollowPanel extends HTMLElement {
         }
 
         let totalDistance = document.querySelector('veloinfo-map').calculateTotalDistance(this.routeCoordinates, 0).toFixed(1);
-        this.innerHTML = /*html*/ `
+        let innerHTML = /*html*/ `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
                     <div style="display: flex;justify-content: center;">
@@ -40,6 +40,7 @@ class FollowPanel extends HTMLElement {
                 </div>
             </div>
         `;
+        this.innerHTML = innerHTML;
         htmx.process(this);
 
     }

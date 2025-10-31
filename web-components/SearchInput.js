@@ -18,7 +18,7 @@ class SearchInput extends HTMLElement {
     }
 
     connectedCallback() {
-        this.innerHTML = /*html*/ `
+        let innerHTML = /*html*/ `
             <div id="top">
                 <form onsubmit="return false;">
                     <input id="query" name="query" type="search"
@@ -53,6 +53,7 @@ class SearchInput extends HTMLElement {
                 } 
             </style>
         `;
+        this.innerHTML = innerHTML;
         this.querySelector("#query").addEventListener("keydown", (event) => this.search(event));
         this.querySelector("#query").addEventListener("focusout", (event) => this.clearResult(event));
         this.querySelector("#query").addEventListener("click", (event) => this.search(event));
@@ -124,7 +125,7 @@ class SearchResult extends HTMLElement {
     }
 
     connectedCallback() {
-        this.innerHTML = `
+        let innerHTML = `
             <div>
                 <div class="circle"></div>
                 <div class="name">${this.getAttribute("name")}</div>
@@ -154,6 +155,7 @@ class SearchResult extends HTMLElement {
                 }
             </style>
         `;
+        this.innerHTML = innerHTML;
         this.querySelector("div").addEventListener("click", () => this.clickSearchResult());
     }
 
@@ -200,8 +202,8 @@ class SearchResult extends HTMLElement {
 
         let result = await fetch(`/point_panel_lng_lat/${lng}/${lat}`);
         let json = await result.json();
-        document.querySelector("#info").innerHTML = `<point-panel name="${json.name}"></point-panel>`;
-
+        let innerHTML = `<point-panel name="${json.name}"></point-panel>`;
+        document.getElementById("info").innerHTML = innerHTML;
         map.flyTo({
             center: [lng, lat],
         });

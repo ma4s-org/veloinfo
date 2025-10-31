@@ -9,7 +9,7 @@ class RouteDefine extends HTMLElement {
     }
 
     render() {
-        this.innerHTML = /*html*/ `
+        let innerHTML = /*html*/ `
             <style>
                 route-define search-input {
                     justify-content: center;
@@ -42,6 +42,7 @@ class RouteDefine extends HTMLElement {
                 </div>
             </div>
         `;
+        this.innerHTML = innerHTML;
     }
 }
 

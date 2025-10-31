@@ -102,7 +102,7 @@ class RoutePanel extends HTMLElement {
         }
         durationStringFast += ` ${minutes} minutes à 15 km/h`
 
-        this.innerHTML = /*html*/ ` 
+        let innerHTML = /*html*/ ` 
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg" 
                 style="display: flex; justify-content: center; flex-direction: column">
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding: 1em;">
@@ -128,7 +128,7 @@ class RoutePanel extends HTMLElement {
                 <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()" hx-target="#info">annuler</md-filled-button>
             </div>
         `;
-
+        this.innerHTML = innerHTML;
         var bearing = document.querySelector('veloinfo-map').calculateBearing(
             safeCoordinates[0][0],
             safeCoordinates[0][1],
@@ -139,7 +139,9 @@ class RoutePanel extends HTMLElement {
 
 
         window.follow_route = (route) => {
-            document.getElementById("info").innerHTML = '<follow-panel route="' + route + '" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>';
+            let innerHTML = '<follow-panel route="' + route + '" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>'
+
+            document.getElementById("info").innerHTML = innerHTML;
         };
     }
 }

@@ -3,7 +3,7 @@ import { maplibregl, htmx } from "../index.js";
 class VeloinfoMap extends HTMLElement {
     constructor() {
         super();
-        this.innerHTML = /*html*/`
+        let innerHTML = /*html*/`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
                 <search-input id="search"></search-input>
@@ -38,6 +38,7 @@ class VeloinfoMap extends HTMLElement {
                 <snow-panel></snow-panel>
             </div>
         `;
+        this.innerHTML = innerHTML;
     }
 
     connectedCallback() {
@@ -383,6 +384,9 @@ class VeloinfoMap extends HTMLElement {
     }
 
     calculateTotalDistance(coordinates, index = 0) {
+        if (!coordinates || coordinates.length == 0) {
+            return 0;
+        }
         if (!this.distanceCache) {
             this.distanceCache = {};
         }

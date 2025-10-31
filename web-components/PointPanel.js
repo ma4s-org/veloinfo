@@ -4,7 +4,7 @@ class PointPanel extends HTMLElement {
     }
 
     connectedCallback() {
-        this.innerHTML = /*html*/`
+        let innerHTML = /*html*/`
             <div id="point_panel" class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div>Près de ${this.getAttribute('name')} <img id="spinner" class="htmx-indicator z-30 bottom-8 mx-auto inset-x-0"
                         src="/pub/bars.svg" />
@@ -18,6 +18,7 @@ class PointPanel extends HTMLElement {
                 </div>
             </div>
         `;
+        this.innerHTML = innerHTML;
 
         this.querySelector("#route_button").addEventListener("click", () => {
             document.querySelector('veloinfo-map').route();

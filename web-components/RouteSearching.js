@@ -3,7 +3,7 @@ import htmx from "htmx.org";
 class RouteSearching extends HTMLElement {
     constructor() {
         super();
-        this.innerHTML = /*html*/`
+        let innerHTML = /*html*/`
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
                     <h2 class="text-xl font-bold">
@@ -28,6 +28,7 @@ class RouteSearching extends HTMLElement {
                 </md-dialog>
             </div>
         `;
+        this.innerHTML = innerHTML;
 
         this.init();
         htmx.process(this);
