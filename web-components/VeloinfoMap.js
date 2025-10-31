@@ -143,21 +143,22 @@ class VeloinfoMap extends HTMLElement {
             }
         });
 
-        let timeout_url = null;
+        let timeout = null;
         let map = this.map;
         let that = this;
-        this.map.on("move", function (e) {
-            if (timeout_url) {
-                clearTimeout(timeout_url);
+        this.map.on("move", () => {
+            if (timeout) {
+                clearTimeout(timeout);
             }
-            window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
-            const position = {
-                "lng": + map.getCenter().lng,
-                "lat": + map.getCenter().lat,
-                "zoom": + map.getZoom()
-            }
-            localStorage.setItem("position", JSON.stringify(position));
-            that.infoPanelUp();
+            timeout = setTimeout(() => {
+                window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
+                const position = {
+                    "lng": + map.getCenter().lng,
+                    "lat": + map.getCenter().lat,
+                    "zoom": + map.getZoom()
+                }
+                localStorage.setItem("position", JSON.stringify(position));
+            }, 1000);
         });
     }
 
@@ -258,6 +259,7 @@ class VeloinfoMap extends HTMLElement {
             }
             let name = "";
             this.querySelector("#info").innerHTML = `<point-panel name="${name}"></point-panel>`;
+            htmx.process(this.querySelector("#info"));
         }
     }
 
