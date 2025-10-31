@@ -145,21 +145,19 @@ class VeloinfoMap extends HTMLElement {
 
         let timeout_url = null;
         let map = this.map;
+        let that = this;
         this.map.on("move", function (e) {
             if (timeout_url) {
                 clearTimeout(timeout_url);
             }
-            timeout_url = setTimeout(async () => {
-                window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
-                const position = {
-                    "lng": + map.getCenter().lng,
-                    "lat": + map.getCenter().lat,
-                    "zoom": + map.getZoom()
-                }
-                localStorage.setItem("position", JSON.stringify(position));
-                this.infoPanelUp();
-            }, 1000);
-
+            window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
+            const position = {
+                "lng": + map.getCenter().lng,
+                "lat": + map.getCenter().lat,
+                "zoom": + map.getZoom()
+            }
+            localStorage.setItem("position", JSON.stringify(position));
+            that.infoPanelUp();
         });
     }
 
