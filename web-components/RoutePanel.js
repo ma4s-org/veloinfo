@@ -2,6 +2,7 @@ class RoutePanel extends HTMLElement {
     constructor() {
         super();
         const coordinates = JSON.parse(this.getAttribute('coordinates'));
+
         const safeCoordinates = coordinates[0];
         const fastCoordinates = coordinates[1];
         let map = document.querySelector('veloinfo-map').map;
@@ -74,6 +75,11 @@ class RoutePanel extends HTMLElement {
             },
                 "Road labels")
         }
+        console.log(safeCoordinates);
+        console.log(fastCoordinates);
+
+
+
         document.querySelector('veloinfo-map').clearDistanceCache();
         let veloinfoMap = document.querySelector('veloinfo-map');
         let totalDistanceSafe = veloinfoMap.calculateTotalDistance(safeCoordinates).toFixed(1);

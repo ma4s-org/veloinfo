@@ -79,9 +79,6 @@ class FollowPanel extends HTMLElement {
                 this.routeCoordinates[closestCoordinate][1],
                 this.routeCoordinates[closestCoordinate][0]
             );
-            console.log("position actuelle: " + position.coords.longitude + ", " + position.coords.latitude);
-            console.log("coordonnée la plus proche: " + this.routeCoordinates[closestCoordinate][0] + ", " + this.routeCoordinates[closestCoordinate][1]);
-            console.log("distance au point le plus proche: " + distanceToClosest);
 
             if (distanceToClosest > 0.2) { // 200 meters
                 // we are too far from the route. We calculate it again.

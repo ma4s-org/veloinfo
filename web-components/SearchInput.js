@@ -9,7 +9,6 @@ class SearchInput extends HTMLElement {
             if (typeof recentTargets[i] === "string") {
                 const regex = /Result\((.*?),(.*?),.*?\/div>(.*?)</s;
                 let m = recentTargets[i].match(regex);
-                console.log("match", recentTargets[i], m);
                 if (m.length === 4) {
                     recentTargets[i] = { lng: m[1].trim(), lat: m[2].trim(), name: m[3].trim() };
                 }

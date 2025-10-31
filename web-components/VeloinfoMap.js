@@ -298,8 +298,6 @@ class VeloinfoMap extends HTMLElement {
 
 
     async clear() {
-        console.log("Clearing selection");
-
         if (window.start_marker) {
             window.start_marker.remove();
             window.start_marker = null;
