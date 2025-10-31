@@ -2481,6 +2481,7 @@
             "id": "cycleway",
             "source": "veloinfo",
             "source-layer": "bike_path",
+            "minzoom": 10,
             "type": "line",
             "paint": {
                 "line-color": [
