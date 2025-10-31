@@ -69,24 +69,21 @@ psql -h db -U postgres -d carte -c "
                                 CREATE SEQUENCE edge_id;
                                 create materialized view _all_way_edge as
                                     select 
-                                        nextval('edge_id')  as id,
                                         aw.way_id, 
-                                        unnest(nodes) as node,
                                         nodes, 
-                                        ST_DumpSegments(geom) as segment,
+                                        geom,
                                         aw.name,
                                         aw.tags,
                                         aw.is_conditionally_closed,
                                         in_bicycle_route
                                     from all_way aw;       
-                                create unique index _all_way_edge_id_idx on _all_way_edge (id);
                                 create index _all_way_edge_way_id_idx on _all_way_edge (way_id);
 
                                 drop materialized view if exists edge;
                                 CREATE MATERIALIZED VIEW edge 
                                 AS SELECT  
-                                    id,
-                                    node as source,
+                                    nextval('edge_id') as id,
+                                    awe.nodes[(segment).path[1]] as source,
                                     awe.nodes[(segment).path[1]+1] as target,
                                     st_x(st_transform(ST_PointN((segment).geom, 1), 4326)) as x1,
                                     st_y(st_transform(ST_PointN((segment).geom, 1), 4326)) as y1,
@@ -95,21 +92,20 @@ psql -h db -U postgres -d carte -c "
                                     awe.way_id,
                                     awe.tags,
                                     awe.is_conditionally_closed,
-                                    score,
                                     (segment).geom,
-                                    case when csnow.city_name is not null then true else false end as snow,
+                                    c.name as city_name,
                                     in_bicycle_route
                                 from _all_way_edge awe
-                                left join  last_cycleway_score cs on cs.way_id = awe.way_id
+                                CROSS JOIN LATERAL ST_DumpSegments(awe.geom) as segment
                                 left join city c on ST_Within((segment).geom, c.geom)
-                                left join city_snow csnow on csnow.city_name = c.name
                                 where awe.nodes[(segment).path[1]+1] is not null;       
 
                                 CREATE INDEX edge_way_id_idx ON edge(way_id);
                                 CREATE INDEX edge_geom_idx ON edge using gist(geom);
-                                CREATE INDEX edge_id_idx ON edge(id);
+                                CREATE UNIQUE INDEX edge_id_idx ON edge(id);
                                 CREATE INDEX edge_source_idx ON public.edge ("source");
                                 CREATE INDEX edge_target_idx ON public.edge ("target");
+                                CREATE INDEX edge_city_name_idx ON public.edge (city_name);
 
                                 drop materialized view if exists address_range;
                                 create materialized view address_range as

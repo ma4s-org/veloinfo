@@ -1,7 +1,6 @@
-use askama::Template;
-use askama_web::WebTemplate;
+use serde::Serialize;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Serialize)]
 pub enum Category {
     Good,
     Problems,
@@ -9,8 +8,7 @@ pub enum Category {
     Closed,
 }
 
-#[derive(Template, WebTemplate)]
-#[template(path = "score_selector.html")]
+#[derive(Serialize)]
 pub struct ScoreSelector {
     category: Category,
     score: f64,

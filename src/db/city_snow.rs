@@ -1,3 +1,4 @@
+use crate::db::edge::Edge;
 use axum::response::IntoResponse;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,7 @@ pub async fn post_city_snow(
     Json(payload): Json<CitySnow>,
 ) -> impl IntoResponse {
     let conn = &state.conn;
+    let city_name = payload.name.clone();
     if payload.snow {
         match sqlx::query(
             r#"insert into city_snow (city_name)
@@ -26,7 +28,7 @@ pub async fn post_city_snow(
                 )
         "#,
         )
-        .bind(&payload.name)
+        .bind(&city_name)
         .execute(conn)
         .await
         {
@@ -46,6 +48,22 @@ pub async fn post_city_snow(
             Err(e) => eprintln!("Error updating CitySnow: {}", e),
         };
     }
+
+    let conn = conn.clone();
+    match Edge::get_edge_by_city(&city_name, &conn).await {
+        Ok(edge_ids) => {
+            let node_ids: Vec<i64> = edge_ids.into_iter().fold(Vec::new(), |mut acc, e| {
+                acc.push(e.source);
+                acc.push(e.target);
+                acc
+            });
+            Edge::clear_nodes_cache(node_ids).await;
+        }
+        Err(e) => {
+            eprintln!("Error clearing edge cache for city {}: {}", city_name, e);
+        }
+    }
+
     Json(payload)
 }
 

@@ -1,42 +1,25 @@
-use super::{
-    info_panel::InfopanelContribution, score_circle::ScoreCircle, score_selector::ScoreSelector,
-};
+use super::{info_panel::InfopanelContribution, score_selector::ScoreSelector};
 use crate::db::cycleway::{Cycleway, Node};
 use crate::db::edge::Edge;
 use crate::db::user::User;
 use crate::utils::h::get_h_bigger_selection;
 use crate::{db::cyclability_score::CyclabilityScore, VeloinfoState};
-use askama::Template;
-use askama_web::WebTemplate;
 use axum::extract::multipart::Multipart;
 use axum::extract::{Path, State};
+use axum::response::IntoResponse;
+use axum::Json;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use futures::future::join_all;
+use geojson::JsonValue;
 use image::DynamicImage;
 use lazy_static::lazy_static;
 use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 use regex::Regex;
+use serde_json::json;
 use sqlx::Postgres;
 use std::env;
 use uuid::Uuid;
-
-#[derive(Template, WebTemplate)]
-#[template(path = "segment_panel.html", escape = "none")]
-pub struct SegmentPanel {
-    way_ids: String,
-    score_circle: ScoreCircle,
-    segment_name: String,
-    score_selector: ScoreSelector,
-    comment: String,
-    edit: bool,
-    history: Vec<InfopanelContribution>,
-    photo_ids: Vec<i32>,
-    geom_json: String,
-    fit_bounds: bool,
-    user_name: String,
-    martin_url: String,
-}
 
 lazy_static! {
     static ref RE_NUMBER: Regex = Regex::new(r"\d+").unwrap();
@@ -50,7 +33,7 @@ pub async fn segment_panel_post(
     State(state): State<VeloinfoState>,
     jar: CookieJar,
     mut multipart: Multipart,
-) -> (CookieJar, SegmentPanel) {
+) -> (CookieJar, impl IntoResponse) {
     let user_id = match jar.get("uuid") {
         Some(uuid) => {
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
@@ -132,20 +115,20 @@ pub async fn segment_panel_post(
             eprintln!("Error while inserting score: {}", e);
             return (
                 jar,
-                SegmentPanel {
-                    way_ids: way_ids.clone(),
-                    score_circle: ScoreCircle { score },
-                    segment_name: "".to_string(),
-                    score_selector: ScoreSelector::get_score_selector(score),
-                    comment: "".to_string(),
-                    edit: false,
-                    history: vec![],
-                    photo_ids: vec![],
-                    geom_json: "".to_string(),
-                    fit_bounds: false,
-                    user_name,
-                    martin_url: env::var("MARTIN_URL").unwrap(),
-                },
+                Json(json!({
+                    "way_ids": way_ids.clone(),
+                    "score_circle": { "score": score },
+                    "segment_name": "".to_string(),
+                    "score_selector": ScoreSelector::get_score_selector(score),
+                    "comment": "".to_string(),
+                    "edit": false,
+                    "history": Vec::<InfopanelContribution>::new(),
+                    "photo_ids": Vec::<i32>::new(),
+                    "geom_json": "".to_string(),
+                    "fit_bounds": false,
+                    "user_name": user_name,
+                    "martin_url": env::var("MARTIN_URL").unwrap(),
+                })),
             );
         }
     };
@@ -204,7 +187,7 @@ pub async fn segment_panel_edit(
     State(state): State<VeloinfoState>,
     Path(way_ids): Path<String>,
     mut jar: CookieJar,
-) -> (CookieJar, SegmentPanel) {
+) -> (CookieJar, Json<JsonValue>) {
     let user_name = match jar.get("uuid") {
         Some(uuid) => {
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
@@ -274,35 +257,33 @@ pub async fn segment_panel_edit(
     let geom_json = serde_json::to_string(&geom_json).unwrap_or("".to_string());
     let photo_ids = CyclabilityScore::get_photo_by_way_ids(&way_ids_i64, &state.conn).await;
     let history = InfopanelContribution::get_history(&way_ids_i64, &state.conn).await;
-    let segment_panel = SegmentPanel {
-        way_ids: way_ids.clone(),
-        score_circle: ScoreCircle {
-            score: way.score.unwrap_or(-1.),
+    let json = Json(json!({
+        "way_ids": way_ids.clone(),
+        "score_circle": {
+            "score": way.score.unwrap_or(-1.),
         },
-        segment_name,
-        score_selector: ScoreSelector::get_score_selector(way.score.unwrap_or(-1.)),
-        comment: "".to_string(),
-        edit: true,
-        history,
-        photo_ids,
-        geom_json,
-        fit_bounds: false,
-        user_name,
-        martin_url: env::var("MARTIN_URL").unwrap(),
-    };
-
-    (jar, segment_panel)
+        "segment_name": segment_name,
+        "score_selector": ScoreSelector::get_score_selector(way.score.unwrap_or(-1.)),
+        "comment": "".to_string(),
+        "edit": true,
+        "history": history,
+        "photo_ids": photo_ids,
+        "geom_json": geom_json,
+        "fit_bounds": false,
+        "user_name": user_name,
+        "martin_url": env::var("MARTIN_URL").unwrap(),
+    }));
+    (jar, json)
 }
 
 pub async fn segment_panel_get(
     State(state): State<VeloinfoState>,
     Path(way_ids): Path<String>,
-) -> SegmentPanel {
+) -> Json<JsonValue> {
     segment_panel(state, way_ids).await
 }
 
-pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPanel {
-    println!("segment_panel {}", way_ids);
+pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> Json<JsonValue> {
     let re = Regex::new(r"\d+").unwrap();
     let way_ids_i64 = re
         .find_iter(way_ids.as_str())
@@ -342,16 +323,16 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPane
 
     let history = InfopanelContribution::get_history(&way_ids_i64, &state.conn).await;
     let photo_ids = CyclabilityScore::get_photo_by_way_ids(&way_ids_i64, &state.conn).await;
-    SegmentPanel {
-        way_ids: way_ids.clone(),
-        score_circle: ScoreCircle {
-            score: match cycleways.first() {
+    let json = json!({
+        "way_ids": way_ids.clone(),
+        "score_circle": {
+            "score": match cycleways.first() {
                 Some(way) => way.score.unwrap_or(-1.),
                 None => -1.,
             },
         },
-        segment_name,
-        score_selector: ScoreSelector::get_score_selector(if all_same_score {
+        "segment_name": segment_name,
+        "score_selector": ScoreSelector::get_score_selector(if all_same_score {
             match cycleways.first() {
                 Some(way) => way.score.unwrap_or(-1.),
                 None => -1.,
@@ -359,21 +340,22 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> SegmentPane
         } else {
             -1.
         }),
-        comment: "".to_string(),
-        edit: false,
-        history,
-        photo_ids,
-        geom_json: serde_json::to_string(&geom).unwrap_or("".to_string()),
-        fit_bounds: false,
-        user_name: "".to_string(),
-        martin_url: env::var("MARTIN_URL").unwrap(),
-    }
+        "comment": "".to_string(),
+        "edit": false,
+        "history": history,
+        "photo_ids": photo_ids,
+        "geom_json": serde_json::to_string(&geom).unwrap_or("".to_string()),
+        "fit_bounds": false,
+        "user_name": "".to_string(),
+        "martin_url": env::var("MARTIN_URL").unwrap(),
+    });
+    Json(json)
 }
 
 pub async fn segment_panel_bigger_route(
     State(state): State<VeloinfoState>,
     Path((lng1, lat1, lng2, lat2)): Path<(f64, f64, f64, f64)>,
-) -> SegmentPanel {
+) -> Json<JsonValue> {
     let node1 = match Cycleway::find(&lng1, &lat1, &state.conn).await {
         Ok(node) => node,
         Err(e) => {
@@ -420,7 +402,11 @@ pub async fn segment_panel_bigger_route(
     segment_panel(state, ways).await
 }
 
-async fn segment_panel_score_id(conn: &sqlx::Pool<Postgres>, id: i32, edit: bool) -> SegmentPanel {
+async fn segment_panel_score_id(
+    conn: &sqlx::Pool<Postgres>,
+    id: i32,
+    edit: bool,
+) -> Json<JsonValue> {
     let score = match CyclabilityScore::get_by_id(id, &conn).await {
         Ok(score) => score,
         Err(e) => {
@@ -473,27 +459,28 @@ async fn segment_panel_score_id(conn: &sqlx::Pool<Postgres>, id: i32, edit: bool
 
     let history = InfopanelContribution::get_history(&score.way_ids, conn).await;
     let photo_ids = CyclabilityScore::get_photo_by_way_ids(&score.way_ids, &conn).await;
-
-    SegmentPanel {
-        way_ids,
-        score_circle: ScoreCircle { score: score.score },
-        segment_name,
-        score_selector: ScoreSelector::get_score_selector(score.score),
-        comment: score.comment.unwrap_or("".to_string()),
-        edit,
-        history,
-        photo_ids,
-        geom_json,
-        fit_bounds: true,
-        user_name: "".to_string(),
-        martin_url: env::var("MARTIN_URL").unwrap(),
-    }
+    Json(json!({
+        "way_ids": way_ids.clone(),
+        "score_circle": {
+            "score": score.score,
+        },
+        "segment_name": segment_name,
+        "score_selector": ScoreSelector::get_score_selector(score.score),
+        "comment": score.comment.unwrap_or("".to_string()),
+        "edit": edit,
+        "history": history,
+        "photo_ids": photo_ids,
+        "geom_json": geom_json,
+        "fit_bounds": true,
+        "user_name": "".to_string(),
+        "martin_url": env::var("MARTIN_URL").unwrap(),
+    }))
 }
 
 pub async fn segment_panel_lng_lat(
     State(state): State<VeloinfoState>,
     Path((lng, lat)): Path<(f64, f64)>,
-) -> SegmentPanel {
+) -> impl IntoResponse {
     let conn = state.clone().conn;
     let node: Node = match Cycleway::find(&lng, &lat, &conn).await {
         Ok(response) => response,
@@ -530,29 +517,28 @@ pub async fn segment_panel_lng_lat(
     };
     let history = InfopanelContribution::get_history_by_way_id(node.way_id, &state.conn).await;
     let photo_ids = CyclabilityScore::get_photo_by_way_ids(&vec![node.way_id], &state.conn).await;
-    let info_panel = SegmentPanel {
-        way_ids: node.way_id.to_string(),
-        score_circle: ScoreCircle {
-            score: way.score.unwrap_or(-1.),
+    let json = serde_json::json!({
+        "way_ids": node.way_id.to_string(),
+        "score_circle": {
+            "score": way.score.unwrap_or(-1.0),
         },
-        segment_name,
-        score_selector: ScoreSelector::get_score_selector(way.score.unwrap_or(-1.)),
-        comment: "".to_string(),
-        edit: false,
-        history,
-        photo_ids,
-        geom_json: serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
-        fit_bounds: false,
-        user_name: "".to_string(),
-        martin_url: env::var("MARTIN_URL").unwrap(),
-    };
-
-    info_panel
+        "segment_name": segment_name,
+        "score_selector": ScoreSelector::get_score_selector(way.score.unwrap_or(-1.0)),
+        "comment": "".to_string(),
+        "edit": false,
+        "history": history,
+        "photo_ids": photo_ids,
+        "geom_json": serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
+        "fit_bounds": false,
+        "user_name": "".to_string(),
+        "martin_url": env::var("MARTIN_URL").unwrap(),
+    });
+    Json(json)
 }
 
 pub async fn select_score_id(
     State(state): State<VeloinfoState>,
     Path(id): Path<i32>,
-) -> SegmentPanel {
+) -> Json<JsonValue> {
     segment_panel_score_id(&state.conn, id, false).await
 }

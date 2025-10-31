@@ -128,11 +128,7 @@ class VeloinfoMap extends HTMLElement {
             }, 1000);
 
             const bounds = this.map.getBounds();
-            let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
-            let html = await r.text();
-            document.getElementById("info").innerHTML = html;
-            this.insertCitySnow();
-            htmx.process(document.getElementById("info"));
+            this.infoPanelUp();
         })
 
         let veloinfoMap = this;
@@ -161,23 +157,35 @@ class VeloinfoMap extends HTMLElement {
                     "zoom": + map.getZoom()
                 }
                 localStorage.setItem("position", JSON.stringify(position));
-                if (document.getElementById("info_panel_up")) {
-                    const bounds = map.getBounds();
-                    let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
-                    let html = await r.text();
-                    document.getElementById("info").innerHTML = html;
-                    htmx.process(document.getElementById("info"));
-                }
+                this.infoPanelUp();
             }, 1000);
 
         });
+    }
+
+    async infoPanelUp() {
+        const bounds = this.map.getBounds();
+        let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
+        let html = await r.text();
+        document.getElementById("info").innerHTML = html;
+        htmx.process(document.getElementById("info"));
+        setTimeout(() => {
+            document.querySelectorAll(".info_panel_contribution").forEach(element => {
+                element.addEventListener("click", async () => {
+                    let response = await fetch('/segment_panel/id/' + element.getAttribute("score_id"));
+                    let jsonData = await response.json();
+                    document.getElementById("info").innerHTML = `<segment-panel></segment-panel>`;
+                    document.querySelector('segment-panel').data = jsonData;
+                });
+            });
+        }, 10);
+
     }
 
     async insertCitySnow() {
         let r = await fetch("/city_snow_geojson");
         let geojson = await r.json();
 
-        console.log(geojson);
         if (!geojson.features) {
             if (this.map.getLayer("city_snow")) {
                 this.map.removeLayer("city_snow");
@@ -234,7 +242,10 @@ class VeloinfoMap extends HTMLElement {
 
         if (features.length) {
             var feature = features[0];
-            htmx.ajax('GET', '/segment_panel_lng_lat/' + event.lngLat.lng + "/" + event.lngLat.lat, "#info");
+            let response = await fetch('/segment_panel_lng_lat/' + event.lngLat.lng + "/" + event.lngLat.lat);
+            let jsonData = await response.json();
+            this.querySelector("#info").innerHTML = `<segment-panel></segment-panel>`;
+            this.querySelector("segment-panel").data = jsonData;
         } else {
             const selected = this.map.getSource("selected");
             if (selected) {
@@ -247,10 +258,8 @@ class VeloinfoMap extends HTMLElement {
                     }
                 });
             }
-            let r = await fetch('/point_panel_lng_lat/' + event.lngLat.lng + "/" + event.lngLat.lat);
-            let html = await r.text();
-            document.getElementById("info").innerHTML = html;
-            htmx.process(document.getElementById("info"));
+            let name = "";
+            this.querySelector("#info").innerHTML = `<point-panel name="${name}"></point-panel>`;
         }
     }
 
@@ -260,7 +269,10 @@ class VeloinfoMap extends HTMLElement {
         }
         this.end_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
-        var nodes = await htmx.ajax('GET', '/segment_panel_bigger/' + window.start_marker.getLngLat().lng + "/" + window.start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat, "#info");
+        let r = await fetch('/segment_panel_bigger/' + window.start_marker.getLngLat().lng + "/" + window.start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat);
+        let jsonData = await r.json();
+        this.querySelector("#info").innerHTML = `<segment-panel></segment-panel>`;
+        this.querySelector("segment-panel").data = jsonData;
     }
 
 
@@ -293,6 +305,12 @@ class VeloinfoMap extends HTMLElement {
         }
         if (this.map.getSource("searched_route")) {
             this.map.removeSource("searched_route");
+        }
+        if (this.map.getLayer("selected")) {
+            this.map.removeLayer("selected");
+        }
+        if (this.map.getSource("selected")) {
+            this.map.removeSource("selected");
         }
 
         // Display info panel

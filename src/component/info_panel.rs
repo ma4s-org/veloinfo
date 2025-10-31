@@ -8,6 +8,7 @@ use axum::extract::{Path, State};
 use chrono::Locale;
 use chrono_tz::America::Montreal;
 use futures::future::join_all;
+use serde::Serialize;
 use sqlx::types::chrono::Local;
 use sqlx::Postgres;
 use timeago;
@@ -20,7 +21,7 @@ pub struct InfoPanelTemplate {
     pub contributions: Vec<InfopanelContribution>,
 }
 
-#[derive(Template, Clone)]
+#[derive(Template, Clone, Serialize)]
 #[template(path = "info_panel_contribution.html", escape = "none")]
 pub struct InfopanelContribution {
     created_at: String,

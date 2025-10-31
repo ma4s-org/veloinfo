@@ -5,13 +5,7 @@
     "sources": {
         "veloinfo": {
             "type": "vector",
-            "url": "{{martin_url}}/bike_path",
-            "minzoom": 12
-        },
-        "veloinfo_far": {
-            "type": "vector",
-            "url": "{{martin_url}}/bike_path_far",
-            "maxzoom": 12
+            "url": "{{veloinfo_url}}/bike_path"
         },
         "landuse": {
             "type": "vector",
@@ -2550,14 +2544,6 @@
                         "kind"
                     ],
                     "cycleway"
-                ],
-                [
-                    "==",
-                    [
-                        "get",
-                        "is_conditionally_closed"
-                    ],
-                    false
                 ]
             ]
         },
@@ -2700,77 +2686,6 @@
             ]
         },
         {
-            "id": "designated_crossing",
-            "source": "veloinfo",
-            "source-layer": "bike_path",
-            "type": "line",
-            "minzoom": 12,
-            "paint": {
-                "line-color": [
-                    "case",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        -0.5
-                    ],
-                    "hsl(141, 100%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0
-                    ],
-                    "hsl(0, 100%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0.34
-                    ],
-                    "hsl(26, 79%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0.66
-                    ],
-                    "hsl(45, 93%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        1
-                    ],
-                    "hsl(141, 100%, 80%)",
-                    "hsl(141, 100%, 80%)"
-                ],
-                "line-width": 2,
-                "line-dasharray": [
-                    3,
-                    1
-                ]
-            },
-            "filter": [
-                "==",
-                [
-                    "get",
-                    "kind"
-                ],
-                "designated_crossing"
-            ]
-        },
-        {
             "id": "shared_lane",
             "source": "veloinfo",
             "source-layer": "bike_path",
@@ -2840,136 +2755,6 @@
                 ],
                 "shared_lane"
             ]
-        },
-        {
-            "id": "shared_lane_crossing",
-            "source": "veloinfo",
-            "source-layer": "bike_path",
-            "type": "line",
-            "minzoom": 12,
-            "paint": {
-                "line-color": [
-                    "case",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        -0.5
-                    ],
-                    "hsl(141, 100%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0
-                    ],
-                    "hsl(0, 100%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0.34
-                    ],
-                    "hsl(26, 79%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0.66
-                    ],
-                    "hsl(45, 93%, 80%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        1
-                    ],
-                    "hsl(141, 100%, 80%)",
-                    "hsl(141, 100%, 80%)"
-                ],
-                "line-width": 2,
-                "line-dasharray": [
-                    1,
-                    4
-                ]
-            },
-            "filter": [
-                "==",
-                [
-                    "get",
-                    "kind"
-                ],
-                "shared_lane_crossing"
-            ]
-        },
-        {
-            "id": "cycleway-zoom",
-            "source": "veloinfo_far",
-            "source-layer": "bike_path_far",
-            "type": "line",
-            "maxzoom": 12,
-            "paint": {
-                "line-color": [
-                    "case",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        -0.5
-                    ],
-                    "hsl(141, 100%, 17%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0
-                    ],
-                    "hsl(0, 100%, 27%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0.34
-                    ],
-                    "hsl(26, 79%, 43%)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        0.66
-                    ],
-                    "rgb(234 179 8)",
-                    [
-                        "<=",
-                        [
-                            "get",
-                            "score"
-                        ],
-                        1
-                    ],
-                    "hsl(141, 100%, 17%)",
-                    "hsl(141, 100%, 17%)"
-                ],
-                "line-width": 2
-            }
         },
         {
             "id": "Ocean labels",

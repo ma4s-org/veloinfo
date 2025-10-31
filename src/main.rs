@@ -1,5 +1,7 @@
 use crate::auth::auth;
 use crate::auth::logout;
+use crate::component::bike_path::bike_path;
+use crate::component::bike_path::bike_path_mvt;
 use crate::component::info_panel::info_panel_down;
 use crate::component::info_panel::info_panel_up;
 use crate::component::photo_scroll::photo_scroll;
@@ -27,7 +29,6 @@ use component::style::style;
 use db::city_snow::{city_snow_geojson, post_city_snow};
 use db::edge::Edge;
 use lazy_static::lazy_static;
-use score_selector_controler::score_selector_controler;
 use sqlx::PgPool;
 use std::env;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -121,6 +122,8 @@ async fn main() {
         )
         .route("/city_snow", post(post_city_snow))
         .route("/city_snow_geojson", get(city_snow_geojson))
+        .route("/bike_path", get(bike_path))
+        .route("/bike_path/{z}/{x}/{y}", get(bike_path_mvt))
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))
         .route("/search", post(search::post))
         .route(
@@ -135,7 +138,6 @@ async fn main() {
             "/cyclability_score/geom/{cyclability_score_id}",
             get(score_bounds_controler),
         )
-        .route("/score_selector/{score}", get(score_selector_controler))
         .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
         .route("/layers", get(layers::layers))

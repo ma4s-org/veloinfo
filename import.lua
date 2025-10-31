@@ -90,7 +90,14 @@ local all_way = osm2pgsql.define_way_table("all_way", {{
     type = 'boolean',
     not_null = true,
     default = false
-}})
+},
+indexes = {{
+        column = 'geom',
+        method = 'gist'
+    }, {column = 'tags',
+        method = 'gin'
+    }}
+})
 
 local landuse = osm2pgsql.define_table({
     name = 'landuse',

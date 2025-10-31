@@ -53,6 +53,8 @@ pub struct Edge {
     pub road_work: bool,
     pub is_conditionally_closed: bool,
     pub in_bicycle_route: bool,
+    pub city_name: Option<String>,
+    pub snow: Option<bool>,
 }
 
 impl Eq for Edge {}
@@ -124,23 +126,28 @@ impl EdgePoint {
         match sqlx::query_as(
             r#"SELECT
                 e.id,
-                source,
-                target,
-                score,
+                e.source,
+                e.target,
+                cs.score,
                 x1 as lon1,
                 y1 as lat1,
                 x2 as lon2,
                 y2 as lat2,
-                tags,
-                way_id,
-                in_bicycle_route,
-                is_conditionally_closed,
-                tags->>'name' as name, 
+                e.tags,
+                e.way_id,
+                e.in_bicycle_route,
+                e.is_conditionally_closed,
+                e.tags->>'name' as name, 
                 st_length(e.geom) as length,
-                rw.geom is not null as road_work
+                rw.geom is not null as road_work,
+                cs.score,
+                e.city_name,
+                case when csnow.city_name is not null then true else false end as snow
             FROM edge e
-            left join road_work rw on ST_Intersects(e.geom, rw.geom)
-            WHERE (source = $1 or target = $1)
+                left join road_work rw on ST_Intersects(e.geom, rw.geom)
+                left join last_cycleway_score cs on cs.way_id = e.way_id
+                left join city_snow csnow on csnow.city_name = e.city_name
+            WHERE (e.source = $1 or e.target = $1)
             "#,
         )
         .bind(node_id)
@@ -465,23 +472,27 @@ impl Edge {
         let edge: Result<Edge, _> = sqlx::query_as(
             r#"SELECT
                 e.id,
-                source,
-                target,
-                score,
+                e.source,
+                e.target,
                 x1 as lon1,
                 y1 as lat1,
                 x2 as lon2,
                 y2 as lat2,
-                tags,
-                way_id,
-                tags->>'name' as name, 
+                e.tags,
+                e.way_id,
+                e.tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
-                is_conditionally_closed,
-                in_bicycle_route
+                e.is_conditionally_closed,
+                in_bicycle_route,
+                cs.score,
+                e.city_name,
+                case when csnow.city_name is not null then true else false end as snow
             FROM edge e
-            left join road_work rw on ST_Intersects(e.geom, rw.geom)
-            WHERE source = $1 or target = $1"#,
+                left join road_work rw on ST_Intersects(e.geom, rw.geom)
+                left join  last_cycleway_score cs on cs.way_id = e.way_id
+                left join city_snow csnow on csnow.city_name = e.city_name
+            WHERE e.source = $1 or e.target = $1"#,
         )
         .bind(node_id)
         .fetch_one(conn)
@@ -501,6 +512,40 @@ impl Edge {
             }
             Err(e) => Err(e),
         }
+    }
+
+    pub async fn get_edge_by_city(
+        city_name: &str,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<Vec<Edge>, sqlx::Error> {
+        let edges: Vec<Edge> = sqlx::query_as(
+            r#"SELECT
+                e.id,
+                source,
+                target,
+                score,
+                x1 as lon1,
+                y1 as lat1,
+                x2 as lon2,
+                y2 as lat2,
+                tags,
+                way_id,
+                tags->>'name' as name, 
+                st_length(e.geom) as length,
+                rw.geom is not null as road_work,
+                is_conditionally_closed,
+                in_bicycle_route,
+                city_name,
+                snow
+            FROM edge e
+            left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            WHERE city_name = $1"#,
+        )
+        .bind(city_name)
+        .fetch_all(conn)
+        .await?;
+
+        Ok(edges)
     }
 
     pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
