@@ -11,7 +11,6 @@ import './web-components/VeloinfoInstallAndroid.js';
 import './web-components/MobilizonEvents.js';
 import './web-components/RouteDefine.js';
 import './web-components/VeloinfoMap.js';
-import './web-components/BikePath.js';
 import './web-components/SegmentPanel.js';
 import './web-components/PointPanel.js';
 import htmx from 'htmx.org';

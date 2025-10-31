@@ -2482,7 +2482,6 @@
             "source": "veloinfo",
             "source-layer": "bike_path",
             "type": "line",
-            "minzoom": 12,
             "paint": {
                 "line-color": [
                     "case",
