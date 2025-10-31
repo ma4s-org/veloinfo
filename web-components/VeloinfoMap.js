@@ -238,7 +238,6 @@ class VeloinfoMap extends HTMLElement {
                 [event.point.x - width / 2, event.point.y - width / 2],
                 [event.point.x + width / 2, event.point.y + width / 2]
             ], { layers: ['cycleway', 'designated', 'shared_lane'] });
-
         if (features.length) {
             var feature = features[0];
             let response = await fetch('/segment_panel_lng_lat/' + event.lngLat.lng + "/" + event.lngLat.lat);
@@ -247,6 +246,7 @@ class VeloinfoMap extends HTMLElement {
             this.querySelector("segment-panel").data = jsonData;
         } else {
             const selected = this.map.getSource("selected");
+
             if (selected) {
                 selected.setData({
                     "type": "Feature",
@@ -257,7 +257,27 @@ class VeloinfoMap extends HTMLElement {
                     }
                 });
             }
+
+            //we find the nearest name
             let name = "";
+            for (let i = 0; i < 1000; i = i + 10) {
+                var features = this.map.queryRenderedFeatures(
+                    [
+                        [event.point.x - i, event.point.y - i],
+                        [event.point.x + i, event.point.y + i]
+                    ], { layers: ['name', 'Road network', 'City labels', 'Town labels', 'Village labels'] });
+                features.forEach(f => {
+                    if (f.properties.name) {
+                        name = f.properties.name;
+                        i = 1000;
+                        return;
+                    }
+                });
+                if (name) {
+                    break;
+                }
+            }
+
             this.querySelector("#info").innerHTML = `<point-panel name="${name}"></point-panel>`;
             htmx.process(this.querySelector("#info"));
         }
