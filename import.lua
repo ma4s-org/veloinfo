@@ -1,102 +1,113 @@
 local bicycle_route_ways = {}
 
-local cycleway = osm2pgsql.define_way_table("cycleway_way", {{
-    column = 'name',
-    type = 'text'
-}, {
-    column = 'geom',
-    type = 'LineString',
-    not_null = true
-}, {
-    column = 'source',
-    type = 'int8',
-    not_null = true
-}, {
-    column = 'target',
-    type = 'int8',
-    not_null = true
-}, {
-    column = 'kind',
-    type = 'text',
-    not_null = true
-}, {
-    column = 'tags',
-    type = 'jsonb',
-    not_null = true
-}, {
-    column = 'is_conditionally_closed',
-    type = 'boolean',
-},{
-    column = 'nodes',
-    sql_type = 'int8[] NOT NULL'
-}})
-
-local cycleway_far = osm2pgsql.define_way_table("cycleway_way_far", {{
-    column = 'name',
-    type = 'text'
-}, {
-    column = 'geom',
-    type = 'LineString',
-    not_null = true
-}, {
-    column = 'source',
-    type = 'int8',
-    not_null = true
-}, {
-    column = 'target',
-    type = 'int8',
-    not_null = true
-}, {
-    column = 'kind',
-    type = 'text',
-    not_null = true
-}, {
-    column = 'tags',
-    type = 'jsonb',
-    not_null = true
-}, {
-    column = 'nodes',
-    sql_type = 'int8[] NOT NULL'
-}})
-
-local all_way = osm2pgsql.define_way_table("all_way", {{
-    column = 'name',
-    type = 'text'
-}, {
-    column = 'geom',
-    type = 'LineString',
-    not_null = true
-}, {
-    column = 'source',
-    type = 'int8',
-    not_null = true
-}, {
-    column = 'target',
-    type = 'int8',
-    not_null = true
-}, {
-    column = 'tags',
-    type = 'jsonb',
-    not_null = true
-}, {
-    column = 'nodes',
-    sql_type = 'int8[] NOT NULL'
-}, 
-{
-    column = 'is_conditionally_closed',
-    type = 'boolean',
-}, {
-    column = 'in_bicycle_route',
-    type = 'boolean',
-    not_null = true,
-    default = false
-},
-indexes = {{
+local cycleway = osm2pgsql.define_way_table("cycleway_way", {
+    {
+        column = 'name',
+        type = 'text'
+    }, {
         column = 'geom',
-        method = 'gist'
-    }, {column = 'tags',
-        method = 'gin'
-    }}
+        type = 'LineString',
+        not_null = true
+    }, {
+        column = 'source',
+        type = 'int8',
+        not_null = true
+    }, {
+        column = 'target',
+        type = 'int8',
+        not_null = true
+    }, {
+        column = 'kind',
+        type = 'text',
+        not_null = true
+    }, {
+        column = 'tags',
+        type = 'jsonb',
+        not_null = true
+    }, {
+        column = 'is_conditionally_closed',
+        type = 'boolean',
+    },{
+        column = 'nodes',
+        sql_type = 'int8[] NOT NULL'
+    }
+})
+
+local cycleway_far = osm2pgsql.define_way_table("cycleway_way_far", {
+    {
+        column = 'name',
+        type = 'text'
+    }, {
+        column = 'geom',
+        type = 'LineString',
+        not_null = true
+    }, {
+        column = 'source',
+        type = 'int8',
+        not_null = true
+    }, {
+        column = 'target',
+        type = 'int8',
+        not_null = true
+    }, {
+        column = 'kind',
+        type = 'text',
+        not_null = true
+    }, {
+        column = 'tags',
+        type = 'jsonb',
+        not_null = true
+    }, {
+        column = 'nodes',
+        sql_type = 'int8[] NOT NULL'
+    }
+})
+
+local all_way = osm2pgsql.define_table({
+    name = 'all_way',
+    ids = { type = 'way', id_column = 'way_id' },
+    columns = {
+    {
+        column = 'name',
+        type = 'text'
+    }, {
+        column = 'geom',
+        type = 'LineString',
+        not_null = true
+    }, {
+        column = 'source',
+        type = 'int8',
+        not_null = true
+    }, {
+        column = 'target',
+        type = 'int8',
+        not_null = true
+    }, {
+        column = 'tags',
+        type = 'jsonb',
+        not_null = true
+    }, {
+        column = 'nodes',
+        sql_type = 'int8[] NOT NULL'
+    },
+    {
+        column = 'is_conditionally_closed',
+        type = 'boolean',
+    }, {
+        column = 'in_bicycle_route',
+        type = 'boolean',
+        not_null = true,
+        default = false
+    }},
+    indexes = {
+        {
+            column = 'geom',
+            method = 'gist'
+        }, {
+            column = 'tags',
+            method = 'gin'
+        }
+    }
 })
 
 local landuse = osm2pgsql.define_table({
@@ -105,21 +116,22 @@ local landuse = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'multipolygon',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'landuse',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'multipolygon',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'landuse',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -132,21 +144,22 @@ local city = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'multipolygon',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'admin_level',
-        type = 'integer'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'multipolygon',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'admin_level',
+            type = 'integer'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -162,33 +175,34 @@ local landcover = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'multipolygon',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'landuse',
-        type = 'text'
-    }, {
-        column = 'natural',
-        type = 'text'
-    }, {
-        column = 'leisure',
-        type = 'text'
-    }, {
-        column = 'landcover',
-        type = 'text'
-    }, {
-        column = 'waterway',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'multipolygon',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'landuse',
+            type = 'text'
+        }, {
+            column = 'natural',
+            type = 'text'
+        }, {
+            column = 'leisure',
+            type = 'text'
+        }, {
+            column = 'landcover',
+            type = 'text'
+        }, {
+            column = 'waterway',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -201,30 +215,31 @@ local landcover_far = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'multipolygon',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'landuse',
-        type = 'text'
-    }, {
-        column = 'natural',
-        type = 'text'
-    }, {
-        column = 'leisure',
-        type = 'text'
-    }, {
-        column = 'landcover',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'multipolygon',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'landuse',
+            type = 'text'
+        }, {
+            column = 'natural',
+            type = 'text'
+        }, {
+            column = 'leisure',
+            type = 'text'
+        }, {
+            column = 'landcover',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -237,21 +252,22 @@ local water_name = osm2pgsql.define_table({
         type = 'node',
         id_column = 'node_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'point',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'place',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'point',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'place',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -264,21 +280,22 @@ local aeroway = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'LineString',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'aeroway',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'LineString',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'aeroway',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -291,30 +308,31 @@ local transportation = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'name_fr',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'LineString',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'tunnel',
-        type = 'text'
-    }, {
-        column = 'highway',
-        type = 'text'
-    }, {
-        column = 'railway',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'name_fr',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'LineString',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'tunnel',
+            type = 'text'
+        }, {
+            column = 'highway',
+            type = 'text'
+        }, {
+            column = 'railway',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -327,21 +345,22 @@ local building = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'multipolygon',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'building',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'multipolygon',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'building',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
@@ -354,58 +373,61 @@ local boundary = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'name',
-        type = 'text'
-    }, {
-        column = 'geom',
-        type = 'LineString',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'boundary',
-        type = 'text'
-    }, {
-        column = 'admin_level',
-        type = 'integer'
-    }},
+    columns = {
+        {
+            column = 'name',
+            type = 'text'
+        }, {
+            column = 'geom',
+            type = 'LineString',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'boundary',
+            type = 'text'
+        }, {
+            column = 'admin_level',
+            type = 'integer'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
     }}
 })
 
-local all_node = osm2pgsql.define_node_table('all_node', {{
-    column = 'name',
-    type = 'text'
-}, {
-    column = 'geom',
-    type = 'Point'
-}, {
-    column = 'tags',
-    type = 'jsonb'
-}, {
-    column = 'place',
-    type = 'text'
-}, {
-    column = 'amenity',
-    type = 'text'
-}, {
-    column = 'bicycle_parking',
-    type = 'text'
-}, {
-    column = 'capacity',
-    type = 'integer'
-}, {
-    column = 'shop',
-    type = 'text'
-}, {
-    column = 'network',
-    type = 'text'
-}})
+local all_node = osm2pgsql.define_node_table('all_node', {
+    {
+        column = 'name',
+        type = 'text'
+    }, {
+        column = 'geom',
+        type = 'Point'
+    }, {
+        column = 'tags',
+        type = 'jsonb'
+    }, {
+        column = 'place',
+        type = 'text'
+    }, {
+        column = 'amenity',
+        type = 'text'
+    }, {
+        column = 'bicycle_parking',
+        type = 'text'
+    }, {
+        column = 'capacity',
+        type = 'integer'
+    }, {
+        column = 'shop',
+        type = 'text'
+    }, {
+        column = 'network',
+        type = 'text'
+    }
+})
 
 local address = osm2pgsql.define_table({
     name = 'address',
@@ -413,57 +435,62 @@ local address = osm2pgsql.define_table({
         type = 'area',
         id_column = 'way_id'
     },
-    columns = {{
-        column = 'geom',
-        type = 'LineString',
-        not_null = true
-    }, {
-        column = 'tags',
-        type = 'jsonb',
-        not_null = true
-    }, {
-        column = 'housenumber1',
-        type = 'int8'
-    }, {
-        column = 'housenumber2',
-        type = 'int8'
-    }, {
-        column = 'odd_even',
-        type = 'text'
-    }},
+    columns = {
+        {
+            column = 'geom',
+            type = 'LineString',
+            not_null = true
+        }, {
+            column = 'tags',
+            type = 'jsonb',
+            not_null = true
+        }, {
+            column = 'housenumber1',
+            type = 'int8'
+        }, {
+            column = 'housenumber2',
+            type = 'int8'
+        }, {
+            column = 'odd_even',
+            type = 'text'
+        }},
     indexes = {{
         column = 'geom',
         method = 'gist'
     }}
 })
 
-local address_node = osm2pgsql.define_node_table('address_node', {{
-    column = 'geom',
-    type = 'Point'
-}, {
-    column = 'tags',
-    type = 'jsonb'
-}, {
-    column = 'city',
-    type = 'text'
-}, {
-    column = 'street',
-    type = 'text'
-}, {
-    column = 'housenumber',
-    type = 'integer'
-}})
+local address_node = osm2pgsql.define_node_table('address_node', {
+    {
+        column = 'geom',
+        type = 'Point'
+    }, {
+        column = 'tags',
+        type = 'jsonb'
+    }, {
+        column = 'city',
+        type = 'text'
+    }, {
+        column = 'street',
+        type = 'text'
+    }, {
+        column = 'housenumber',
+        type = 'integer'
+    }
+})
 
-local name = osm2pgsql.define_node_table('name', {{
-    column = 'geom',
-    type = 'Point'
-}, {
-    column = 'tags',
-    type = 'jsonb'
-}, {
-    column = 'name',
-    type = 'text'
-}})
+local name = osm2pgsql.define_node_table('name', {
+    {
+        column = 'geom',
+        type = 'Point'
+    }, {
+        column = 'tags',
+        type = 'jsonb'
+    }, {
+        column = 'name',
+        type = 'text'
+    }
+})
 
 function month_str_to_number(month_str)
     local months = {
