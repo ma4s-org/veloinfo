@@ -132,6 +132,9 @@ class RouteSearching extends HTMLElement {
                 }
             }
         }
+        if (this.map.getLayer("selected")) {
+            this.map.removeLayer("selected");
+        }
     }
 }
 
