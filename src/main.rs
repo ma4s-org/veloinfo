@@ -80,8 +80,8 @@ async fn main() {
         if std::path::Path::new("lock/import").exists() {
             std::fs::remove_file("lock/import").unwrap();
             import(&conn).await;
-            Edge::clear_cache_and_reload(&conn).await;
         }
+        Edge::clear_cache_and_reload(&conn).await;
         sched
             .add(
                 Job::new("0 0 7 * * *", move |_uuid, _l| {
