@@ -73,10 +73,6 @@ async fn main() {
     let state = VeloinfoState { conn: conn.clone() };
     sqlx::migrate!().run(&conn).await.unwrap();
 
-    if !dev {
-        Edge::clear_cache_and_reload(&conn).await;
-    }
-
     println!("Starting cron scheduler");
     let sched = JobScheduler::new().await.unwrap();
 
@@ -84,6 +80,7 @@ async fn main() {
         if std::path::Path::new("lock/import").exists() {
             std::fs::remove_file("lock/import").unwrap();
             import(&conn).await;
+            Edge::clear_cache_and_reload(&conn).await;
         }
         sched
             .add(
