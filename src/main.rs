@@ -85,9 +85,6 @@ async fn main() {
             std::fs::remove_file("lock/import").unwrap();
             import(&conn).await;
         }
-    }
-
-    if !dev {
         sched
             .add(
                 Job::new("0 0 7 * * *", move |_uuid, _l| {
