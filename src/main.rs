@@ -31,6 +31,7 @@ use db::edge::Edge;
 use lazy_static::lazy_static;
 use sqlx::PgPool;
 use std::env;
+use std::process::exit;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
@@ -80,14 +81,18 @@ async fn main() {
     let sched = JobScheduler::new().await.unwrap();
 
     if !dev {
+        if std::path::Path::new("lock/import").exists() {
+            std::fs::remove_file("lock/import").unwrap();
+            import(&conn).await;
+        }
+    }
+
+    if !dev {
         sched
             .add(
                 Job::new("0 0 7 * * *", move |_uuid, _l| {
-                    // tokio spawn
-                    let conn = conn.clone();
-                    tokio::spawn(async move {
-                        import(&conn).await;
-                    });
+                    std::fs::File::create("lock/import").unwrap();
+                    exit(0);
                 })
                 .unwrap(),
             )

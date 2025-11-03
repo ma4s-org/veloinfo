@@ -53,7 +53,6 @@ pub struct Edge {
     pub road_work: bool,
     pub is_conditionally_closed: bool,
     pub in_bicycle_route: bool,
-    pub city_name: Option<String>,
     pub snow: Option<bool>,
 }
 
@@ -141,7 +140,6 @@ impl EdgePoint {
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
                 cs.score,
-                e.city_name,
                 case when csnow.city_name is not null then true else false end as snow
             FROM edge e
                 left join road_work rw on ST_Intersects(e.geom, rw.geom)
@@ -486,7 +484,6 @@ impl Edge {
                 e.is_conditionally_closed,
                 in_bicycle_route,
                 cs.score,
-                e.city_name,
                 case when csnow.city_name is not null then true else false end as snow
             FROM edge e
                 left join road_work rw on ST_Intersects(e.geom, rw.geom)
@@ -535,7 +532,6 @@ impl Edge {
                 rw.geom is not null as road_work,
                 is_conditionally_closed,
                 in_bicycle_route,
-                city_name,
                 snow
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
