@@ -159,6 +159,7 @@ class VeloinfoMap extends HTMLElement {
                     "zoom": + map.getZoom()
                 }
                 localStorage.setItem("position", JSON.stringify(position));
+                that.infoPanelUp();
             }, 1000);
         });
     }
