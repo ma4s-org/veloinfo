@@ -93,6 +93,14 @@ pub async fn segment_panel_post(
         .map(|m| m.as_str().parse::<i64>().unwrap())
         .collect::<Vec<i64>>();
 
+    match photo.as_ref() {
+        Some(p) => match p.len() {
+            0 => photo = None,
+            _ => (),
+        },
+        None => (),
+    };
+
     let id = match CyclabilityScore::insert(
         &score,
         &Some(comment),
