@@ -77,22 +77,25 @@ async fn main() {
     let sched = JobScheduler::new().await.unwrap();
 
     if !dev {
-        if std::path::Path::new("lock/import").exists() {
-            std::fs::remove_file("lock/import").unwrap();
-            import(&conn).await;
-        }
-        Edge::clear_cache_and_reload(&conn).await;
-        sched
-            .add(
-                Job::new("0 0 7 * * *", move |_uuid, _l| {
-                    std::fs::File::create("lock/import").unwrap();
-                    exit(0);
-                })
-                .unwrap(),
-            )
-            .await
-            .unwrap();
-        sched.start().await.unwrap();
+        let conn = conn.clone();
+        tokio::spawn(async move {
+            if std::path::Path::new("lock/import").exists() {
+                std::fs::remove_file("lock/import").unwrap();
+                import(&conn).await;
+            }
+            Edge::clear_cache_and_reload(&conn).await;
+            sched
+                .add(
+                    Job::new("0 0 7 * * *", move |_uuid, _l| {
+                        std::fs::File::create("lock/import").unwrap();
+                        exit(0);
+                    })
+                    .unwrap(),
+                )
+                .await
+                .unwrap();
+            sched.start().await.unwrap();
+        });
     }
 
     let mut app = Router::new()

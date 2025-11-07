@@ -130,7 +130,7 @@ mod tests {
     use std::env;
 
     #[tokio::test]
-    async fn read_one_tile() {
+    async fn read_mtl_work() {
         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
             .await
             .unwrap();

@@ -127,7 +127,6 @@ impl EdgePoint {
                 e.id,
                 e.source,
                 e.target,
-                cs.score,
                 x1 as lon1,
                 y1 as lat1,
                 x2 as lon2,
@@ -544,10 +543,17 @@ impl Edge {
         Ok(edges)
     }
 
-    pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
+    pub async fn clear_nodes_cache(node_ids: Vec<i64>, conn: &sqlx::Pool<Postgres>) {
         for node_id in node_ids {
             NEIGHBORS_CACHE.lock().await.remove(node_id).await;
         }
+        let conn = conn.clone();
+        tokio::spawn(async move {
+            sqlx::query(r#"REFRESH MATERIALIZED VIEW last_cycleway_score"#)
+                .execute(&conn)
+                .await
+                .unwrap();
+        });
     }
 
     pub async fn clear_all_cache() {
@@ -562,8 +568,7 @@ impl Edge {
 
             let routes = vec![
                 (235888032, 177522966, "Sainte-Anne-de-Bellevue to Quebec"),
-                (26233313, 1870784004, "Montreal to Sherbrooke"),
-                (26233313, 2352518821, "Montreal to Mont-Tremblant"),
+                (2352518821, 1870784004, "Mont-Tremblant to Sherbrooke"),
             ];
 
             for (source, target, description) in routes {

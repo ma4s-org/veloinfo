@@ -57,7 +57,7 @@ pub async fn post_city_snow(
                 acc.push(e.target);
                 acc
             });
-            Edge::clear_nodes_cache(node_ids).await;
+            Edge::clear_nodes_cache(node_ids, &conn).await;
         }
         Err(e) => {
             eprintln!("Error clearing edge cache for city {}: {}", city_name, e);
