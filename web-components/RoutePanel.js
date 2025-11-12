@@ -75,10 +75,6 @@ class RoutePanel extends HTMLElement {
             },
                 "Road labels")
         }
-        console.log(safeCoordinates);
-        console.log(fastCoordinates);
-
-
 
         document.querySelector('veloinfo-map').clearDistanceCache();
         let veloinfoMap = document.querySelector('veloinfo-map');
@@ -106,7 +102,7 @@ class RoutePanel extends HTMLElement {
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg" 
                 style="display: flex; justify-content: center; flex-direction: column">
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding: 1em;">
-                    <md-filled-button hx-on:click="follow_route('safe')" hx-target="#info" style="--md-sys-color-primary: #c8dff5ff">
+                    <md-filled-button id="safe-route-btn" style="--md-sys-color-primary: #c8dff5ff">
                         <div style="font-weight: bold;">
                             Itinéraire sécurisé
                         </div>
@@ -115,7 +111,7 @@ class RoutePanel extends HTMLElement {
                         </div>
                         ${this.getAttribute('error')}
                     </md-filled-button>
-                    <md-filled-button hx-on:click="follow_route('fast')" hx-target="#info" style="--md-sys-color-primary: #ffcbfcff">
+                    <md-filled-button id="fast-route-btn"style="--md-sys-color-primary: #ffcbfcff">
                         <div style="font-weight: bold;">
                             Itinéraire rapide
                         </div>
@@ -125,10 +121,30 @@ class RoutePanel extends HTMLElement {
                         ${this.getAttribute('error')}
                     </md-filled-button>
                 </div>
-                <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()" hx-target="#info">annuler</md-filled-button>
+                <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding-bottom: 1em;">
+                    <md-filled-button id="cancel-btn">annuler</md-filled-button>
+                </div>
             </div>
         `;
         this.innerHTML = innerHTML;
+
+        this.querySelector('#safe-route-btn').addEventListener('click', () => {
+            let innerHTML = '<follow-panel route="safe" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>'
+            document.getElementById("info").innerHTML = innerHTML;
+        });
+        this.querySelector('#fast-route-btn').addEventListener('click', () => {
+            let innerHTML = '<follow-panel route="fast" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>'
+            document.getElementById("info").innerHTML = innerHTML;
+        });
+        // this.querySelector('#change-start-btn').addEventListener('click', () => {
+        //     let innerHTML = '<change-start></change-start>'
+        //     document.getElementById("info").innerHTML = innerHTML;
+        // });
+        this.querySelector('#cancel-btn').addEventListener('click', () => {
+            document.querySelector('veloinfo-map').clear();
+            document.getElementById("info").innerHTML = "";
+        });
+
         var bearing = document.querySelector('veloinfo-map').calculateBearing(
             safeCoordinates[0][0],
             safeCoordinates[0][1],
@@ -136,13 +152,6 @@ class RoutePanel extends HTMLElement {
             safeCoordinates[safeCoordinates.length - 1][1]);
         var bounds = document.querySelector('veloinfo-map').fitBounds(safeCoordinates);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
-
-
-        window.follow_route = (route) => {
-            let innerHTML = '<follow-panel route="' + route + '" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>'
-
-            document.getElementById("info").innerHTML = innerHTML;
-        };
     }
 }
 

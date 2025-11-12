@@ -128,6 +128,7 @@ class VeloinfoMap extends HTMLElement {
                 });
             }, 1000);
 
+            this.insertCitySnow();
             const bounds = this.map.getBounds();
             this.infoPanelUp();
         })
@@ -188,6 +189,8 @@ class VeloinfoMap extends HTMLElement {
     async insertCitySnow() {
         let r = await fetch("/city_snow_geojson");
         let geojson = await r.json();
+        console.log(geojson);
+
 
         if (!geojson.features) {
             if (this.map.getLayer("city_snow")) {
