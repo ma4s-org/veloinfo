@@ -231,8 +231,9 @@ impl CyclabilityScore {
         .flatten()
         .collect::<Vec<i64>>();
 
-        Edge::clear_nodes_cache(node_ids, &conn).await;
-
+        tokio::spawn(async move {
+            Edge::clear_nodes_cache(node_ids, &conn).await;
+        });
         Ok(id)
     }
 }
