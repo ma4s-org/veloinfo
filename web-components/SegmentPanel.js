@@ -99,7 +99,9 @@ class SegmentPanel extends HTMLElement {
         this.innerHTML = innerHTML;
         htmx.process(this);
 
+        let that = this;
         this.querySelector('#save')?.addEventListener('click', async (event) => {
+            that.querySelector('#save').disabled = true;
             let response = await fetch('/segment_panel', {
                 method: 'POST',
                 body: new FormData(this.querySelector('form'))
