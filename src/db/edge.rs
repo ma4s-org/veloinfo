@@ -549,7 +549,7 @@ impl Edge {
         }
         let conn = conn.clone();
         tokio::spawn(async move {
-            sqlx::query(r#"REFRESH MATERIALIZED VIEW last_cycleway_score"#)
+            sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY last_cycleway_score"#)
                 .execute(&conn)
                 .await
                 .unwrap();
