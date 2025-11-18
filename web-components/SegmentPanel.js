@@ -130,8 +130,10 @@ class SegmentPanel extends HTMLElement {
         let map = document.querySelector('veloinfo-map').map;
         var geom = JSON.parse(data.geom_json);
 
-        if (this.getAttribute('fit_bounds') == 'true') {
-            map.fitBounds(document.querySelector('veloinfo-map').fitBounds(geom[0]), { padding: window.innerHeight * .12 });
+        if (data.fit_bounds) {
+            console.log("fit");
+            let flattened = geom.reduce((acc, val) => acc.concat(val), []);
+            map.fitBounds(document.querySelector('veloinfo-map').fitBounds(flattened), { padding: window.innerHeight * .12 });
         }
         if (!window.start_marker) {
             window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
