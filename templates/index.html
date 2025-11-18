@@ -7,7 +7,29 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <script src="node_modules/htmx.org/dist/htmx.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "@material/web/": "/node_modules/@material/web/",
+                "lit": "/node_modules/lit/index.js",
+                "lit/": "/node_modules/lit/",
+                "tslib": "/node_modules/tslib/tslib.es6.js",
+                "@lit/reactive-element": "/node_modules/@lit/reactive-element/reactive-element.js",
+                "@lit/reactive-element/": "/node_modules/@lit/reactive-element/",
+                "lit-html": "/node_modules/lit-html/lit-html.js",
+                "lit-html/": "/node_modules/lit-html/",
+                "lit-element/": "/node_modules/lit-element/"
+            }
+        }
+    </script>
+    <script type="module">
+        import '@material/web/all.js';
+        import { styles as typescaleStyles } from '@material/web/typography/md-typescale-styles.js';
+        document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
+    </script>
+    <script src="node_modules/maplibre-gl/dist/maplibre-gl.js"></script>
     <link href="/node_modules/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="/web-components/VeloinfoMap.js" type="module"></script>
     <link href="/pub/index.css" rel="stylesheet" />
     <link href="/pub/veloinfo.css" rel="stylesheet" />
     <link href="/pub/webmanifest.json" rel="manifest" />
@@ -16,7 +38,6 @@
 
 </head>
 <veloinfo-map></veloinfo-map>
-<script src="/dist/index.js" type="module"></script>
 
 <!-- Matomo -->
 <script>

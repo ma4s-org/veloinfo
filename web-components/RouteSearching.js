@@ -1,5 +1,3 @@
-import htmx from "htmx.org";
-
 class RouteSearching extends HTMLElement {
     constructor() {
         super();

@@ -1,5 +1,3 @@
-import htmx from "htmx.org";
-
 class FollowPanel extends HTMLElement {
     constructor() {
         super();

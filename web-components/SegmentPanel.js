@@ -1,6 +1,3 @@
-import htmx from "htmx.org";
-
-
 class SegmentPanel extends HTMLElement {
     constructor() {
         super();

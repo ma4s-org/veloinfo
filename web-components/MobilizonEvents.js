@@ -1,6 +1,3 @@
-import { maplibregl } from "../index.js";
-import VeloinfoMap from "./VeloinfoMap.js";
-
 class MobilizonEvents extends HTMLElement {
     constructor() {
         super();

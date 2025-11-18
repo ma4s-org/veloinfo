@@ -15,7 +15,6 @@ RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
 
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
-RUN npm i -g esbuild
 
 FROM base as dev
 
@@ -37,7 +36,6 @@ FROM base as build
 COPY . .
 RUN mkdir -p /app/dist
 RUN npm i 
-RUN esbuild --bundle index.js --outfile=dist/index.js --format=esm
 RUN cargo build --release
 
 FROM debian as prod

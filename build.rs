@@ -20,26 +20,5 @@ fn main() -> std::io::Result<()> {
                 ))
             }
         })?;
-
-    Command::new("esbuild")
-        .args([
-            "--bundle",
-            "index.js",
-            "--outfile=dist/index.js",
-            "--format=esm",
-            "--sourcemap",
-        ])
-        .status()
-        .and_then(|status| {
-            if status.success() {
-                Ok(())
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to npm build",
-                ))
-            }
-        })?;
-
     Ok(())
 }
