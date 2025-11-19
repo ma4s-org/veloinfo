@@ -137,6 +137,10 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         return 1. / 0.0005;
     }
 
+    if edge.edge.tags.get("winter_service") == Some(&"no".to_string()) && edge.edge.snow {
+        return 1. / 0.0001;
+    }
+
     let mut cost: f64 = if edge.edge.tags.get("bicycle") == Some(&"no".to_string()) {
         return 1. / 0.0001;
     } else if edge.edge.tags.get("access") == Some(&"private".to_string())

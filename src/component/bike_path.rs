@@ -23,60 +23,65 @@ pub async fn bike_path_mvt(
         ),
         all_bike_paths AS (
             SELECT
-                t.geom,
-                t.tags,
-                COALESCE(s.score, 1) as score,
+                aw.geom,
+                aw.tags,
+                COALESCE(cscore.score, 1) as score,
+                cs.city_name IS NOT NULL as snow,
                 CASE
                     -- 1. Pistes dédiées (tracks, etc.)
                     WHEN 
-                        t.tags->>'highway' = 'cycleway' OR
-                        t.tags->>'cyclestreet' = 'yes' OR
-                        t.tags->>'cycleway' = 'track' OR
-                        t.tags->>'cycleway:left' = 'track' OR
-                        t.tags->>'cycleway:right' = 'track' OR
-                        t.tags->>'cycleway:both' = 'track'
-                    THEN CASE WHEN t.tags->>'cycleway' = 'crossing' THEN 'cycleway_crossing' ELSE 'cycleway' END
+                        aw.tags->>'highway' = 'cycleway' OR
+                        aw.tags->>'cyclestreet' = 'yes' OR
+                        aw.tags->>'cycleway' = 'track' OR
+                        aw.tags->>'cycleway:left' = 'track' OR
+                        aw.tags->>'cycleway:right' = 'track' OR
+                        aw.tags->>'cycleway:both' = 'track'
+                    THEN CASE WHEN aw.tags->>'cycleway' = 'crossing' THEN 'cycleway_crossing' ELSE 'cycleway' END
                     
                     -- 2. Voies désignées (partagées avec bus ou marquées sur le côté)
                     WHEN 
-                        t.tags->>'cycleway:left' = 'share_busway' OR
-                        t.tags->>'cycleway:right' = 'share_busway' OR
-                        t.tags->>'cycleway:both' = 'share_busway' OR
-                        t.tags->>'cycleway:right' = 'lane' OR
-                        t.tags->>'cycleway:left' = 'lane' OR
-                        t.tags->>'cycleway:both' = 'lane'
+                        aw.tags->>'cycleway:left' = 'share_busway' OR
+                        aw.tags->>'cycleway:right' = 'share_busway' OR
+                        aw.tags->>'cycleway:both' = 'share_busway' OR
+                        aw.tags->>'cycleway:right' = 'lane' OR
+                        aw.tags->>'cycleway:left' = 'lane' OR
+                        aw.tags->>'cycleway:both' = 'lane'
                     THEN 'designated'
                     
                     -- 3. Voies partagées (cas plus généraux)
                     WHEN 
-                        t.tags->>'cycleway' = 'shared_lane' OR
-                        (t.tags->>'cycleway' = 'lane' AND t.tags->>'cycleway:left' IS NULL AND t.tags->>'cycleway:right' IS NULL AND t.tags->>'cycleway:both' IS NULL) OR
-                        t.tags->>'cycleway:left' = 'shared_lane' OR
-                        t.tags->>'cycleway:left' = 'opposite_lane' OR
-                        t.tags->>'cycleway:right' = 'shared_lane' OR
-                        t.tags->>'cycleway:right' = 'opposite_lane' OR
-                        t.tags->>'cycleway:both' = 'shared_lane' OR
-                        (t.tags->>'highway' = 'footway' AND t.tags->>'bicycle' = 'yes')
+                        aw.tags->>'cycleway' = 'shared_lane' OR
+                        (aw.tags->>'cycleway' = 'lane' AND aw.tags->>'cycleway:left' IS NULL AND aw.tags->>'cycleway:right' IS NULL AND aw.tags->>'cycleway:both' IS NULL) OR
+                        aw.tags->>'cycleway:left' = 'shared_lane' OR
+                        aw.tags->>'cycleway:left' = 'opposite_lane' OR
+                        aw.tags->>'cycleway:right' = 'shared_lane' OR
+                        aw.tags->>'cycleway:right' = 'opposite_lane' OR
+                        aw.tags->>'cycleway:both' = 'shared_lane' OR
+                        (aw.tags->>'highway' = 'footway' AND aw.tags->>'bicycle' = 'yes')
                     THEN  'shared_lane'
                 END as kind
             FROM
-                all_way t
-            LEFT JOIN cyclability_score s ON t.way_id = ANY(s.way_ids)
+                all_way aw
+            LEFT JOIN cyclability_score cscore ON aw.way_id = ANY(cscore.way_ids)
+            LEFT JOIN city ON ST_Within(aw.geom, city.geom)
+            LEFT JOIN city_snow cs ON city.name = cs.city_name
         ),
         mvtgeom AS (
             SELECT
                 ST_AsMVTGeom(
-                    ST_Transform(t.geom, 3857),
+                    ST_Transform(abp.geom, 3857),
                     bounds.geom
                 ) AS geom,
-                t.tags,
-                t.score,
-                t.kind
+                abp.tags,
+                abp.score,
+                abp.kind,
+                abp.snow
             FROM
-                all_bike_paths t, bounds
+                all_bike_paths abp, bounds
             WHERE
-                t.kind IS NOT NULL AND
-                ST_Intersects(t.geom, ST_Transform(bounds.geom, 3857))
+                abp.kind IS NOT NULL AND
+                ST_Intersects(abp.geom, ST_Transform(bounds.geom, 3857)) AND
+                NOT (abp.snow AND COALESCE(abp.tags->>'winter_service', 'yes') = 'no')
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
         FROM mvtgeom;
@@ -120,7 +125,8 @@ pub async fn bike_path() -> impl IntoResponse {
                 "fields": {
                     "tags": "String",
                     "score": "Number",
-                    "kind": "String"
+                    "kind": "String",
+                    "snow": "Boolean"
                 },
                 "minzoom": 0,
                 "maxzoom": 22

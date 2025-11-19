@@ -53,7 +53,7 @@ pub struct Edge {
     pub road_work: bool,
     pub is_conditionally_closed: bool,
     pub in_bicycle_route: bool,
-    pub snow: Option<bool>,
+    pub snow: bool,
 }
 
 impl Eq for Edge {}
@@ -534,6 +534,8 @@ impl Edge {
                 snow
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            left join last_cycleway_score cs on cs.way_id = e.way_id
+            left join city_snow csnow on csnow.city_name = e.city_name
             WHERE city_name = $1"#,
         )
         .bind(city_name)
