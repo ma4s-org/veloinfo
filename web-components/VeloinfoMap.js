@@ -16,6 +16,7 @@ import '/web-components/VeloinfoMap.js';
 import '/web-components/SegmentPanel.js';
 import '/web-components/PointPanel.js';
 import '/web-components/ChangeStart.js';
+import '/web-components/vi-info.js';
 
 
 
@@ -189,20 +190,9 @@ class VeloinfoMap extends HTMLElement {
     async infoPanelUp() {
         const bounds = this.map.getBounds();
         let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
-        let html = await r.text();
-        document.getElementById("info").innerHTML = html;
-        htmx.process(document.getElementById("info"));
-        setTimeout(() => {
-            document.querySelectorAll(".info_panel_contribution").forEach(element => {
-                element.addEventListener("click", async () => {
-                    let response = await fetch('/segment_panel/id/' + element.getAttribute("score_id"));
-                    let jsonData = await response.json();
-                    document.getElementById("info").innerHTML = `<segment-panel></segment-panel>`;
-                    document.querySelector('segment-panel').data = jsonData;
-                });
-            });
-        }, 10);
-
+        let json = await r.json();
+        this.querySelector("#info").innerHTML = `<vi-info></vi-info>`
+        this.querySelector('vi-info').data = json;
     }
 
     async insertCitySnow() {
@@ -358,7 +348,11 @@ class VeloinfoMap extends HTMLElement {
         }
 
         // Display info panel
-        htmx.ajax("GET", "/info_panel/down", "#info");
+        let data = await (await fetch("/info_panel/down")).json();
+
+        this.querySelector("#info").innerHTML = `<vi-info></vi-info>`;
+        this.querySelector('vi-info').data = data;
+
     }
 
     async route() {

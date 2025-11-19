@@ -101,18 +101,22 @@ pub async fn segment_panel_post(
         None => (),
     };
 
+    let photo_path = match photo {
+        Some(_) => Some(IMAGE_DIR.to_string() + "/{}.jpeg"),
+        None => None,
+    };
+
+    let photo_path_thumbnail = match photo {
+        Some(_) => Some(IMAGE_DIR.to_string() + "/{}_thumbnail.jpeg"),
+        None => None,
+    };
+
     let id = match CyclabilityScore::insert(
         &score,
         &Some(comment),
         &way_ids_i64,
-        &match photo.as_ref() {
-            Some(_photo) => Some(IMAGE_DIR.to_string() + "/{}.jpeg"),
-            None => None,
-        },
-        &match photo.as_ref() {
-            Some(_photo) => Some(IMAGE_DIR.to_string() + "/{}_thumbnail.jpeg"),
-            None => None,
-        },
+        &photo_path,
+        &photo_path_thumbnail,
         user_id,
         &state.conn,
     )

@@ -50,8 +50,8 @@ WORKDIR /app
 COPY --from=build /app/target/release/veloinfo /app/veloinfo
 COPY --from=build /app/migrations /app/migrations
 COPY --from=build /app/pub /app/pub
-COPY --from=build /app/dist /app/dist
 COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/web-components /app/web-components
 COPY --from=build /app/import.sh /app/import.sh
 COPY --from=build /app/import.lua /app/import.lua
 COPY --from=build /usr/local/lib/libheif /usr/local/lib/libheif

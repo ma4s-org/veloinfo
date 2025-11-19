@@ -1,8 +1,6 @@
-use askama::Template;
 use serde::Serialize;
 
-#[derive(Template, Clone, Serialize)]
-#[template(path = "score_circle.html")]
+#[derive(Clone, Serialize)]
 pub struct ScoreCircle {
     pub score: f64,
 }

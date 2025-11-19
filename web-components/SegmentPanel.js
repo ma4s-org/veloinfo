@@ -109,8 +109,9 @@ class SegmentPanel extends HTMLElement {
             document.querySelector('segment-panel').data = data;
         });
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
-            let innerHTML = await fetch(`/info_panel/down`);
-            document.querySelector('#info').innerHTML = innerHTML;
+            let data = (await fetch(`/info_panel/down`)).json();
+            document.querySelector('#info').innerHTML = "<vi-info></vi-info>";
+            document.querySelector('vi-info').data = data;
             document.querySelector('veloinfo-map').clear();
             event.preventDefault();
         });
@@ -226,10 +227,12 @@ class InfopanelContribution extends HTMLElement {
         const timeago = this.getAttribute('timeago');
         const name = this.getAttribute('name');
         const photo_path_thumbnail = this.getAttribute('photo_path_thumbnail');
+        console.log(`photo_path_thumbnail ${photo_path_thumbnail}`);
+
         const user_name = this.getAttribute('user_name');
         const comment = this.getAttribute('comment');
         this.innerHTML = /*html*/`
-            <div class="flex cursor-pointer mb-2 mt-1" hx-get="/segment_panel/id/${score_id}" hx-target="#info">
+            <div id="contribution_${score_id}" style="cursor: pointer; display: flex; margin: 0.25rem 0;">
                 <score-circle score="${score}"></score-circle>
                 <div class="content-start w-full">
                     <div class="flex flex-row justify-between">
@@ -241,13 +244,21 @@ class InfopanelContribution extends HTMLElement {
                     </div>
                     <div class="font-bold text-sm">${name}</div>
                     <div class="flex flex-row">
-                        ${photo_path_thumbnail ? `<img class="w-8 h-8 mx-2 rounded-sm" src="${photo_path_thumbnail}" alt="photo">` : ''}    
+                        ${photo_path_thumbnail && photo_path_thumbnail !== "null" ? `<img style="width: 2rem; height: 2rem; margin: 0 0.5rem; border-radius: 0.125rem;" src="${photo_path_thumbnail}" alt="photo">` : ''}    
                         <div class="text-sm text-gray-600">${comment}</div>
                     </div>
                 </div>
             </div>
             <hr>        
         `;
+
+        this.querySelector(`#contribution_${score_id}`)?.addEventListener('click', async () => {
+            let r = await fetch(`/segment_panel/id/${score_id}`);
+            let data = await r.json();
+            document.querySelector('#info').innerHTML = '<segment-panel></segment-panel>';
+            document.querySelector('segment-panel').data = data;
+        })
+
     }
 }
 

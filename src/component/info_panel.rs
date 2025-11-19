@@ -2,9 +2,8 @@ use super::score_circle::ScoreCircle;
 use crate::db::cyclability_score::CyclabilityScore;
 use crate::db::user::User;
 use crate::VeloinfoState;
-use askama::Template;
-use askama_web::WebTemplate;
 use axum::extract::{Path, State};
+use axum::Json;
 use chrono::Locale;
 use chrono_tz::America::Montreal;
 use futures::future::join_all;
@@ -14,15 +13,13 @@ use sqlx::Postgres;
 use timeago;
 use timeago::languages::french::French;
 
-#[derive(Template, WebTemplate)]
-#[template(path = "info_panel.html", escape = "none")]
+#[derive(Clone, Serialize)]
 pub struct InfoPanelTemplate {
     pub arrow: String,
     pub contributions: Vec<InfopanelContribution>,
 }
 
-#[derive(Template, Clone, Serialize)]
-#[template(path = "info_panel_contribution.html", escape = "none")]
+#[derive(Clone, Serialize)]
 pub struct InfopanelContribution {
     created_at: String,
     timeago: String,
@@ -165,20 +162,22 @@ async fn get_name(names: &Option<Vec<Option<String>>>) -> String {
     }
 }
 
-pub async fn info_panel_down() -> InfoPanelTemplate {
+pub async fn info_panel_down() -> Json<InfoPanelTemplate> {
     InfoPanelTemplate {
         arrow: "▲".to_string(),
         contributions: Vec::new(),
     }
+    .into()
 }
 
 pub async fn info_panel_up(
     State(state): State<VeloinfoState>,
     Path((lng1, lat1, lng2, lat2)): Path<(f64, f64, f64, f64)>,
-) -> InfoPanelTemplate {
+) -> Json<InfoPanelTemplate> {
     let contributions = InfopanelContribution::get(lng1, lat1, lng2, lat2, &state.conn).await;
     InfoPanelTemplate {
         arrow: "▼".to_string(),
         contributions: contributions,
     }
+    .into()
 }
