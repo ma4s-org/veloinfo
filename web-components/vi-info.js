@@ -19,7 +19,7 @@ class ViInfo extends HTMLElement {
         </div>
         <div style="overflow: auto; height: 100%;">
           ${data.contributions?.map(contribution => /*html*/`
-                            <div style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">
+                            <div style="padding: 0.5rem;">
                                 <infopanel-contribution
                                     created_at="${contribution.created_at}"
                                     timeago="${contribution.timeago}"
