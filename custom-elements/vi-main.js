@@ -6,7 +6,7 @@ import '/custom-elements/FollowPanel.js';
 import '/custom-elements/RoutePanel.js';
 import RouteSearching from '/custom-elements/RouteSearching.js';
 import '/custom-elements/SearchInput.js';
-import '/custom-elements/VeloinfoMenu.js';
+import '/custom-elements/vi-menu.js';
 import '/custom-elements/VeloinfoInstallIos.js';
 import '/custom-elements/VeloinfoInstallAndroid.js';
 import '/custom-elements/vi-mobilizon-events.js';
@@ -27,7 +27,7 @@ class ViMain extends HTMLElement {
                 <search-input id="search"></search-input>
                 <div id="info">
                 </div>
-                <veloinfo-menu></veloinfo-menu>
+                <vi-menu></vi-menu>
                 <div id="buttons"
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
                     <div

@@ -1,4 +1,4 @@
-class VeloinfoMenu extends HTMLElement {
+class ViMenu extends HTMLElement {
     constructor() {
         super();
 
@@ -133,4 +133,4 @@ class VeloinfoMenu extends HTMLElement {
     }
 }
 
-customElements.define('veloinfo-menu', VeloinfoMenu);
+customElements.define('vi-menu', ViMenu);
