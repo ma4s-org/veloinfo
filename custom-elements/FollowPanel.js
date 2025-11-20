@@ -50,7 +50,7 @@ class FollowPanel extends HTMLElement {
                 return;
             }
             this.updatePosition();
-        }, 10_000);
+        }, 5_000);
         this.updatePosition();
     }
 
