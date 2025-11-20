@@ -87,24 +87,23 @@ class ViMain extends HTMLElement {
             dialog.show();
 
             this.querySelector('#snow_yes').onclick = async () => {
-                await fetch('/city_snow', {
+                await fetch('/city_snow_edit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: cityName, snow: true })
                 })
                 dialog.close();
-
-                document.querySelector('vi-main').insertCitySnow();
+                map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
             };
 
             this.querySelector('#snow_no').onclick = async () => {
-                await fetch('/city_snow', {
+                await fetch('/city_snow_edit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: cityName, snow: false })
                 });
                 dialog.close();
-                document.querySelector('vi-main').insertCitySnow();
+                map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
             };
 
         });
@@ -192,8 +191,6 @@ class ViMain extends HTMLElement {
                     }
                 });
             }, 1000);
-
-            this.insertCitySnow();
             const bounds = this.map.getBounds();
             this.infoPanelUp();
         })
@@ -238,44 +235,6 @@ class ViMain extends HTMLElement {
         let json = await r.json();
         this.querySelector("#info").innerHTML = `<vi-info></vi-info>`
         this.querySelector('vi-info').data = json;
-    }
-
-    async insertCitySnow() {
-        let r = await fetch("/city_snow_geojson");
-        let geojson = await r.json();
-        console.log(geojson);
-
-
-        if (!geojson.features) {
-            if (this.map.getLayer("city_snow")) {
-                this.map.removeLayer("city_snow");
-            }
-            if (this.map.getSource("city_snow")) {
-                this.map.removeSource("city_snow");
-            }
-            return;
-        }
-
-        if (this.map.getSource("city_snow")) {
-            this.map.getSource("city_snow").setData(geojson);
-        } else {
-            this.map.addSource("city_snow", {
-                "type": "geojson",
-                "data": geojson
-            });
-            this.map.addLayer({
-                "id": "city_snow",
-                "type": "fill",
-                "source": "city_snow",
-                "layout": {
-                    "visibility": "visible"
-                },
-                "paint": {
-                    "fill-opacity": 0.5,
-                    "fill-pattern": "snow"
-                }
-            }, "city");
-        }
     }
 
     async select(event) {

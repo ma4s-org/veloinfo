@@ -14,6 +14,7 @@ use crate::component::segment_panel::segment_panel_get;
 use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
+use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::score_bounds_controler;
 use askama::Template;
 use askama_web::WebTemplate;
@@ -26,7 +27,7 @@ use axum::routing::{get, Router};
 use component::layers;
 use component::route_panel::route;
 use component::style::style;
-use db::city_snow::{city_snow_geojson, post_city_snow};
+use db::city_snow::{city_snow_mvt, post_city_snow};
 use db::edge::Edge;
 use lazy_static::lazy_static;
 use sqlx::PgPool;
@@ -122,8 +123,9 @@ async fn main() {
             "/segment_panel_bigger/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
             get(segment_panel_bigger_route),
         )
-        .route("/city_snow", post(post_city_snow))
-        .route("/city_snow_geojson", get(city_snow_geojson))
+        .route("/city_snow_edit", post(post_city_snow))
+        .route("/city_snow", get(city_snow))
+        .route("/city_snow/{z}/{x}/{y}", get(city_snow_mvt))
         .route("/bike_path", get(bike_path))
         .route("/bike_path/{z}/{x}/{y}", get(bike_path_mvt))
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))

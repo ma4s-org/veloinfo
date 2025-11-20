@@ -7,6 +7,10 @@
             "type": "vector",
             "url": "{{veloinfo_url}}/bike_path"
         },
+        "city_snow": {
+            "type": "vector",
+            "url": "{{veloinfo_url}}/city_snow"
+        },
         "landuse": {
             "type": "vector",
             "url": "{{martin_url}}/landuse"
@@ -2755,6 +2759,19 @@
                 ],
                 "shared_lane"
             ]
+        },
+        {
+            "id": "city_snow",
+            "type": "fill",
+            "source": "city_snow",
+            "source-layer": "city_snow",
+            "layout": {
+                "visibility": "visible"
+            },
+            "paint": {
+                "fill-opacity": 0.5,
+                "fill-pattern": "snow"
+            }
         },
         {
             "id": "Ocean labels",

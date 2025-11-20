@@ -1,6 +1,13 @@
+use std::env;
+
 use crate::db::edge::Edge;
+use axum::body::Body;
+use axum::extract::Path;
+use axum::http::header;
+use axum::http::Response;
 use axum::response::IntoResponse;
 use axum::{extract::State, Json};
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
@@ -67,34 +74,85 @@ pub async fn post_city_snow(
     Json(payload)
 }
 
-pub async fn city_snow_geojson(State(state): State<VeloinfoState>) -> impl IntoResponse {
+pub async fn city_snow_mvt(
+    State(state): State<VeloinfoState>,
+    Path((z, x, y)): Path<(i32, i32, i32)>,
+) -> impl IntoResponse {
     let conn = &state.conn;
-    let geojson: serde_json::Value = match sqlx::query_scalar(
-        r#"SELECT
-                    jsonb_build_object(
-                        'type', 'FeatureCollection',
-                        'features', jsonb_agg(feature)
-                    )
-                FROM (
-                    SELECT
-                        jsonb_build_object(
-                            'type', 'Feature',
-                            'geometry', ST_AsGeoJSON(ST_Transform(c.geom, 4326))::jsonb,
-                            'properties', to_jsonb(c) - 'geom' || jsonb_build_object('snow', true)
-                        ) AS feature
-                    FROM city c
-                    INNER JOIN city_snow cs ON c.name = cs.city_name
-                ) AS features;
-            "#,
+    let tiles: Result<Option<Vec<u8>>, sqlx::Error> = sqlx::query_scalar(
+        r#"        
+        WITH
+        bounds AS (
+            SELECT ST_TileEnvelope($1, $2, $3) AS geom
+        ),
+        city_snow_data AS (
+            SELECT
+                city.name AS city_name,
+                city.geom,
+                (cs.city_name IS NOT NULL) AS snow
+            FROM
+                city
+            LEFT JOIN city_snow cs ON city.name = cs.city_name
+        ),
+        mvtgeom AS (
+            SELECT
+                ST_AsMVTGeom(
+                    ST_Transform(csd.geom, 3857),
+                    bounds.geom
+                ) AS geom,
+                csd.snow
+            FROM
+                city_snow_data csd, bounds
+            WHERE
+                csd.snow
+        )
+        SELECT ST_AsMVT(mvtgeom.*, 'city_snow', 4096, 'geom')
+        FROM mvtgeom;"#,
     )
+    .bind(z)
+    .bind(x)
+    .bind(y)
     .fetch_one(conn)
-    .await
-    {
-        Ok(geo) => geo,
+    .await;
+    match tiles {
+        Ok(Some(mvt)) => Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
+            .body(Body::from(mvt))
+            .unwrap()
+            .into_response(),
+        Ok(None) => Response::builder() // No tile found, return empty response
+            .status(StatusCode::NO_CONTENT)
+            .body(Body::empty())
+            .unwrap()
+            .into_response(),
         Err(e) => {
-            eprintln!("Error getting CitySnow GeoJSON: {}", e);
-            serde_json::json!({"type": "FeatureCollection", "features": []})
+            eprintln!("Error fetching tile: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Error fetching tile").into_response()
         }
-    };
-    Json(geojson)
+    }
+}
+
+pub async fn city_snow() -> impl IntoResponse {
+    let tilejson = serde_json::json!({
+        "tilejson": "3.0.0",
+        "name": "city_snow",
+        "tiles": [
+            format!("{}/city_snow/{{z}}/{{x}}/{{y}}", env::var("VELOINFO_URL").unwrap())
+        ],
+        "vector_layers": [
+            {
+                "id": "city_snow",
+                "fields": {
+                    "tags": "String",
+                    "score": "Number",
+                    "kind": "String",
+                    "snow": "Boolean"
+                },
+                "minzoom": 0,
+                "maxzoom": 22
+            }
+        ]
+    });
+    Json(tilejson)
 }
