@@ -4,20 +4,20 @@ class ViMenu extends HTMLElement {
 
         this.innerHTML = /*html*/ `
             <style>
-                veloinfo-menu {
+                vi-menu {
                     position: absolute;
                     top: 0.25em;
                     left: 0.25em;
                     z-index: 20;
                 }
 
-                veloinfo-menu md-menu-item img {
+                vi-menu md-menu-item img {
                     width: 1.5em;
                     height: 1.5em;
                     margin-right: 0.5em;
                 }
 
-                veloinfo-menu md-menu-item {
+                vi-menu md-menu-item {
                     width: 25em;
                 }
             </style>
