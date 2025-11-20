@@ -54,7 +54,7 @@ class ViMain extends HTMLElement {
                 </div>
                 <vi-mobilizon-events></vi-mobilizon-events>
             </div>
-            <md-dialog>
+            <md-dialog id="city_snow_dialog" >
                 <div slot="headline" id="headline">Neige au sol à <span class="city_name" style="font-weight: bold;"></span></div>
                 <div slot="content">
                     <p>Indiquez si vous avez de la neige au sol dans les endroits non déneigés</p>
@@ -73,13 +73,13 @@ class ViMain extends HTMLElement {
         this.addMap();
 
         this.querySelector('#snow_button').addEventListener('click', () => {
-            this.map;
+            let map = this.map;
 
             // Obtenir le point central du canvas de la carte
             const centerPoint = map.getCenter();
 
             // Récupérer les éléments au centre de la carte sur city
-            const dialog = this.querySelector('md-dialog');
+            const dialog = this.querySelector('#city_snow_dialog');
             const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
             const cityName = features[0].properties.name;
             dialog.querySelector('.city_name').textContent = cityName;
