@@ -94,6 +94,7 @@ class ViMain extends HTMLElement {
                 })
                 dialog.close();
                 map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
+                map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
             };
 
             this.querySelector('#snow_no').onclick = async () => {
@@ -104,6 +105,7 @@ class ViMain extends HTMLElement {
                 });
                 dialog.close();
                 map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
+                map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
             };
 
         });

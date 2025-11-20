@@ -3,7 +3,7 @@
     "id": "dataviz",
     "name": "Dataviz",
     "sources": {
-        "veloinfo": {
+        "bike_path": {
             "type": "vector",
             "url": "{{veloinfo_url}}/bike_path"
         },
@@ -2483,7 +2483,7 @@
         },
         {
             "id": "cycleway",
-            "source": "veloinfo",
+            "source": "bike_path",
             "source-layer": "bike_path",
             "minzoom": 10,
             "type": "line",
@@ -2553,7 +2553,7 @@
         },
         {
             "id": "cycleway_crossing",
-            "source": "veloinfo",
+            "source": "bike_path",
             "source-layer": "bike_path",
             "type": "line",
             "minzoom": 12,
@@ -2620,7 +2620,7 @@
         },
         {
             "id": "designated",
-            "source": "veloinfo",
+            "source": "bike_path",
             "source-layer": "bike_path",
             "type": "line",
             "minzoom": 12,
@@ -2691,7 +2691,7 @@
         },
         {
             "id": "shared_lane",
-            "source": "veloinfo",
+            "source": "bike_path",
             "source-layer": "bike_path",
             "type": "line",
             "minzoom": 12,
