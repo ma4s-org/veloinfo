@@ -2,25 +2,23 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
 }
 
-import '/web-components/SnowPanel.js';
-import '/web-components/FollowPanel.js';
-import '/web-components/RoutePanel.js';
-import '/web-components/RouteSearching.js';
-import '/web-components/SearchInput.js';
-import '/web-components/VeloinfoMenu.js';
-import '/web-components/VeloinfoInstallIos.js';
-import '/web-components/VeloinfoInstallAndroid.js';
-import '/web-components/MobilizonEvents.js';
-import '/web-components/RouteDefine.js';
-import '/web-components/VeloinfoMap.js';
-import '/web-components/SegmentPanel.js';
-import '/web-components/PointPanel.js';
-import '/web-components/ChangeStart.js';
-import '/web-components/vi-info.js';
+import '/custom-elements/FollowPanel.js';
+import '/custom-elements/RoutePanel.js';
+import RouteSearching from '/custom-elements/RouteSearching.js';
+import '/custom-elements/SearchInput.js';
+import '/custom-elements/VeloinfoMenu.js';
+import '/custom-elements/VeloinfoInstallIos.js';
+import '/custom-elements/VeloinfoInstallAndroid.js';
+import '/custom-elements/vi-mobilizon-events.js';
+import '/custom-elements/RouteDefine.js';
+import '/custom-elements/SegmentPanel.js';
+import '/custom-elements/PointPanel.js';
+import '/custom-elements/ChangeStart.js';
+import '/custom-elements/vi-info.js';
 
 
 
-class VeloinfoMap extends HTMLElement {
+class ViMain extends HTMLElement {
     constructor() {
         super();
         let innerHTML = /*html*/`
@@ -32,16 +30,16 @@ class VeloinfoMap extends HTMLElement {
                 <veloinfo-menu></veloinfo-menu>
                 <div id="buttons"
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
-                    <div 
+                    <div
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;"
                         hx-get="/layers" hx-target="#info" hx-swap="innerHTML">
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
-                    <div id="speed_container" 
-                        style="justify-content: center; align-items: center; width: 31px; height: 31px; 
-                                background-color: white; margin-top: 4px; padding: 4px; border-radius: 0.375rem; 
+                    <div id="speed_container"
+                        style="justify-content: center; align-items: center; width: 31px; height: 31px;
+                                background-color: white; margin-top: 4px; padding: 4px; border-radius: 0.375rem;
                                 border-width: 1px; border-color: rgb(209 213 219); display: none;">
-                        <div id="speed_value" 
+                        <div id="speed_value"
                             style="font-size: 1.2em; font-weight: bold; justify-content: center; align-items: center;">
                             0
                         </div>
@@ -54,15 +52,62 @@ class VeloinfoMap extends HTMLElement {
                         <img style="width: 24px; height: 24px;" src="/pub/snow.png">
                     </div>
                 </div>
-                <mobilizon-events></mobilizon-events>
-                <snow-panel></snow-panel>
+                <vi-mobilizon-events></vi-mobilizon-events>
             </div>
+            <md-dialog>
+                <div slot="headline" id="headline">Neige au sol à <span class="city_name" style="font-weight: bold;"></span></div>
+                <div slot="content">
+                    <p>Indiquez si vous avez de la neige au sol dans les endroits non déneigés</p>
+                </div>
+                <div slot="actions" style="display: flex; gap: 8px; justify-content: center;">
+                    <md-filled-button id="snow_yes">Neige</md-filled-button>
+                    <md-filled-button id="snow_no">Pas de neige</md-filled-button>
+                </div>
+            </md-dialog>
+
         `;
         this.innerHTML = innerHTML;
     }
 
     connectedCallback() {
         this.addMap();
+
+        this.querySelector('#snow_button').addEventListener('click', () => {
+            this.map;
+
+            // Obtenir le point central du canvas de la carte
+            const centerPoint = map.getCenter();
+
+            // Récupérer les éléments au centre de la carte sur city
+            const dialog = this.querySelector('md-dialog');
+            const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
+            const cityName = features[0].properties.name;
+            dialog.querySelector('.city_name').textContent = cityName;
+
+            dialog.show();
+
+            this.querySelector('#snow_yes').onclick = async () => {
+                await fetch('/city_snow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: cityName, snow: true })
+                })
+                dialog.close();
+
+                document.querySelector('vi-main').insertCitySnow();
+            };
+
+            this.querySelector('#snow_no').onclick = async () => {
+                await fetch('/city_snow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: cityName, snow: false })
+                });
+                dialog.close();
+                document.querySelector('vi-main').insertCitySnow();
+            };
+
+        });
     }
 
     addMap() {
@@ -357,11 +402,9 @@ class VeloinfoMap extends HTMLElement {
 
     async route() {
         let info = document.getElementById("info");
-        info.innerHTML = /*html*/`
-            <route-searching>
-            </route-searching>
-        `;
-        info.querySelector('route-searching').map = this.map;
+        let routeSearching = new RouteSearching(this.map);
+        info.innerHTML = ``;
+        info.appendChild(routeSearching);
     }
 
     fitBounds(geom) {
@@ -431,6 +474,5 @@ class VeloinfoMap extends HTMLElement {
     }
 }
 
-customElements.define('veloinfo-map', VeloinfoMap);
+customElements.define('vi-main', ViMain);
 
-export default VeloinfoMap;

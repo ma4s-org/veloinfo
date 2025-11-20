@@ -24,7 +24,7 @@ class ChangeStart extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector('#cancel-btn').addEventListener('click', () => {
-            document.querySelector('veloinfo-map').clear();
+            document.querySelector('vi-main').clear();
         });
     }
 }

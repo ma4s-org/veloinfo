@@ -1,4 +1,4 @@
-class MobilizonEvents extends HTMLElement {
+class ViMobilizonEvents extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
@@ -103,7 +103,7 @@ class MobilizonEvents extends HTMLElement {
                     const dateStr = beginsDate.toLocaleDateString('fr-FR', options);
                     const hourStr = beginsDate.getHours() + "h";
                     const formattedDate = `${dateStr} à ${hourStr}`;
-                    let map = document.querySelector('veloinfo-map').map;
+                    let map = document.querySelector('vi-main').map;
                     const marker = new maplibregl.Marker({ element: el })
                         .setLngLat([coords[0], coords[1]])
                         .setPopup(new maplibregl.Popup({ offset: 25 })
@@ -127,7 +127,7 @@ class MobilizonEvents extends HTMLElement {
                             window.start_marker = null;
                         } window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
-                        document.querySelector('veloinfo-map').route();
+                        document.querySelector('vi-main').route();
                     }
                     marker.getPopup().on('open', () => {
                         const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
@@ -150,4 +150,4 @@ class MobilizonEvents extends HTMLElement {
     }
 }
 
-customElements.define('mobilizon-events', MobilizonEvents);
+customElements.define('vi-mobilizon-events', ViMobilizonEvents);

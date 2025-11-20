@@ -111,13 +111,13 @@ class SegmentPanel extends HTMLElement {
             let data = (await fetch(`/info_panel/down`)).json();
             document.querySelector('#info').innerHTML = "<vi-info></vi-info>";
             document.querySelector('vi-info').data = data;
-            document.querySelector('veloinfo-map').clear();
+            document.querySelector('vi-main').clear();
             event.preventDefault();
         });
 
         if (!data.edit) {
             this.querySelector('#route_md').onclick = () => {
-                document.querySelector('veloinfo-map').route();
+                document.querySelector('vi-main').route();
             };
             this.querySelector('#edit_md').onclick = async () => {
                 let r = await fetch(`/segment_panel/edit/ways/${data.way_ids}`);
@@ -127,13 +127,13 @@ class SegmentPanel extends HTMLElement {
             };
         }
 
-        let map = document.querySelector('veloinfo-map').map;
+        let map = document.querySelector('vi-main').map;
         var geom = JSON.parse(data.geom_json);
 
         if (data.fit_bounds) {
             console.log("fit");
             let flattened = geom.reduce((acc, val) => acc.concat(val), []);
-            map.fitBounds(document.querySelector('veloinfo-map').fitBounds(flattened), { padding: window.innerHeight * .12 });
+            map.fitBounds(document.querySelector('vi-main').fitBounds(flattened), { padding: window.innerHeight * .12 });
         }
         if (!window.start_marker) {
             window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
@@ -226,7 +226,6 @@ class InfopanelContribution extends HTMLElement {
         const timeago = this.getAttribute('timeago');
         const name = this.getAttribute('name');
         const photo_path_thumbnail = this.getAttribute('photo_path_thumbnail');
-        console.log(`photo_path_thumbnail ${photo_path_thumbnail}`);
 
         const user_name = this.getAttribute('user_name');
         const comment = this.getAttribute('comment');

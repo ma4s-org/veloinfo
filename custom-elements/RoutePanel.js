@@ -5,7 +5,7 @@ class RoutePanel extends HTMLElement {
 
         const safeCoordinates = coordinates[0];
         const fastCoordinates = coordinates[1];
-        let map = document.querySelector('veloinfo-map').map;
+        let map = document.querySelector('vi-main').map;
         if (map.getLayer("selected_safe")) {
             map.getSource("selected_safe").setData({
                 "type": "Feature",
@@ -76,8 +76,8 @@ class RoutePanel extends HTMLElement {
                 "Road labels")
         }
 
-        document.querySelector('veloinfo-map').clearDistanceCache();
-        let veloinfoMap = document.querySelector('veloinfo-map');
+        document.querySelector('vi-main').clearDistanceCache();
+        let veloinfoMap = document.querySelector('vi-main');
         let totalDistanceSafe = veloinfoMap.calculateTotalDistance(safeCoordinates).toFixed(1);
         veloinfoMap.clearDistanceCache();
         let totalDistanceFast = veloinfoMap.calculateTotalDistance(fastCoordinates).toFixed(1);
@@ -141,16 +141,16 @@ class RoutePanel extends HTMLElement {
         //     document.getElementById("info").innerHTML = innerHTML;
         // });
         this.querySelector('#cancel-btn').addEventListener('click', () => {
-            document.querySelector('veloinfo-map').clear();
+            document.querySelector('vi-main').clear();
             document.getElementById("info").innerHTML = "";
         });
 
-        var bearing = document.querySelector('veloinfo-map').calculateBearing(
+        var bearing = document.querySelector('vi-main').calculateBearing(
             safeCoordinates[0][0],
             safeCoordinates[0][1],
             safeCoordinates[safeCoordinates.length - 1][0],
             safeCoordinates[safeCoordinates.length - 1][1]);
-        var bounds = document.querySelector('veloinfo-map').fitBounds(safeCoordinates);
+        var bounds = document.querySelector('vi-main').fitBounds(safeCoordinates);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
     }
 }

@@ -1,6 +1,7 @@
-class RouteSearching extends HTMLElement {
-    constructor() {
+export default class RouteSearching extends HTMLElement {
+    constructor(map) {
         super();
+        this.map = map;
         let innerHTML = /*html*/`
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
@@ -12,7 +13,7 @@ class RouteSearching extends HTMLElement {
                     </p>
                 </div>
                 <div class="flex justify-center">
-                        <md-filled-button hx-on:click="document.querySelector('veloinfo-map').clear()" hx-target="#info">
+                        <md-filled-button hx-on:click="document.querySelector('vi-main').clear()" hx-target="#info">
                             annuler
                         </md-filled-button>
                 </div>
@@ -89,14 +90,14 @@ class RouteSearching extends HTMLElement {
                 }
             });
         }
-        let calculateBearing = document.querySelector('veloinfo-map').calculateBearing;
+        let calculateBearing = document.querySelector('vi-main').calculateBearing;
         var bearing = calculateBearing(
             start.coords.longitude,
             start.coords.latitude,
             end.lng,
             end.lat
         );
-        let fitBounds = document.querySelector('veloinfo-map').fitBounds;
+        let fitBounds = document.querySelector('vi-main').fitBounds;
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
         this.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 

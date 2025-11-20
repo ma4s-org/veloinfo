@@ -61,7 +61,7 @@ class SearchInput extends HTMLElement {
 
     search(event) {
         setTimeout(async () => {
-            let map = document.querySelector('veloinfo-map').map;
+            let map = document.querySelector('vi-main').map;
             this.query = this.querySelector("#query").value;
             if (!this.query) {
                 this.displayHistory();
@@ -160,7 +160,7 @@ class SearchResult extends HTMLElement {
     }
 
     async clickSearchResult() {
-        let map = document.querySelector('veloinfo-map').map;
+        let map = document.querySelector('vi-main').map;
         let lng = this.getAttribute("lng");
         let lat = this.getAttribute("lat");
         // Stocker la cible dans le localStorage

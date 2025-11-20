@@ -21,10 +21,10 @@ class PointPanel extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector("#route_button").addEventListener("click", () => {
-            document.querySelector('veloinfo-map').route();
+            document.querySelector('vi-main').route();
         });
         this.querySelector("#cancel_button").addEventListener("click", () => {
-            document.querySelector('veloinfo-map').clear();
+            document.querySelector('vi-main').clear();
         });
     }
 }

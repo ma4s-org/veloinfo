@@ -145,7 +145,7 @@ async fn main() {
         .route("/layers", get(layers::layers))
         .nest_service("/dist/", ServeDir::new("dist"))
         .nest_service("/pub/", ServeDir::new("pub"))
-        .nest_service("/web-components/", ServeDir::new("web-components"))
+        .nest_service("/custom-elements/", ServeDir::new("custom-elements"))
         .nest_service("/images/", ServeDir::new(IMAGE_DIR.as_str()))
         .nest_service("/node_modules/", ServeDir::new("node_modules"))
         .with_state(state)
