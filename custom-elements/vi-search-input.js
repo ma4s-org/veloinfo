@@ -31,12 +31,12 @@ class SearchInput extends HTMLElement {
             </div>
 
             <style>
-                search-input {
+                vi-search-input {
                     justify-content: center;
                     display: flex;
                 }
 
-                search-input #top {
+                vi-search-input #top {
                     display: flex;
                     justify-content: center;
                     z-index: 10;
@@ -44,7 +44,7 @@ class SearchInput extends HTMLElement {
                     top: 0.88rem;
                     flex-direction: column;
                 }
-                search-input #query {
+                vi-search-input #query {
                     outline: solid;
                     text-align: center;
                     border-radius: 0.5rem;
@@ -116,7 +116,7 @@ class SearchInput extends HTMLElement {
 
 }
 
-customElements.define('search-input', SearchInput, {});
+customElements.define('vi-search-input', SearchInput, {});
 
 class SearchResult extends HTMLElement {
     constructor() {
@@ -188,7 +188,7 @@ class SearchResult extends HTMLElement {
         }
         window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
 
-        const searchInput = this.closest('search-input');
+        const searchInput = this.closest('vi-search-input');
         if (searchInput) {
             const searchResults = searchInput.querySelector("#search_results");
             if (searchResults) {

@@ -11,12 +11,12 @@ class RouteDefine extends HTMLElement {
     render() {
         let innerHTML = /*html*/ `
             <style>
-                route-define search-input {
+                route-define vi-search-input {
                     justify-content: center;
                     display: flex;
                 }
-
-                route-define search-input #top {
+                
+                route-define vi-search-input #top {
                     display: flex;
                     justify-content: center;
                     z-index: 10;
@@ -26,7 +26,7 @@ class RouteDefine extends HTMLElement {
                     flex-direction: column;
                 }
 
-                route-define search-input #query {
+                route-define vi-search-input #query {
                     outline: solid;
                     text-align: center;
                     border-radius: 0.5rem;
@@ -36,7 +36,7 @@ class RouteDefine extends HTMLElement {
             </style>
             <div class="absolute w-full overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 Vous partez de votre position actuelle ou vous pouvez entrer le point de départ : <br>
-                <search-input></search-input>
+                <vi-search-input></vi-search-input>
                 <div class="flex justify-center">
                     <md-filled-button hx-on:click="defineRoute()" hx-target="#info">définir l'itinéraire</md-filled-button>
                 </div>

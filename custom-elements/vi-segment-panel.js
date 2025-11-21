@@ -1,6 +1,7 @@
 class SegmentPanel extends HTMLElement {
-    constructor() {
+    constructor(data) {
         super();
+        this.data = data;
     }
 
     set data(data) {
@@ -104,8 +105,9 @@ class SegmentPanel extends HTMLElement {
             });
             event.preventDefault();
             let data = await response.json();
-            document.querySelector('#info').innerHTML = "<segment-panel></segment-panel>";
-            document.querySelector('segment-panel').data = data;
+            let segment_panel = new SegmentPanel(data);
+            document.querySelector('#info').innerHTML = "";
+            document.querySelector('#info').appendChild(segment_panel);
         });
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
             let data = (await fetch(`/info_panel/down`)).json();
@@ -122,8 +124,9 @@ class SegmentPanel extends HTMLElement {
             this.querySelector('#edit_md').onclick = async () => {
                 let r = await fetch(`/segment_panel/edit/ways/${data.way_ids}`);
                 let dataJson = await r.json();
-                document.querySelector('#info').innerHTML = '<segment-panel></segment-panel>';
-                document.querySelector('segment-panel').data = dataJson;
+                let segment_panel = new SegmentPanel(dataJson);
+                document.querySelector('#info').innerHTML = '';
+                document.querySelector('#info').appendChild(segment_panel);
             };
         }
 
@@ -177,8 +180,8 @@ class SegmentPanel extends HTMLElement {
         }
     }
 }
-
-customElements.define('segment-panel', SegmentPanel);
+export default SegmentPanel;
+customElements.define('vi-segment-panel', SegmentPanel);
 
 class ScoreCircle extends HTMLElement {
     constructor() {
@@ -252,8 +255,9 @@ class InfopanelContribution extends HTMLElement {
         this.querySelector(`#contribution_${score_id}`)?.addEventListener('click', async () => {
             let r = await fetch(`/segment_panel/id/${score_id}`);
             let data = await r.json();
-            document.querySelector('#info').innerHTML = '<segment-panel></segment-panel>';
-            document.querySelector('segment-panel').data = data;
+            let segment_panel = new SegmentPanel(data);
+            document.querySelector('#info').innerHTML = '';
+            document.querySelector('#info').appendChild(segment_panel);
         })
 
     }

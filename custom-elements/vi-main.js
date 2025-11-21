@@ -5,13 +5,13 @@ if ("serviceWorker" in navigator) {
 import '/custom-elements/FollowPanel.js';
 import '/custom-elements/RoutePanel.js';
 import RouteSearching from '/custom-elements/vi-route-searching.js';
-import '/custom-elements/SearchInput.js';
+import '/custom-elements/vi-search-input.js';
 import '/custom-elements/vi-menu.js';
 import '/custom-elements/vi-install-ios.js';
 import '/custom-elements/vi-install-android.js';
 import '/custom-elements/vi-mobilizon-events.js';
 import '/custom-elements/RouteDefine.js';
-import '/custom-elements/SegmentPanel.js';
+import SegmentPanel from '/custom-elements/vi-segment-panel.js';
 import '/custom-elements/PointPanel.js';
 import '/custom-elements/ChangeStart.js';
 import '/custom-elements/vi-info.js';
@@ -24,7 +24,7 @@ class ViMain extends HTMLElement {
         let innerHTML = /*html*/`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
-                <search-input id="search"></search-input>
+                <vi-search-input id="search"></vi-search-input>
                 <div id="info">
                 </div>
                 <vi-menu></vi-menu>
@@ -264,8 +264,9 @@ class ViMain extends HTMLElement {
             var feature = features[0];
             let response = await fetch('/segment_panel_lng_lat/' + event.lngLat.lng + "/" + event.lngLat.lat);
             let jsonData = await response.json();
-            this.querySelector("#info").innerHTML = `<segment-panel></segment-panel>`;
-            this.querySelector("segment-panel").data = jsonData;
+            let segment_panel = new SegmentPanel(jsonData);
+            this.querySelector("#info").innerHTML = ``;
+            this.querySelector("#info").appendChild(segment_panel);
         } else {
             const selected = this.map.getSource("selected");
 
@@ -313,8 +314,9 @@ class ViMain extends HTMLElement {
 
         let r = await fetch('/segment_panel_bigger/' + window.start_marker.getLngLat().lng + "/" + window.start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat);
         let jsonData = await r.json();
-        this.querySelector("#info").innerHTML = `<segment-panel></segment-panel>`;
-        this.querySelector("segment-panel").data = jsonData;
+        let segment_panel = new SegmentPanel(jsonData);
+        this.querySelector("#info").innerHTML = ``;
+        this.querySelector("#info").appendChild(segment_panel);
     }
 
 
