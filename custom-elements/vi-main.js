@@ -4,7 +4,7 @@ if ("serviceWorker" in navigator) {
 
 import '/custom-elements/FollowPanel.js';
 import '/custom-elements/RoutePanel.js';
-import RouteSearching from '/custom-elements/RouteSearching.js';
+import RouteSearching from '/custom-elements/vi-route-searching.js';
 import '/custom-elements/SearchInput.js';
 import '/custom-elements/vi-menu.js';
 import '/custom-elements/VeloinfoInstallIos.js';
@@ -363,7 +363,7 @@ class ViMain extends HTMLElement {
 
     async route() {
         let info = document.getElementById("info");
-        let routeSearching = new RouteSearching(this.map);
+        let routeSearching = new RouteSearching(this);
         info.innerHTML = ``;
         info.appendChild(routeSearching);
     }

@@ -1,7 +1,7 @@
 export default class RouteSearching extends HTMLElement {
-    constructor(map) {
+    constructor(viMain) {
         super();
-        this.map = map;
+        this.viMain = viMain;
         let innerHTML = /*html*/`
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
@@ -13,7 +13,7 @@ export default class RouteSearching extends HTMLElement {
                     </p>
                 </div>
                 <div class="flex justify-center">
-                        <md-filled-button hx-on:click="document.querySelector('vi-main').clear()" hx-target="#info">
+                        <md-filled-button hx-on:click="this.viMain.clear()" hx-target="#info">
                             annuler
                         </md-filled-button>
                 </div>
@@ -58,16 +58,16 @@ export default class RouteSearching extends HTMLElement {
 
         var end = window.start_marker.getLngLat();
         // get the position of the device
-        document.getElementById("search_position_dialog").removeAttribute("style");
-        document.getElementById("search_position_dialog").setAttribute("open", "true");
+        this.querySelector("#search_position_dialog").removeAttribute("style");
+        this.querySelector("#search_position_dialog").setAttribute("open", "true");
         var start = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition((position) => {
                 resolve(position);
-                document.getElementById("search_position_dialog").removeAttribute("open");
+                this.querySelector("#search_position_dialog").removeAttribute("open");
             });
         });
-        if (this.map.getSource("searched_route") == null) {
-            this.map.addSource("searched_route", {
+        if (this.viMain.map.getSource("searched_route") == null) {
+            this.viMain.map.addSource("searched_route", {
                 "type": "geojson",
                 "data": {
                     "type": "Feature",
@@ -78,7 +78,7 @@ export default class RouteSearching extends HTMLElement {
                     }
                 }
             });
-            this.map.addLayer({
+            this.viMain.map.addLayer({
                 'id': 'searched_route',
                 'source': 'searched_route',
                 'type': 'line',
@@ -90,27 +90,27 @@ export default class RouteSearching extends HTMLElement {
                 }
             });
         }
-        let calculateBearing = document.querySelector('vi-main').calculateBearing;
+        let calculateBearing = this.viMain.calculateBearing;
         var bearing = calculateBearing(
             start.coords.longitude,
             start.coords.latitude,
             end.lng,
             end.lat
         );
-        let fitBounds = document.querySelector('vi-main').fitBounds;
+        let fitBounds = this.viMain.fitBounds;
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
-        this.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
+        this.viMain.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
         this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
         let coordinates = [];
         this.socket.onmessage = async (event) => {
             if (event.data.startsWith("<route-panel")) {
                 this.socket.close();
-                this.map.removeLayer("searched_route");
-                this.map.removeSource("searched_route");
+                this.viMain.map.removeLayer("searched_route");
+                this.viMain.map.removeSource("searched_route");
                 coordinates = [];
-                document.getElementById("info").innerHTML = event.data;
-                htmx.process(document.getElementById("info"));
+                this.viMain.querySelector("#info").innerHTML = event.data;
+                htmx.process(this.viMain.querySelector("#info"));
                 return;
             } else {
                 if (coordinates.length > 10000) {
@@ -127,14 +127,14 @@ export default class RouteSearching extends HTMLElement {
                         }
 
                     };
-                    this.map.getSource("searched_route").setData(data);
+                    this.viMain.map.getSource("searched_route").setData(data);
                 }
             }
         }
-        if (this.map.getLayer("selected")) {
-            this.map.removeLayer("selected");
+        if (this.viMain.map.getLayer("selected")) {
+            this.viMain.map.removeLayer("selected");
         }
     }
 }
 
-customElements.define('route-searching', RouteSearching);
+customElements.define('vi-route-searching', RouteSearching);

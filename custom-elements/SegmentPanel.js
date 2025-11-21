@@ -16,8 +16,8 @@ class SegmentPanel extends HTMLElement {
                 <form>
                     <score-selector score="${data.score_selector.score}" category="${data.score_selector.category}"></score-selector>
                     <input type="hidden" name="way_ids" value="${data.way_ids}">
-                    <input type="text" name="user_name" style="border: 2px solid;" placeholder="Nom" value="${data.user_name}">
-                    <textarea rows="4" cols="50" name="comment" style="border: 2px solid;" placeholder="Commentaire"></textarea>
+                    <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
+                    <textarea rows="4" cols="50" name="comment" style="border: 2px solid; border-color: #80808099;" placeholder="Commentaire"></textarea>
                     <div style="text-transform: uppercase; margin: 0.5rem;">
                         <label for="photo">Choisissez une photo :</label>
                         <input type="file" id="photo" name="photo">
@@ -173,8 +173,7 @@ class SegmentPanel extends HTMLElement {
                 },
                     "Road labels")
             }
-            map.getSource("veloinfo").setUrl(`${window.location.origin}/bike_path`);
-
+            map.getSource("bike_path").setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
         }
     }
 }
