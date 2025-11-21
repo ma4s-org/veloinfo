@@ -301,9 +301,9 @@ class ViMain extends HTMLElement {
                 }
             }
 
-            let PointPanel = new PointPanel(name);
+            let pointPanel = new PointPanel(name);
             this.querySelector("#info").innerHTML = ``;
-            this.querySelector("#info").appendChild(PointPanel);
+            this.querySelector("#info").appendChild(pointPanel);
         }
     }
 
