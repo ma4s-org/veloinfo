@@ -46,4 +46,4 @@ class veloinfoInstallIos extends HTMLElement {
     }
 }
 
-customElements.define('veloinfo-install-ios', veloinfoInstallIos);
+customElements.define('vi-install-ios', veloinfoInstallIos);

@@ -67,8 +67,8 @@ class ViMenu extends HTMLElement {
                 </md-menu-item>
             </md-menu>
 
-            <veloinfo-install-android id="android-install"></veloinfo-install-android>
-            <veloinfo-install-ios id="ios-install"></veloinfo-install-ios>
+            <vi-install-android id="android-install"></vi-install-android>
+            <vi-install-ios id="ios-install"></vi-install-ios>
             `;
     }
 
@@ -96,12 +96,12 @@ class ViMenu extends HTMLElement {
         if (os === 'ios') {
             this.querySelector('#ios').style.display = 'block';
             this.querySelector('#ios').addEventListener('click', () => {
-                this.querySelector('veloinfo-install-ios').setAttribute('open', 'true');
+                this.querySelector('vi-install-ios').setAttribute('open', 'true');
             });
         } else if (os === 'android') {
             this.querySelector('#android').style.display = 'block';
             this.querySelector('#android').addEventListener('click', () => {
-                this.querySelector('veloinfo-install-android').setAttribute('open', 'true');
+                this.querySelector('vi-install-android').setAttribute('open', 'true');
             });
         }
 

@@ -44,4 +44,4 @@ class veloinfoInstallAndroid extends HTMLElement {
     }
 }
 
-customElements.define('veloinfo-install-android', veloinfoInstallAndroid);
+customElements.define('vi-install-android', veloinfoInstallAndroid);
