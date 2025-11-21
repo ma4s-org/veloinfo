@@ -197,5 +197,5 @@ class FollowPanel extends HTMLElement {
 
 }
 
-customElements.define("follow-panel", FollowPanel);
+customElements.define("vi-follow-panel", FollowPanel);
 

@@ -1,12 +1,13 @@
 class PointPanel extends HTMLElement {
-    constructor() {
+    constructor(name) {
         super();
+        this.name = name;
     }
 
     connectedCallback() {
         let innerHTML = /*html*/`
             <div id="point_panel" class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-                <div>Près de ${this.getAttribute('name')} <img id="spinner" class="htmx-indicator z-30 bottom-8 mx-auto inset-x-0"
+                <div>Près de ${this.name} <img id="spinner" class="htmx-indicator z-30 bottom-8 mx-auto inset-x-0"
                         src="/pub/bars.svg" />
                 </div>
 
@@ -29,4 +30,6 @@ class PointPanel extends HTMLElement {
     }
 }
 
-customElements.define('point-panel', PointPanel);
+export default PointPanel;
+
+customElements.define('vi-point-panel', PointPanel);

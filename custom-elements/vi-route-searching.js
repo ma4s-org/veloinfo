@@ -111,7 +111,7 @@ export default class RouteSearching extends HTMLElement {
         this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
         let coordinates = [];
         this.socket.onmessage = async (event) => {
-            if (event.data.startsWith("<route-panel")) {
+            if (event.data.startsWith("<vi-route-panel")) {
                 this.socket.close();
                 this.viMain.map.removeLayer("searched_route");
                 this.viMain.map.removeSource("searched_route");

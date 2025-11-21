@@ -2,18 +2,18 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/pub/service-worker.js");
 }
 
-import '/custom-elements/FollowPanel.js';
-import '/custom-elements/RoutePanel.js';
+import '/custom-elements/vi-follow-panel.js';
+import '/custom-elements/vi-route-panel.js';
 import RouteSearching from '/custom-elements/vi-route-searching.js';
 import '/custom-elements/vi-search-input.js';
 import '/custom-elements/vi-menu.js';
 import '/custom-elements/vi-install-ios.js';
 import '/custom-elements/vi-install-android.js';
 import '/custom-elements/vi-mobilizon-events.js';
-import '/custom-elements/RouteDefine.js';
+import '/custom-elements/vi-route-define.js';
 import SegmentPanel from '/custom-elements/vi-segment-panel.js';
-import '/custom-elements/PointPanel.js';
-import '/custom-elements/ChangeStart.js';
+import PointPanel from '/custom-elements/vi-point-panel.js';
+import '/custom-elements/vi-change-start.js';
 import '/custom-elements/vi-info.js';
 
 
@@ -301,8 +301,9 @@ class ViMain extends HTMLElement {
                 }
             }
 
-            this.querySelector("#info").innerHTML = `<point-panel name="${name}"></point-panel>`;
-            htmx.process(this.querySelector("#info"));
+            let PointPanel = new PointPanel(name);
+            this.querySelector("#info").innerHTML = ``;
+            this.querySelector("#info").appendChild(PointPanel);
         }
     }
 

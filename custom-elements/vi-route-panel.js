@@ -129,11 +129,11 @@ class RoutePanel extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector('#safe-route-btn').addEventListener('click', () => {
-            let innerHTML = '<follow-panel route="safe" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>'
+            let innerHTML = '<vi-follow-panel route="safe" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
             document.getElementById("info").innerHTML = innerHTML;
         });
         this.querySelector('#fast-route-btn').addEventListener('click', () => {
-            let innerHTML = '<follow-panel route="fast" coordinates="' + JSON.stringify(coordinates) + '"></follow-panel>'
+            let innerHTML = '<vi-follow-panel route="fast" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
             document.getElementById("info").innerHTML = innerHTML;
         });
         // this.querySelector('#change-start-btn').addEventListener('click', () => {
@@ -155,4 +155,4 @@ class RoutePanel extends HTMLElement {
     }
 }
 
-customElements.define('route-panel', RoutePanel);
+customElements.define('vi-route-panel', RoutePanel);

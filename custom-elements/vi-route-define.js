@@ -11,12 +11,12 @@ class RouteDefine extends HTMLElement {
     render() {
         let innerHTML = /*html*/ `
             <style>
-                route-define vi-search-input {
+                vi-route-define vi-search-input {
                     justify-content: center;
                     display: flex;
                 }
                 
-                route-define vi-search-input #top {
+                vi-route-define vi-search-input #top {
                     display: flex;
                     justify-content: center;
                     z-index: 10;
@@ -26,7 +26,7 @@ class RouteDefine extends HTMLElement {
                     flex-direction: column;
                 }
 
-                route-define vi-search-input #query {
+                vi-route-define vi-search-input #query {
                     outline: solid;
                     text-align: center;
                     border-radius: 0.5rem;
@@ -46,4 +46,4 @@ class RouteDefine extends HTMLElement {
     }
 }
 
-customElements.define('route-define', RouteDefine);
+customElements.define('vi-route-define', RouteDefine);

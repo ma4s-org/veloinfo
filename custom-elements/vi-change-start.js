@@ -29,4 +29,4 @@ class ChangeStart extends HTMLElement {
     }
 }
 
-customElements.define('change-start', ChangeStart);
+customElements.define('vi-change-start', ChangeStart);
