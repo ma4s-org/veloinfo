@@ -13,7 +13,7 @@ export default class RouteSearching extends HTMLElement {
                     </p>
                 </div>
                 <div class="flex justify-center">
-                        <md-filled-button hx-on:click="this.viMain.clear()" hx-target="#info">
+                        <md-filled-button id="cancel_button">
                             annuler
                         </md-filled-button>
                 </div>
@@ -54,6 +54,13 @@ export default class RouteSearching extends HTMLElement {
                 // Re-acquérir le verrou si nécessaire
                 await navigator.wakeLock.request("screen");
             }
+        });
+
+        this.querySelector("#cancel_button").addEventListener("click", () => {
+            if (this.socket) {
+                this.socket.close();
+            }
+            this.viMain.clear();
         });
 
         var end = window.start_marker.getLngLat();
