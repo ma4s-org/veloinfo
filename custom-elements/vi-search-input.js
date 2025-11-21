@@ -1,3 +1,5 @@
+import PointPanel from "./vi-point-panel.js";
+
 class SearchInput extends HTMLElement {
     query = "";
     constructor() {
@@ -202,8 +204,9 @@ class SearchResult extends HTMLElement {
 
         let result = await fetch(`/point_panel_lng_lat/${lng}/${lat}`);
         let json = await result.json();
-        let innerHTML = `<point-panel name="${json.name}"></point-panel>`;
-        document.getElementById("info").innerHTML = innerHTML;
+        let pointPanel = new PointPanel(json.name);
+        document.getElementById("info").innerHTML = '';
+        document.getElementById("info").appendChild(pointPanel);
         map.flyTo({
             center: [lng, lat],
         });
