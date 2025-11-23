@@ -63,7 +63,7 @@ services:
       - MATOMO_DATABASE_PASSWORD=matomo
       - MATOMO_DATABASE_DBNAME=matomo
     ports:
-      - 8080:80
+      - 3010:80
   matomo-db:
     image: mariadb:10.11
     command: --max-allowed-packet=64MB
@@ -83,4 +83,5 @@ volumes:
   target:
   node_modules:
   images:
-    
+
+
