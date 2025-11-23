@@ -76,7 +76,8 @@ class ViMain extends HTMLElement {
             let map = this.map;
 
             // Obtenir le point central du canvas de la carte
-            const centerPoint = map.getCenter();
+            const canvas = map.getCanvas();
+            const centerPoint = this.map.project(this.map.getCenter());
 
             // Récupérer les éléments au centre de la carte sur city
             const dialog = this.querySelector('#city_snow_dialog');
