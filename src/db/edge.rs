@@ -517,26 +517,26 @@ impl Edge {
         let edges: Vec<Edge> = sqlx::query_as(
             r#"SELECT
                 e.id,
-                source,
-                target,
-                score,
+                e.source,
+                e.target,
                 x1 as lon1,
                 y1 as lat1,
                 x2 as lon2,
                 y2 as lat2,
-                tags,
-                way_id,
-                tags->>'name' as name, 
+                e.tags,
+                e.way_id,
+                e.tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
-                is_conditionally_closed,
+                e.is_conditionally_closed,
                 in_bicycle_route,
-                snow
+                cs.score,
+                case when csnow.city_name is not null then true else false end as snow
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
             left join last_cycleway_score cs on cs.way_id = e.way_id
             left join city_snow csnow on csnow.city_name = e.city_name
-            WHERE city_name = $1"#,
+            WHERE e.city_name = $1"#,
         )
         .bind(city_name)
         .fetch_all(conn)

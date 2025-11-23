@@ -57,20 +57,21 @@ pub async fn post_city_snow(
     }
 
     let conn = conn.clone();
-    match Edge::get_edge_by_city(&city_name, &conn).await {
-        Ok(edge_ids) => {
-            let node_ids: Vec<i64> = edge_ids.into_iter().fold(Vec::new(), |mut acc, e| {
-                acc.push(e.source);
-                acc.push(e.target);
-                acc
-            });
-            Edge::clear_nodes_cache(node_ids, &conn).await;
+    tokio::spawn(async move {
+        match Edge::get_edge_by_city(&city_name, &conn).await {
+            Ok(edge_ids) => {
+                let node_ids: Vec<i64> = edge_ids.into_iter().fold(Vec::new(), |mut acc, e| {
+                    acc.push(e.source);
+                    acc.push(e.target);
+                    acc
+                });
+                Edge::clear_nodes_cache(node_ids, &conn).await;
+            }
+            Err(e) => {
+                eprintln!("Error clearing edge cache for city {}: {}", city_name, e);
+            }
         }
-        Err(e) => {
-            eprintln!("Error clearing edge cache for city {}: {}", city_name, e);
-        }
-    }
-
+    });
     Json(payload)
 }
 
