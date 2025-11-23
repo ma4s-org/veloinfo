@@ -16,17 +16,14 @@ import PointPanel from '/custom-elements/vi-point-panel.js';
 import '/custom-elements/vi-change-start.js';
 import '/custom-elements/vi-info.js';
 
-
-
 class ViMain extends HTMLElement {
     constructor() {
         super();
-        let innerHTML = /*html*/`
+        this.innerHTML = /*html*/`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
                 <vi-search-input id="search"></vi-search-input>
-                <div id="info">
-                </div>
+                <div id="info"></div>
                 <vi-menu></vi-menu>
                 <div id="buttons"
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
@@ -47,14 +44,13 @@ class ViMain extends HTMLElement {
                     <div id="snow_button"
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;
                                display: flex; justify-content: center; align-items: center; background-color: white;
-                               width: 31px; height: 31px; cursor: pointer;"
-                    >
+                               width: 31px; height: 31px; cursor: pointer;">
                         <img style="width: 24px; height: 24px;" src="/pub/snow.png">
                     </div>
                 </div>
                 <vi-mobilizon-events></vi-mobilizon-events>
             </div>
-            <md-dialog id="city_snow_dialog" >
+            <md-dialog id="city_snow_dialog">
                 <div slot="headline" id="headline">Neige au sol à <span class="city_name" style="font-weight: bold;"></span></div>
                 <div slot="content">
                     <p>Indiquez si vous avez de la neige au sol dans les endroits non déneigés</p>
@@ -64,79 +60,58 @@ class ViMain extends HTMLElement {
                     <md-filled-button id="snow_no">Pas de neige</md-filled-button>
                 </div>
             </md-dialog>
-
         `;
-        this.innerHTML = innerHTML;
     }
 
     connectedCallback() {
         this.addMap();
 
-        this.querySelector('#snow_button').addEventListener('click', () => {
-            let map = this.map;
-
-            // Obtenir le point central du canvas de la carte
+        this.querySelector('#snow_button').addEventListener('click', async () => {
+            const map = this.map;
             const canvas = map.getCanvas();
-            const centerPoint = this.map.project(this.map.getCenter());
-
-            // Récupérer les éléments au centre de la carte sur city
+            const centerPoint = map.project(map.getCenter());
             const dialog = this.querySelector('#city_snow_dialog');
             const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
+            if (!features.length) return;
             const cityName = features[0].properties.name;
             dialog.querySelector('.city_name').textContent = cityName;
-
             dialog.show();
 
-            this.querySelector('#snow_yes').onclick = async () => {
+            const updateSnow = async (snow) => {
                 await fetch('/city_snow_edit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: cityName, snow: true })
-                })
-                dialog.close();
-                map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
-                map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
-            };
-
-            this.querySelector('#snow_no').onclick = async () => {
-                await fetch('/city_snow_edit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: cityName, snow: false })
+                    body: JSON.stringify({ name: cityName, snow })
                 });
                 dialog.close();
                 map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
                 map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
             };
 
+            this.querySelector('#snow_yes').onclick = () => updateSnow(true);
+            this.querySelector('#snow_no').onclick = () => updateSnow(false);
         });
     }
 
     addMap() {
         const position = JSON.parse(localStorage.getItem("position"));
-        var lng = position?.lng || -73.39899762303611;
-        var lat = position?.lat || 45.921066117828786;
-        var zoom = position?.zoom || 6;
-        let params = new URLSearchParams(window.location.search);
+        let lng = position?.lng ?? -73.39899762303611;
+        let lat = position?.lat ?? 45.921066117828786;
+        let zoom = position?.zoom ?? 6;
+        const params = new URLSearchParams(window.location.search);
         if (params.has("lat") && params.has("lng") && params.has("zoom")) {
             lat = parseFloat(params.get("lat"));
             lng = parseFloat(params.get("lng"));
             zoom = parseFloat(params.get("zoom"));
         }
 
-        // Speed
-        var speed = 0;
-        var speed_text = 0;
-
+        // Affichage de la vitesse
         navigator.geolocation.watchPosition((position) => {
-            speed = position.coords.speed * 3.6;
-            if (document.getElementById("speed_value")) {
-                speed_text = document.getElementById("speed_value").textContent = speed?.toFixed(0) || 0;
-                if (speed_text == 0 || speed == null) {
-                    document.getElementById("speed_value").parentElement.style.display = "none";
-                } else {
-                    document.getElementById("speed_value").parentElement.style.display = "flex";
-                }
+            const speed = position.coords.speed ? position.coords.speed * 3.6 : 0;
+            const speedValue = document.getElementById("speed_value");
+            if (speedValue) {
+                speedValue.textContent = speed.toFixed(0);
+                speedValue.parentElement.style.display = (speed === 0 || speed == null) ? "none" : "flex";
             }
         });
 
@@ -148,32 +123,27 @@ class ViMain extends HTMLElement {
             minZoom: 8
         });
 
-
-        // Load the images
+        // Chargement des images
         (async () => {
-            const bike_image = await this.map.loadImage('/pub/bicycle-parking.png');
-            this.map.addImage('bike-parking', bike_image.data);
-            const drinking_water = await this.map.loadImage('/pub/drinking_water.png');
-            this.map.addImage('drinking-water', drinking_water.data);
-            const bike_shop = await this.map.loadImage('/pub/bike_shop.png');
-            this.map.addImage('bike-shop', bike_shop.data);
-            const bicycle_repair_station = await this.map.loadImage('/pub/bicycle_repair_station.png');
-            this.map.addImage('bicycle_repair_station', bicycle_repair_station.data);
-            const bixi = await this.map.loadImage('/pub/bixi.png');
-            this.map.addImage('bixi', bixi.data);
-            const snow = await this.map.loadImage('/pub/snow-margin.png');
-            this.map.addImage('snow', snow.data);
+            const images = [
+                { name: 'bike-parking', url: '/pub/bicycle-parking.png' },
+                { name: 'drinking-water', url: '/pub/drinking_water.png' },
+                { name: 'bike-shop', url: '/pub/bike_shop.png' },
+                { name: 'bicycle_repair_station', url: '/pub/bicycle_repair_station.png' },
+                { name: 'bixi', url: '/pub/bixi.png' },
+                { name: 'snow', url: '/pub/snow-margin.png' }
+            ];
+            for (const img of images) {
+                const res = await this.map.loadImage(img.url);
+                this.map.addImage(img.name, res.data);
+            }
         })();
 
         this.isGeolocateActive = false;
         this.map.addControl(new maplibregl.NavigationControl());
         this.geolocate = new maplibregl.GeolocateControl({
-            fitBoundsOptions: {
-                maxZoom: 16.5
-            },
-            positionOptions: {
-                enableHighAccuracy: true
-            },
+            fitBoundsOptions: { maxZoom: 16.5 },
+            positionOptions: { enableHighAccuracy: true },
             trackUserLocation: true
         });
         this.geolocate.on('trackuserlocationstart', () => { this.isGeolocateActive = true; });
@@ -181,52 +151,42 @@ class ViMain extends HTMLElement {
         this.geolocate.on('error', () => { this.isGeolocateActive = false; });
         this.map.addControl(this.geolocate);
 
-        this.map.on("load", async () => {
+        this.map.on("load", () => {
             setTimeout(() => {
                 const layers = JSON.parse(localStorage.getItem("layers"));
                 ["bixi", "bike_parking", "bike_shop", "drinking_water", "bicycle_repair_station"].forEach(layer => {
-                    if (!layers || !layers[layer]) {
-                        this.map.setLayoutProperty(layer, 'visibility', 'visible');
-                    } else if (layers[layer] == "none") {
-                        this.map.setLayoutProperty(layer, 'visibility', 'none');
-                    } else {
-                        this.map.setLayoutProperty(layer, 'visibility', 'visible');
-                    }
+                    const visible = !layers || !layers[layer] || layers[layer] !== "none";
+                    this.map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none');
                 });
             }, 1000);
-            const bounds = this.map.getBounds();
             this.infoPanelUp();
-        })
+        });
 
-        let veloinfoMap = this;
-        this.map.on("click", async function (event) {
-            if (document.getElementById("info_panel_up") ||
+        this.map.on("click", (event) => {
+            if (
+                document.getElementById("info_panel_up") ||
                 document.getElementById("info_panel_down") ||
                 document.getElementById("segment_panel") ||
                 document.getElementById("layers") ||
                 document.getElementById("point_panel")
             ) {
-                veloinfoMap.select(event);
+                this.select(event);
             }
         });
 
         let timeout = null;
-        let map = this.map;
-        let that = this;
         this.map.on("move", () => {
-            if (timeout) {
-                clearTimeout(timeout);
-            }
+            if (timeout) clearTimeout(timeout);
             timeout = setTimeout(() => {
-                window.history.replaceState({}, "", "/?lat=" + map.getCenter().lat + "&lng=" + map.getCenter().lng + "&zoom=" + map.getZoom());
-                const position = {
-                    "lng": + map.getCenter().lng,
-                    "lat": + map.getCenter().lat,
-                    "zoom": + map.getZoom()
-                }
-                localStorage.setItem("position", JSON.stringify(position));
-                if (that.querySelector('#info_panel_up')) {
-                    that.infoPanelUp();
+                const map = this.map;
+                window.history.replaceState({}, "", `/?lat=${map.getCenter().lat}&lng=${map.getCenter().lng}&zoom=${map.getZoom()}`);
+                localStorage.setItem("position", JSON.stringify({
+                    lng: map.getCenter().lng,
+                    lat: map.getCenter().lat,
+                    zoom: map.getZoom()
+                }));
+                if (this.querySelector('#info_panel_up')) {
+                    this.infoPanelUp();
                 }
             }, 1000);
         });
@@ -234,9 +194,9 @@ class ViMain extends HTMLElement {
 
     async infoPanelUp() {
         const bounds = this.map.getBounds();
-        let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
-        let json = await r.json();
-        this.querySelector("#info").innerHTML = `<vi-info></vi-info>`
+        const r = await fetch(`/info_panel/up/${bounds._sw.lng}/${bounds._sw.lat}/${bounds._ne.lng}/${bounds._ne.lat}`);
+        const json = await r.json();
+        this.querySelector("#info").innerHTML = `<vi-info></vi-info>`;
         this.querySelector('vi-info').data = json;
     }
 
@@ -250,78 +210,67 @@ class ViMain extends HTMLElement {
             return;
         }
 
-        if (window.start_marker) {
-            window.start_marker.remove();
-        }
+        if (window.start_marker) window.start_marker.remove();
         window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
-        let width = 20;
-        var features = this.map.queryRenderedFeatures(
+        const width = 20;
+        let features = this.map.queryRenderedFeatures(
             [
                 [event.point.x - width / 2, event.point.y - width / 2],
                 [event.point.x + width / 2, event.point.y + width / 2]
-            ], { layers: ['cycleway', 'designated', 'shared_lane'] });
+            ], { layers: ['cycleway', 'designated', 'shared_lane'] }
+        );
         if (features.length) {
-            var feature = features[0];
-            let response = await fetch('/segment_panel_lng_lat/' + event.lngLat.lng + "/" + event.lngLat.lat);
-            let jsonData = await response.json();
-            let segment_panel = new SegmentPanel(jsonData);
+            const response = await fetch(`/segment_panel_lng_lat/${event.lngLat.lng}/${event.lngLat.lat}`);
+            const jsonData = await response.json();
+            const segment_panel = new SegmentPanel(jsonData);
             this.querySelector("#info").innerHTML = ``;
             this.querySelector("#info").appendChild(segment_panel);
         } else {
             const selected = this.map.getSource("selected");
-
             if (selected) {
                 selected.setData({
-                    "type": "Feature",
-                    "properties": {},
-                    "geometry": {
-                        "type": "LineString",
-                        "coordinates": []
-                    }
+                    type: "Feature",
+                    properties: {},
+                    geometry: { type: "LineString", coordinates: [] }
                 });
             }
 
-            //we find the nearest name
+            // Recherche du nom le plus proche
             let name = "";
-            for (let i = 0; i < 1000; i = i + 10) {
-                var features = this.map.queryRenderedFeatures(
+            for (let i = 0; i < 1000; i += 10) {
+                features = this.map.queryRenderedFeatures(
                     [
                         [event.point.x - i, event.point.y - i],
                         [event.point.x + i, event.point.y + i]
-                    ], { layers: ['name', 'Road network', 'City labels', 'Town labels', 'Village labels'] });
-                features.forEach(f => {
+                    ], { layers: ['name', 'Road network', 'City labels', 'Town labels', 'Village labels'] }
+                );
+                for (const f of features) {
                     if (f.properties.name) {
                         name = f.properties.name;
                         i = 1000;
-                        return;
+                        break;
                     }
-                });
-                if (name) {
-                    break;
                 }
+                if (name) break;
             }
 
-            let pointPanel = new PointPanel(name);
+            const pointPanel = new PointPanel(name);
             this.querySelector("#info").innerHTML = ``;
             this.querySelector("#info").appendChild(pointPanel);
         }
     }
 
     async selectBigger(event) {
-        if (this.end_marker) {
-            this.end_marker.remove();
-        }
+        if (this.end_marker) this.end_marker.remove();
         this.end_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
-        let r = await fetch('/segment_panel_bigger/' + window.start_marker.getLngLat().lng + "/" + window.start_marker.getLngLat().lat + "/" + event.lngLat.lng + "/" + event.lngLat.lat);
-        let jsonData = await r.json();
-        let segment_panel = new SegmentPanel(jsonData);
+        const r = await fetch(`/segment_panel_bigger/${window.start_marker.getLngLat().lng}/${window.start_marker.getLngLat().lat}/${event.lngLat.lng}/${event.lngLat.lat}`);
+        const jsonData = await r.json();
+        const segment_panel = new SegmentPanel(jsonData);
         this.querySelector("#info").innerHTML = ``;
         this.querySelector("#info").appendChild(segment_panel);
     }
-
-
 
     async clear() {
         if (window.start_marker) {
@@ -332,95 +281,67 @@ class ViMain extends HTMLElement {
             this.end_marker.remove();
             this.end_marker = null;
         }
-        if (this.map.getLayer("selected_safe")) {
-            this.map.removeLayer("selected_safe");
-        }
-        if (this.map.getSource("selected_safe")) {
-            this.map.removeSource("selected_safe");
-        }
-        if (this.map.getLayer("selected_fast")) {
-            this.map.removeLayer("selected_fast");
-        }
-        if (this.map.getSource("selected_fast")) {
-            this.map.removeSource("selected_fast");
-        }
-        if (this.map.getLayer("searched_route")) {
-            this.map.removeLayer("searched_route");
-        }
-        if (this.map.getSource("searched_route")) {
-            this.map.removeSource("searched_route");
-        }
-        if (this.map.getLayer("selected")) {
-            this.map.removeLayer("selected");
-        }
-        if (this.map.getSource("selected")) {
-            this.map.removeSource("selected");
-        }
+        [
+            "selected_safe",
+            "selected_fast",
+            "searched_route",
+            "selected"
+        ].forEach(layer => {
+            if (this.map.getLayer(layer)) this.map.removeLayer(layer);
+            if (this.map.getSource(layer)) this.map.removeSource(layer);
+        });
 
-        // Display info panel
-        let data = await (await fetch("/info_panel/down")).json();
-
+        // Affiche le panneau d'info
+        const data = await (await fetch("/info_panel/down")).json();
         this.querySelector("#info").innerHTML = `<vi-info></vi-info>`;
         this.querySelector('vi-info').data = data;
-
     }
 
     async route() {
-        let info = document.getElementById("info");
-        let routeSearching = new RouteSearching(this);
+        const info = document.getElementById("info");
+        const routeSearching = new RouteSearching(this);
         info.innerHTML = ``;
         info.appendChild(routeSearching);
     }
 
     fitBounds(geom) {
-        var bounds = geom.reduce((currentBounds, coord) => {
-            return [
-                [Math.min(coord[0], currentBounds[0][0]), Math.min(coord[1], currentBounds[0][1])], // min coordinates
-                [Math.max(coord[0], currentBounds[1][0]), Math.max(coord[1], currentBounds[1][1])]  // max coordinates
-            ];
-        }, [[Infinity, Infinity], [-Infinity, -Infinity]]);
-        return bounds;
+        return geom.reduce(
+            ([min, max], coord) => [
+                [Math.min(coord[0], min[0]), Math.min(coord[1], min[1])],
+                [Math.max(coord[0], max[0]), Math.max(coord[1], max[1])]
+            ],
+            [[Infinity, Infinity], [-Infinity, -Infinity]]
+        );
     }
 
     calculateBearing(lon1, lat1, lon2, lat2) {
-        lon1 = lon1 * Math.PI / 180.0;
-        lat1 = lat1 * Math.PI / 180.0;
-        lon2 = lon2 * Math.PI / 180.0;
-        lat2 = lat2 * Math.PI / 180.0;
+        lon1 *= Math.PI / 180.0;
+        lat1 *= Math.PI / 180.0;
+        lon2 *= Math.PI / 180.0;
+        lat2 *= Math.PI / 180.0;
         const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
         const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
         let bearing = Math.atan2(y, x) * (180 / Math.PI);
-        bearing = (bearing + 360) % 360; // Ensuring the bearing is positive
-        return bearing;
+        return (bearing + 360) % 360;
     }
 
     calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth's radius in meters
+        const R = 6371;
         const φ1 = lat1 * Math.PI / 180;
         const φ2 = lat2 * Math.PI / 180;
         const Δφ = (lat2 - lat1) * Math.PI / 180;
         const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        const a = Math.sin(Δφ / 2) ** 2 +
             Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            Math.sin(Δλ / 2) ** 2;
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        const distance = R * c;
-        return distance;
+        return R * c;
     }
 
     calculateTotalDistance(coordinates, index = 0) {
-        if (!coordinates || coordinates.length == 0) {
-            return 0;
-        }
-        if (!this.distanceCache) {
-            this.distanceCache = {};
-        }
-        let distanceCache = this.distanceCache;
-        if (index in distanceCache) {
-            return distanceCache[index];
-        }
+        if (!coordinates || coordinates.length === 0) return 0;
+        this.distanceCache = this.distanceCache || {};
+        if (index in this.distanceCache) return this.distanceCache[index];
 
         let totalDistance = 0;
         for (let i = index; i < coordinates.length - 1; i++) {
@@ -429,8 +350,7 @@ class ViMain extends HTMLElement {
                 coordinates[i + 1][1], coordinates[i + 1][0]
             );
         }
-
-        distanceCache[index] = totalDistance;
+        this.distanceCache[index] = totalDistance;
         return totalDistance;
     }
 
