@@ -87,10 +87,14 @@ async fn main() {
             Edge::clear_cache_and_reload(&conn).await;
             sched
                 .add(
-                    Job::new("0 0 7 * * *", move |_uuid, _l| {
-                        std::fs::File::create("lock/import").unwrap();
-                        exit(0);
-                    })
+                    Job::new_tz(
+                        "0 0 3 * * *",
+                        chrono_tz::America::Montreal,
+                        move |_uuid, _l| {
+                            std::fs::File::create("lock/import").unwrap();
+                            exit(0);
+                        },
+                    )
                     .unwrap(),
                 )
                 .await
