@@ -1,13 +1,15 @@
 use crate::db::cyclability_score::CyclabilityScore;
 use crate::VeloinfoState;
-use askama::Template;
-use askama_web::WebTemplate;
-use axum::extract::{Path, State};
+use axum::{
+    debug_handler,
+    extract::{Path, State},
+    Json,
+};
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::Serialize;
 
-#[derive(Template, WebTemplate)]
-#[template(path = "photo_scroll.html")]
+#[derive(Serialize)]
 pub struct PhotoScroll {
     pub photo: String,
     pub next: Option<String>,
@@ -19,10 +21,11 @@ lazy_static! {
     static ref INT_REGEX: Regex = Regex::new(r"\d+").unwrap();
 }
 
+#[debug_handler]
 pub async fn photo_scroll(
     State(state): State<VeloinfoState>,
     Path((photo, way_ids)): Path<(String, String)>,
-) -> PhotoScroll {
+) -> Json<PhotoScroll> {
     let way_ids_i64 = INT_REGEX
         .find_iter(&way_ids)
         .map(|m| m.as_str().parse::<i64>().unwrap())
@@ -46,4 +49,5 @@ pub async fn photo_scroll(
         previous,
         way_ids,
     }
+    .into()
 }

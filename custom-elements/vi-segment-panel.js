@@ -1,3 +1,5 @@
+import ViPhotoScroll from "./vi-photo-scroll.js";
+
 class SegmentPanel extends HTMLElement {
     constructor(data) {
         super();
@@ -65,9 +67,8 @@ class SegmentPanel extends HTMLElement {
                     ${inner}
                     <div style="display: flex; flex-direction: row; overflow: auto;">
                         ${data.photo_ids.map(photo_id => /*html*/`
-                            <img style="height: 6rem; cursor: pointer;"
-                                    src="/images/${photo_id}_thumbnail.jpeg" alt="photo"
-                                    hx-get="/photo_scroll/${photo_id}/${data.way_ids}" hx-target="#photo_scroll">
+                            <img id="${photo_id}" class="photo-thumbnail" style="height: 6rem; cursor: pointer;"
+                                    src="/images/${photo_id}_thumbnail.jpeg" alt="photo">
                         `).join('')}
                     </div>
                     <div id="photo_scroll"></div>
@@ -97,6 +98,19 @@ class SegmentPanel extends HTMLElement {
         htmx.process(this);
 
         let that = this;
+
+        this.querySelectorAll('.photo-thumbnail').forEach(img => {
+            img.addEventListener('click', async (event) => {
+                let photo_id = event.target.id;
+                let response = await fetch(`/photo_scroll/${photo_id}/${data.way_ids}`);
+                let photoScrollData = await response.json();
+                let photoScroll = new ViPhotoScroll(photoScrollData);
+                document.querySelector('#photo_scroll_inner')?.remove();
+                this.querySelector('#photo_scroll').innerHTML = '';
+                this.querySelector('#photo_scroll').appendChild(photoScroll);
+            });
+        });
+
         this.querySelector('#save')?.addEventListener('click', async (event) => {
             that.querySelector('#save').disabled = true;
             let response = await fetch('/segment_panel', {
