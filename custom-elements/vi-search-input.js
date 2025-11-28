@@ -1,4 +1,5 @@
 import PointPanel from "./vi-point-panel.js";
+import ViSearchResult from "./vi-search-result.js";
 
 class SearchInput extends HTMLElement {
     query = "";
@@ -84,7 +85,10 @@ class SearchInput extends HTMLElement {
             });
             const searchResults = this.querySelector("#search_results");
             if (searchResults) {
-                searchResults.innerHTML = await response.text();
+                const results = await response.json();
+                let viSearchResult = new ViSearchResult(results.search_results, this.query);
+                searchResults.innerHTML = '';
+                searchResults.appendChild(viSearchResult);
             }
         }, 1);
     }

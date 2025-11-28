@@ -1,22 +1,20 @@
-use askama::Template;
-use askama_web::WebTemplate;
-use axum::{extract::State, Form};
+use axum::{extract::State, Form, Json};
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::Serialize;
 
 use crate::{
     db::search_db::{get, get_with_adress},
     VeloinfoState,
 };
 
-#[derive(Template, WebTemplate, Debug)]
-#[template(path = "search_result.html")]
+#[derive(Debug, Serialize)]
 pub struct SearchResults {
     query: String,
     search_results: Vec<SearchResult>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SearchResult {
     pub name: String,
     pub lat: f64,
@@ -37,7 +35,7 @@ lazy_static! {
 pub async fn post(
     State(state): State<VeloinfoState>,
     Form(query): Form<QueryParams>,
-) -> SearchResults {
+) -> Json<SearchResults> {
     match ADDRESS_RE.captures(&query.query) {
         Some(caps) => {
             let number = caps.get(1).unwrap().as_str().parse::<i64>().unwrap();
@@ -56,6 +54,7 @@ pub async fn post(
                 query: query.query,
                 search_results,
             }
+            .into()
         }
         None => {
             let search_results = get(&query.query, &query.lng, &query.lat, &state.conn)
@@ -71,6 +70,7 @@ pub async fn post(
                 query: query.query,
                 search_results,
             }
+            .into()
         }
     }
 }
