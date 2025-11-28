@@ -24,7 +24,6 @@ use axum::http::HeaderValue;
 use axum::http::Request;
 use axum::routing::post;
 use axum::routing::{get, Router};
-use component::layers;
 use component::route_panel::route;
 use component::style::style;
 use db::city_snow::{city_snow_mvt, post_city_snow};
@@ -148,7 +147,6 @@ async fn main() {
         )
         .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
-        .route("/layers", get(layers::layers))
         .nest_service("/dist/", ServeDir::new("dist"))
         .nest_service("/pub/", ServeDir::new("pub"))
         .nest_service("/custom-elements/", ServeDir::new("custom-elements"))

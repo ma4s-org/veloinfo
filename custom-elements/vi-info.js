@@ -1,6 +1,7 @@
-class ViInfo extends HTMLElement {
-  constructor() {
+export default class ViInfo extends HTMLElement {
+  constructor(data) {
     super();
+    this.render(data);
   }
 
   set data(data) {

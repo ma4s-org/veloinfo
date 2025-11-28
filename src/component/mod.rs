@@ -1,6 +1,5 @@
 pub mod bike_path;
 pub mod info_panel;
-pub mod layers;
 pub mod photo_scroll;
 pub mod point_panel;
 pub mod route_panel;

@@ -15,6 +15,7 @@ import SegmentPanel from '/custom-elements/vi-segment-panel.js';
 import PointPanel from '/custom-elements/vi-point-panel.js';
 import '/custom-elements/vi-change-start.js';
 import '/custom-elements/vi-info.js';
+import ViLayers from './vi-layers.js';
 
 class ViMain extends HTMLElement {
     constructor() {
@@ -27,9 +28,8 @@ class ViMain extends HTMLElement {
                 <vi-menu></vi-menu>
                 <div id="buttons"
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
-                    <div
-                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;"
-                        hx-get="/layers" hx-target="#info" hx-swap="innerHTML">
+                    <div id="layers_button"
+                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;">
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
                     <div id="speed_container"
@@ -65,6 +65,13 @@ class ViMain extends HTMLElement {
 
     connectedCallback() {
         this.addMap();
+
+        this.querySelector('#layers_button').addEventListener('click', () => {
+            const info = this.querySelector("#info");
+            let viLayers = new ViLayers(this);
+            info.innerHTML = ``;
+            info.appendChild(viLayers);
+        });
 
         this.querySelector('#snow_button').addEventListener('click', async () => {
             const map = this.map;
