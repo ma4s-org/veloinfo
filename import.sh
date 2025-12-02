@@ -33,7 +33,6 @@ psql -h db -U postgres -d carte -c "
                                         geom,
                                         aw.name,
                                         aw.tags,
-                                        aw.is_conditionally_closed,
                                         in_bicycle_route
                                     from all_way aw;       
                                 create index _all_way_edge_way_id_idx on _all_way_edge (way_id);
@@ -50,7 +49,6 @@ psql -h db -U postgres -d carte -c "
                                     st_y(st_transform(ST_PointN((segment).geom, 2), 4326)) as y2,
                                     awe.way_id,
                                     awe.tags,
-                                    awe.is_conditionally_closed,
                                     (segment).geom,
                                     c.name as city_name,
                                     in_bicycle_route

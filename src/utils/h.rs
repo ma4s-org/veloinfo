@@ -123,10 +123,6 @@ enum FastOrSafe {
 }
 
 fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
-    if edge.edge.is_conditionally_closed == true {
-        return 1. / 0.0001;
-    }
-
     // if the target is the source we are reverse of the edge
     if SourceOrTarget::Source == edge.direction
         && edge.edge.tags.get("oneway") == Some(&"yes".to_string())

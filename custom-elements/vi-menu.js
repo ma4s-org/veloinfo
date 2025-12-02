@@ -29,7 +29,7 @@ class ViMenu extends HTMLElement {
                 <md-icon class="material-icons">menu</md-icon>
                 <md-icon class="material-icons" slot="selected">close</md-icon>
             </md-icon-button>
-        
+
             <md-menu anchor="vi-menu">
                 <md-menu-item id="ios" style="display: none;">
                     <div class="flex" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
@@ -65,6 +65,11 @@ class ViMenu extends HTMLElement {
                         </div>
                     </div>
                 </md-menu-item>
+                    <a href="https://openstreetmap.org/copyright" target="_blank">
+                        <div style="font-size: 0.75em; color: gray; margin-top: 0.5em;">
+                            Les données cartographiques sont fournies par OpenStreetMap
+                        </div>
+                    </a>
             </md-menu>
 
             <vi-install-android id="android-install"></vi-install-android>

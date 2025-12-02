@@ -24,9 +24,6 @@ local cycleway = osm2pgsql.define_way_table("cycleway_way", {
         column = 'tags',
         type = 'jsonb',
         not_null = true
-    }, {
-        column = 'is_conditionally_closed',
-        type = 'boolean',
     },{
         column = 'nodes',
         sql_type = 'int8[] NOT NULL'
@@ -91,9 +88,6 @@ local all_way = osm2pgsql.define_table({
         sql_type = 'int8[] NOT NULL'
     },
     {
-        column = 'is_conditionally_closed',
-        type = 'boolean',
-    }, {
         column = 'in_bicycle_route',
         type = 'boolean',
         not_null = true,
@@ -500,49 +494,80 @@ function month_str_to_number(month_str)
     return months[month_str:sub(1,3)]
 end
 
-function is_conditionally_closed(tags)
-    if not tags.conditional then
-        return false
+
+-- Gère les tags conditionnels basés sur des plages de dates.
+-- ex: no @ (Nov 16-Mar 31)
+-- Retourne la nouvelle valeur si la condition est active, sinon nil.
+function process_conditional_date_tag(value_str)
+    local val, condition = value_str:match('^%s*(.-)%s*@%s*%((.*)%)%s*$')
+    if not (val and condition) then return nil end
+
+    local start_str, end_str = condition:match('^%s*(.-)%s*-%s*(.-)%s*$')
+    if not (start_str and end_str) then return nil end
+
+    local start_month_str, start_day_str = start_str:match('^%s*([%a]+)%s+([%d]+)%s*$')
+    local end_month_str, end_day_str = end_str:match('^%s*([%a]+)%s+([%d]+)%s*$')
+
+    if not (start_month_str and start_day_str and end_month_str and end_day_str) then
+        return nil
     end
 
-    local conditional_access = string.lower(tags.conditional)
-    local months_part = string.match(conditional_access, "no @ %((.-)%)")
-
-    if not months_part then
-        return false
-    end
-
-    local current_month = os.date("*t").month
+    local start_month = month_str_to_number(start_month_str:lower())
+    local end_month = month_str_to_number(end_month_str:lower())
+    local start_day = tonumber(start_day_str)
+    local end_day = tonumber(end_day_str)
     
-    for month_range in string.gmatch(months_part, "[^,]+") do
-        month_range = string.gsub(month_range, "%s+", "") -- remove spaces
-        local start_month_str, end_month_str = string.match(month_range, "([a-z]+)-([a-z]+)")
-        if start_month_str and end_month_str then
-            local start_month = month_str_to_number(start_month_str)
-            local end_month = month_str_to_number(end_month_str)
-            if start_month and end_month then
-                if start_month <= end_month then
-                    if current_month >= start_month and current_month <= end_month then
-                        return true
-                    end
-                else -- Handles ranges like Nov-Mar
-                    if current_month >= start_month or current_month <= end_month then
-                        return true
-                    end
-                end
-            end
-        else
-            local month = month_str_to_number(month_range)
-            if month and current_month == month then
-                return true
-            end
+    if not (start_month and end_month and start_day and end_day) then
+        return nil
+    end
+
+    local current_date = os.date('*t')
+    local current_month = current_date.month
+    local current_day = current_date.day
+
+    local is_in_range = false
+    if start_month <= end_month then
+        -- Date range is within the same year, e.g. Mar-Nov
+        if (current_month > start_month or (current_month == start_month and current_day >= start_day)) and
+           (current_month < end_month or (current_month == end_month and current_day <= end_day)) then
+            is_in_range = true
+        end
+    else
+        -- Date range spans over the new year, e.g. Nov-Mar
+        if (current_month > start_month or (current_month == start_month and current_day >= start_day)) or
+           (current_month < end_month or (current_month == end_month and current_day <= end_day)) then
+            is_in_range = true
         end
     end
 
-    return false
+    if is_in_range then
+        return val
+    else
+        return nil
+    end
 end
 
 function osm2pgsql.process_way(way)
+    local temp_tags = {}
+    for k, v in pairs(way.tags) do
+        if k:match(':conditional$') then
+            local main_key = k:gsub(':conditional$', '')
+            for cond_v in v:gmatch("([^;]+)") do
+                local trimmed_v = cond_v:match("^%s*(.-)%s*$")
+                if trimmed_v and trimmed_v ~= '' then
+                    local new_val = process_conditional_date_tag(trimmed_v)
+                    if new_val then
+                        -- La dernière condition correspondante l'emporte.
+                        temp_tags[main_key] = new_val
+                    end
+                end
+            end
+        end
+    end
+    for k, v in pairs(temp_tags) do
+        way.tags[k] = v
+    end
+
     if (way.tags.highway == 'cycleway' or way.tags.cyclestreet == "yes"  
         or way.tags.cycleway == "track" or way.tags["cycleway:left"] == "track" or 
         way.tags["cycleway:right"] == "track" or way.tags["cycleway:both"] =="track") 
@@ -554,7 +579,6 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             kind = (way.tags.cycleway == 'crossing') and 'cycleway_crossing' or 'cycleway',
             tags = way.tags,
-            is_conditionally_closed = is_conditionally_closed(way.tags),
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     elseif (way.tags["cycleway:left"] == "share_busway" or way.tags["cycleway:right"] == "share_busway" or
@@ -567,7 +591,6 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             kind = (way.tags.cycleway == 'crossing') and 'designated_crossing' or 'designated',
             tags = way.tags,
-            is_conditionally_closed = is_conditionally_closed(way.tags),
             nodes = " {" .. table.concat(way.nodes, ",") .. "}"
         })
     elseif (way.tags.cycleway == "shared_lane" or way.tags.cycleway == "lane" or way.tags["cycleway:left"] ==
@@ -581,7 +604,6 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             kind = (way.tags.cycleway == 'crossing') and 'shared_lane_crossing' or 'shared_lane',
             tags = way.tags,
-            is_conditionally_closed = is_conditionally_closed(way.tags),
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     end
@@ -639,7 +661,6 @@ function osm2pgsql.process_way(way)
             target = way.nodes[#way.nodes],
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}",
-            is_conditionally_closed = is_conditionally_closed(way.tags),
             in_bicycle_route = bicycle_route_ways[way.id] or false
         })
     end

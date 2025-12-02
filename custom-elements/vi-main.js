@@ -157,6 +157,9 @@ class ViMain extends HTMLElement {
         this.geolocate.on('trackuserlocationend', () => { this.isGeolocateActive = false; });
         this.geolocate.on('error', () => { this.isGeolocateActive = false; });
         this.map.addControl(this.geolocate);
+        this.map.addControl(new maplibregl.AttributionControl({
+            compact: true
+        }));
 
         this.map.on("load", () => {
             setTimeout(() => {

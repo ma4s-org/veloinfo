@@ -51,7 +51,6 @@ pub struct Edge {
     pub length: f64,
     pub tags: sqlx::types::Json<HashMap<String, String>>,
     pub road_work: bool,
-    pub is_conditionally_closed: bool,
     pub in_bicycle_route: bool,
     pub snow: bool,
 }
@@ -134,7 +133,6 @@ impl EdgePoint {
                 e.tags,
                 e.way_id,
                 e.in_bicycle_route,
-                e.is_conditionally_closed,
                 e.tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
@@ -480,7 +478,6 @@ impl Edge {
                 e.tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
-                e.is_conditionally_closed,
                 in_bicycle_route,
                 cs.score,
                 case when csnow.city_name is not null then true else false end as snow
@@ -528,7 +525,6 @@ impl Edge {
                 e.tags->>'name' as name, 
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
-                e.is_conditionally_closed,
                 in_bicycle_route,
                 cs.score,
                 case when csnow.city_name is not null then true else false end as snow
