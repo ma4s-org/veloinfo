@@ -1,3 +1,3 @@
-podman login docker.io
-podman build -t martinhamel/veloinfo .
-podman push martinhamel/veloinfo  docker://docker.io/martinhamel/veloinfo
+flatpak-spawn --host podman login docker.io
+flatpak-spawn --host podman build -t martinhamel/veloinfo .
+flatpak-spawn --host podman push martinhamel/veloinfo  docker://docker.io/martinhamel/veloinfo
