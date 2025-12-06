@@ -200,6 +200,39 @@ class ViMain extends HTMLElement {
                 }
             }, 1000);
         });
+
+        // Démarre une géolocalisation en arrière-plan pour garder la position disponible
+        if (navigator.geolocation) {
+            const geoSuccess = (position) => {
+                const coords = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    speed: position.coords.speed
+                };
+                // Stocke la dernière position pour y accéder quand nécessaire
+                this._lastPosition = coords;
+
+                // Met à jour l'affichage de la vitesse si présent (sinon rien n'est affiché)
+                const speed = position.coords.speed ? position.coords.speed * 3.6 : 0;
+                const speedValue = document.getElementById("speed_value");
+                if (speedValue) {
+                    speedValue.textContent = speed.toFixed(0);
+                    speedValue.parentElement.style.display = (speed === 0 || speed == null) ? "none" : "flex";
+                }
+            };
+
+            const geoError = (err) => {
+                console.warn("Geolocation error:", err);
+            };
+
+            // Options : haute précision, cache court
+            this._geoWatchId = navigator.geolocation.watchPosition(
+                geoSuccess,
+                geoError,
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+            );
+        }
     }
 
     async infoPanelUp() {
@@ -366,6 +399,17 @@ class ViMain extends HTMLElement {
 
     clearDistanceCache() {
         this.distanceCache = {};
+    }
+
+    getLastPosition() {
+        return this._lastPosition || null;
+    }
+
+    stopBackgroundGeolocation() {
+        if (this._geoWatchId != null && navigator.geolocation) {
+            navigator.geolocation.clearWatch(this._geoWatchId);
+            this._geoWatchId = null;
+        }
     }
 }
 
