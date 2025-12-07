@@ -28,7 +28,7 @@ pub async fn get(
                         geom,
                         ROW_NUMBER() OVER(PARTITION BY city, street ORDER BY ar.geom<-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)) AS rn
                     FROM address_range ar 
-                    WHERE tsvector  @@ websearch_to_tsquery('french', $1)
+                    WHERE tsvector  @@ websearch_to_tsquery('french', unaccent($1))
                 union
                     select 
                         name || ' ' || coalesce(tags::JSONB->>'addr:street', '') || ' ' || coalesce(tags::JSONB->>'addr:city', '') as name,
@@ -37,7 +37,7 @@ pub async fn get(
                         geom,
                         1 as rn 
                     from name_query
-                    where tsvector  @@ websearch_to_tsquery('french', $1)
+                    where tsvector  @@ websearch_to_tsquery('french', unaccent($1))
             ) t WHERE rn = 1 and name is not null
             order by geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)
             limit 20;
@@ -125,7 +125,7 @@ pub async fn get_with_adress(
                     END as lat,
                     st_centroid(geom) as geom
                 from address_range ar 
-                where tsvector  @@ websearch_to_tsquery('french', $1) and
+                where tsvector  @@ websearch_to_tsquery('french', unaccent($1)) and
                     (start <= $2 and "end" >= $2 or start >= $2 and "end" <= $2 )and
                     odd_even = $3
                 order by $2 || ' ' || street || ', ' || COALESCE(city,'')
