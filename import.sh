@@ -1,11 +1,12 @@
 #!/usr/bin/bash
-rm -f quebec-latest.osm.pbf
-wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
-osm2pgsql --cache 4000 --drop -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
+#rm -f quebec-latest.osm.pbf
+#wget https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
+#osm2pgsql --cache 4000 --drop -H db -U postgres -d carte -O flex -S import.lua quebec-latest.osm.pbf
 
 
 psql -h db -U postgres -d carte -c "
-                     CREATE EXTENSION IF NOT EXISTS postgis;"
+                     CREATE EXTENSION IF NOT EXISTS postgis;
+                     CREATE EXTENSION IF NOT EXISTS unaccent;"
  
 
 echo "Recreating materialized views to apply any changes."
@@ -22,7 +23,8 @@ psql -h db -U postgres -d carte -c "
                                         ) t
                                     WHERE t.rn = 1;
                                 CREATE UNIQUE INDEX last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
-                                
+
+                                drop materialized view if exists edge;
                                 drop materialized view if exists _all_way_edge;
                                 drop sequence if exists edge_id;
                                 CREATE SEQUENCE edge_id;
@@ -37,7 +39,6 @@ psql -h db -U postgres -d carte -c "
                                     from all_way aw;       
                                 create index _all_way_edge_way_id_idx on _all_way_edge (way_id);
 
-                                drop materialized view if exists edge;
                                 CREATE MATERIALIZED VIEW edge 
                                 AS SELECT  
                                     nextval('edge_id') as id,
@@ -73,7 +74,7 @@ psql -h db -U postgres -d carte -c "
                                         an1.street,
                                         an1.housenumber as start,
                                         an2.housenumber as end,
-                                        (to_tsvector('french', coalesce(an1.street, '') || ' ' || coalesce(an1.city, ''))) as tsvector
+                                        (to_tsvector('french', unaccent(coalesce(an1.street, '') || ' ' || coalesce(an1.city, '')))) as tsvector
                                     from address a
                                     join address_node an1 on a.housenumber1 = an1.node_id
                                     join address_node an2 on a.housenumber2 = an2.node_id
@@ -89,7 +90,7 @@ psql -h db -U postgres -d carte -c "
                                         housenumber as start,
                                         housenumber as end,
                                         (to_tsvector('french', coalesce(street, '') || ' ' || coalesce(city, ''))) as tsvector
-                                    from address_node an;
+                                from address_node an;
 
                                 CREATE INDEX textsearch_idx ON address_range USING GIN (tsvector);
                                 CREATE INDEX address_range_geom_idx ON address_range using gist(geom);
@@ -100,14 +101,14 @@ psql -h db -U postgres -d carte -c "
                                         name,
                                         geom,
                                         tags,
-                                        to_tsvector('french', name) as tsvector
+                                        to_tsvector('french', unaccent(coalesce(name, ''))) as tsvector
                                     from name
                                     union
                                     select
                                         name,
                                         ST_Centroid(geom),
                                         tags,
-                                        to_tsvector('french', name) as tsvector
+                                        to_tsvector('french', unaccent(coalesce(name, ''))) as tsvector
                                     from building
                                     where name is not null
                                     union
@@ -116,8 +117,8 @@ psql -h db -U postgres -d carte -c "
                                         ST_Centroid(geom),
                                         tags,
                                         to_tsvector('french', name) as tsvector
-                                    from landcover
-                                    where name is not null;
+                                        from landcover
+                                        where name is not null;
 
                                 CREATE INDEX name_query_textsearch_idx ON name_query USING GIN (tsvector);
                                 CREATE INDEX name_query_geom_idx ON name_query using gist(geom);
