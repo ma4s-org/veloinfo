@@ -86,8 +86,33 @@ pub async fn post(
             .into()
         }
         None => {
-            let search_results = get(&query.query, &query.lng, &query.lat, &state.conn)
-                .await
+            let mut attempt = query.query.trim().to_string();
+            let mut rows = Vec::new();
+
+            while !attempt.is_empty() {
+                rows = get(&attempt, &query.lng, &query.lat, &state.conn).await;
+
+                if !rows.is_empty() {
+                    break;
+                }
+
+                // Si il ne reste qu'un mot, on s'arrête (on a déjà essayé ce mot)
+                let count = attempt.split_whitespace().count();
+                if count <= 1 {
+                    break;
+                }
+
+                // Supprimer le dernier mot
+                if let Some(pos) = attempt.rfind(' ') {
+                    attempt.truncate(pos);
+                    attempt = attempt.trim_end().to_string();
+                } else {
+                    // Pas d'espace trouvé, on vide pour sortir de la boucle
+                    attempt.clear();
+                }
+            }
+
+            let search_results = rows
                 .into_iter()
                 .map(|ar| SearchResult {
                     name: ar.name,
