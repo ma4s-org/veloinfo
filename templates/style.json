@@ -2761,6 +2761,45 @@
             ]
         },
         {
+            "id": "oneway",
+            "type": "symbol",
+            "source": "transportation",
+            "source-layer": "transportation",
+            "minzoom": 13,
+            "layout": {
+                "icon-image": "oneway",
+                "symbol-placement": "line",
+                "icon-keep-upright": false,
+                "symbol-spacing": 75,
+                "icon-size": 0.08,
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+                "visibility": "visible"
+            },
+            "paint": {
+                "icon-opacity": 0.5
+            },
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "oneway"
+                    ],
+                    "yes"
+                ],
+                [
+                    "!=",
+                    [
+                        "get",
+                        "oneway:bicycle"
+                    ],
+                    "no"
+                ]
+            ]
+        },
+        {
             "id": "city_snow",
             "type": "fill",
             "source": "city_snow",

@@ -138,7 +138,8 @@ class ViMain extends HTMLElement {
                 { name: 'bike-shop', url: '/pub/bike_shop.png' },
                 { name: 'bicycle_repair_station', url: '/pub/bicycle_repair_station.png' },
                 { name: 'bixi', url: '/pub/bixi.png' },
-                { name: 'snow', url: '/pub/snow-margin.png' }
+                { name: 'snow', url: '/pub/snow-margin.png' },
+                { name: 'oneway', url: '/pub/oneway.png' }
             ];
             for (const img of images) {
                 const res = await this.map.loadImage(img.url);
