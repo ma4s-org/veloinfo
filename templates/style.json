@@ -2771,7 +2771,7 @@
                 "symbol-placement": "line",
                 "icon-keep-upright": false,
                 "symbol-spacing": 75,
-                "icon-size": 0.08,
+                "icon-size": 0.1,
                 "icon-allow-overlap": true,
                 "icon-ignore-placement": true,
                 "visibility": "visible"
