@@ -63,40 +63,38 @@ class SearchInput extends HTMLElement {
         this.querySelector("#query").addEventListener("click", (event) => this.search(event));
     }
 
-    search(event) {
+    async search(event) {
         this.abortController?.abort();
         this.abortController = new AbortController();
         const signal = this.abortController.signal;
 
-        setTimeout(async () => {
-            let map = document.querySelector('vi-main').map;
-            this.query = this.querySelector("#query").value;
-            if (!this.query) {
-                this.displayHistory();
-                return;
-            }
-            let lng = map.getCenter().lng;
-            let lat = map.getCenter().lat;
-            // Si enter on séléctionne le premier résultat
-            if (event.key === "Enter") {
-                this.querySelector("#search_results div.result").click();
-                this.getElementById("search_results").innerHTML = "";
-                return;
-            }
-            let response = await fetch(`/search`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ query: this.query, lng, lat }).toString(),
-                signal
-            });
-            const searchResults = this.querySelector("#search_results");
-            if (searchResults) {
-                const results = await response.json();
-                let viSearchResult = new ViSearchResult(results.search_results, this.query);
-                searchResults.innerHTML = '';
-                searchResults.appendChild(viSearchResult);
-            }
-        }, 500);
+        let map = document.querySelector('vi-main').map;
+        this.query = this.querySelector("#query").value;
+        if (!this.query) {
+            this.displayHistory();
+            return;
+        }
+        let lng = map.getCenter().lng;
+        let lat = map.getCenter().lat;
+        // Si enter on séléctionne le premier résultat
+        if (event.key === "Enter") {
+            this.querySelector("#search_results div.result").click();
+            this.getElementById("search_results").innerHTML = "";
+            return;
+        }
+        let response = await fetch(`/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ query: this.query, lng, lat }).toString(),
+            signal
+        });
+        const searchResults = this.querySelector("#search_results");
+        if (searchResults) {
+            const results = await response.json();
+            let viSearchResult = new ViSearchResult(results.search_results, this.query);
+            searchResults.innerHTML = '';
+            searchResults.appendChild(viSearchResult);
+        }
     }
 
     displayHistory() {
