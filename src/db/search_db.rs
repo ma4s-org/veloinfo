@@ -13,17 +13,6 @@ pub async fn get(
     lat: &f64,
     conn: &sqlx::Pool<Postgres>,
 ) -> Vec<SearchResultDB> {
-    let query_string = request
-        .split_whitespace()
-        .map(|s| {
-            let clean: String = s.chars().filter(|c| !"&|!():*".contains(*c)).collect();
-            clean
-        })
-        .filter(|s| !s.is_empty())
-        .map(|s| format!("{}:*", s))
-        .collect::<Vec<String>>()
-        .join(" & ");
-
     match sqlx::query_as(
             r#"SELECT name, lng, lat FROM (
                     SELECT 
@@ -39,7 +28,7 @@ pub async fn get(
                         geom,
                         ROW_NUMBER() OVER(PARTITION BY city, street ORDER BY ar.geom<-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)) AS rn
                     FROM address_range ar 
-                    WHERE tsvector  @@ to_tsquery('french', unaccent($1))
+                    WHERE tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
                 union
                     select 
                         name || ' ' || coalesce(tags::JSONB->>'addr:street', '') || ' ' || coalesce(tags::JSONB->>'addr:city', '') as name,
@@ -48,13 +37,13 @@ pub async fn get(
                         geom,
                         1 as rn 
                     from name_query
-                    where tsvector  @@ to_tsquery('french', unaccent($1))
+                    where tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
             ) t WHERE rn = 1 and name is not null
             order by geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)
             limit 20;
            "#,
         )
-        .bind(query_string)
+        .bind(request)
         .bind(lng)
         .bind(lat)
         .fetch_all(conn)
@@ -120,16 +109,6 @@ pub async fn get_with_adress(
     lat: &f64,
     conn: &sqlx::Pool<Postgres>,
 ) -> Vec<SearchResultDB> {
-    let query_string = request
-        .split_whitespace()
-        .map(|s| {
-            let clean: String = s.chars().filter(|c| !"&|!():*".contains(*c)).collect();
-            clean
-        })
-        .filter(|s| !s.is_empty())
-        .map(|s| format!("{}:*", s))
-        .collect::<Vec<String>>()
-        .join(" & ");
     let odd_even = if number % 2 == 0 { "even" } else { "odd" };
     let r = match sqlx::query_as(
         r#"select * 
@@ -146,7 +125,7 @@ pub async fn get_with_adress(
                     END as lat,
                     st_centroid(geom) as geom
                 from address_range ar 
-                where tsvector  @@ to_tsquery('french', unaccent($1)) and
+                where tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery and
                     (start <= $2 and "end" >= $2 or start >= $2 and "end" <= $2 )and
                     odd_even = $3
                 order by $2 || ' ' || street || ', ' || COALESCE(city,'')
@@ -154,7 +133,7 @@ pub async fn get_with_adress(
             order by
             geom<-> ST_Transform(ST_SetSRID(ST_MakePoint($4, $5), 4326), 3857)"#,
     )
-    .bind(query_string)
+    .bind(request)
     .bind(number)
     .bind(odd_even)
     .bind(lng)
