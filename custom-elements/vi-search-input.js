@@ -3,6 +3,7 @@ import ViSearchResult from "./vi-search-result.js";
 
 class SearchInput extends HTMLElement {
     query = "";
+    abortController = new AbortController();
     constructor() {
         super();
         // upgrade recentTargets to the new format
@@ -57,12 +58,16 @@ class SearchInput extends HTMLElement {
             </style>
         `;
         this.innerHTML = innerHTML;
-        this.querySelector("#query").addEventListener("keydown", (event) => this.search(event));
+        this.querySelector("#query").addEventListener("keyup", (event) => this.search(event));
         this.querySelector("#query").addEventListener("focusout", (event) => this.clearResult(event));
         this.querySelector("#query").addEventListener("click", (event) => this.search(event));
     }
 
     search(event) {
+        this.abortController?.abort();
+        this.abortController = new AbortController();
+        const signal = this.abortController.signal;
+
         setTimeout(async () => {
             let map = document.querySelector('vi-main').map;
             this.query = this.querySelector("#query").value;
@@ -81,7 +86,8 @@ class SearchInput extends HTMLElement {
             let response = await fetch(`/search`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ query: this.query, lng, lat }).toString()
+                body: new URLSearchParams({ query: this.query, lng, lat }).toString(),
+                signal
             });
             const searchResults = this.querySelector("#search_results");
             if (searchResults) {
@@ -90,7 +96,7 @@ class SearchInput extends HTMLElement {
                 searchResults.innerHTML = '';
                 searchResults.appendChild(viSearchResult);
             }
-        }, 1);
+        }, 500);
     }
 
     displayHistory() {
