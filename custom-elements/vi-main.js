@@ -16,6 +16,7 @@ import PointPanel from '/custom-elements/vi-point-panel.js';
 import '/custom-elements/vi-change-start.js';
 import '/custom-elements/vi-info.js';
 import ViLayers from './vi-layers.js';
+import ViInfo from './vi-info.js';
 
 class ViMain extends HTMLElement {
     constructor() {
@@ -240,8 +241,10 @@ class ViMain extends HTMLElement {
         const bounds = this.map.getBounds();
         const r = await fetch(`/info_panel/up/${bounds._sw.lng}/${bounds._sw.lat}/${bounds._ne.lng}/${bounds._ne.lat}`);
         const json = await r.json();
-        this.querySelector("#info").innerHTML = `<vi-info></vi-info>`;
-        this.querySelector('vi-info').data = json;
+        let viInfo = new ViInfo(json);
+        this.querySelector("#info").innerHTML = ``;
+        this.querySelector('#info').appendChild(viInfo);
+        console.log("1111");
     }
 
     async select(event) {
