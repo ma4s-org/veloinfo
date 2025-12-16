@@ -244,7 +244,6 @@ class ViMain extends HTMLElement {
         let viInfo = new ViInfo(json);
         this.querySelector("#info").innerHTML = ``;
         this.querySelector('#info').appendChild(viInfo);
-        console.log("1111");
     }
 
     async select(event) {
