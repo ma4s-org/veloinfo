@@ -137,150 +137,126 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         return 1. / 0.0001;
     }
 
-    let mut cost: f64 = if edge.edge.tags.get("bicycle") == Some(&"no".to_string()) {
+    let tags = &edge.edge.tags;
+    let bicycle = tags.get("bicycle");
+    let highway = tags.get("highway");
+    let cycleway = tags.get("cycleway");
+    let surface = tags.get("surface");
+    let smoothness = tags.get("smoothness");
+
+    let mut cost: f64 = if bicycle == Some(&"no".to_string()) {
         return 1. / 0.0001;
-    } else if edge.edge.tags.get("access") == Some(&"private".to_string())
-        || edge.edge.tags.get("access") == Some(&"no".to_string())
-        || edge.edge.tags.get("informal") == Some(&"yes".to_string())
+    } else if tags.get("access") == Some(&"private".to_string())
+        || tags.get("access") == Some(&"no".to_string())
+        || tags.get("informal") == Some(&"yes".to_string())
     {
-        if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
-            || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
-        {
+        if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
             1. / 0.4
         } else {
             return 1. / 0.0001;
         }
-    } else if edge.edge.tags.get("highway") == Some(&"proposed".to_string())
-        || edge.edge.tags.get("abandoned") == Some(&"yes".to_string())
-        || edge.edge.tags.get("highway") == Some(&"motorway".to_string())
+    } else if highway == Some(&"proposed".to_string())
+        || tags.get("abandoned") == Some(&"yes".to_string())
+        || highway == Some(&"motorway".to_string())
     {
         return 1. / 0.0001;
-    } else if edge.edge.tags.get("access") == Some(&"customers".to_string()) {
+    } else if tags.get("access") == Some(&"customers".to_string()) {
         1. / 0.2
-    } else if edge.edge.tags.get("informal") == Some(&"yes".to_string()) {
+    } else if tags.get("informal") == Some(&"yes".to_string()) {
         1. / 0.05
-    } else if edge.edge.tags.get("highway") == Some(&"steps".to_string()) {
-        if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
-            || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
-        {
+    } else if highway == Some(&"steps".to_string()) {
+        if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
             1. / 0.06
         } else {
             return 1. / 0.0001;
         }
-    } else if edge.edge.tags.get("highway") == Some(&"path".to_string())
-        && (edge.edge.tags.get("bicycle") == Some(&"dismount".to_string())
-            || edge.edge.tags.get("bicycle") == Some(&"discouraged".to_string()))
+    } else if highway == Some(&"path".to_string())
+        && (bicycle == Some(&"dismount".to_string()) || bicycle == Some(&"discouraged".to_string()))
     {
         1. / 0.1
-    } else if edge.edge.tags.get("bicycle") == Some(&"discouraged".to_string()) {
+    } else if bicycle == Some(&"discouraged".to_string()) {
         1. / 0.1
-    } else if edge.edge.tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
+    } else if tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
         1. / 0.1
-    } else if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
-        if edge.edge.tags.get("suface") == Some(&"fine_gravel".to_string())
-            || edge.edge.tags.get("surface") == Some(&"gravel".to_string())
+    } else if highway == Some(&"cycleway".to_string()) {
+        if tags.get("suface") == Some(&"fine_gravel".to_string())
+            || surface == Some(&"gravel".to_string())
         {
             1. / 0.75
-        } else if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+        } else if cycleway == Some(&"crossing".to_string())
+            || smoothness == Some(&"bad".to_string())
+        {
             1. / 0.5
         } else {
             1.
         }
-    } else if edge.edge.tags.get("cyclestreet") == Some(&"yes".to_string()) {
+    } else if tags.get("cyclestreet") == Some(&"yes".to_string()) {
         0.95
-    } else if edge.edge.tags.get("cycleway") == Some(&"track".to_string()) {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-            1. / 0.5
-        } else {
-            1.
-        }
-    } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+    } else if cycleway == Some(&"track".to_string())
+        || tags.get("cycleway:both") == Some(&"track".to_string())
+    {
+        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
             1. / 0.5
         } else {
             1.
         }
-    } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string())
+    } else if tags.get("cycleway:left") == Some(&"track".to_string())
         && (SourceOrTarget::Source == edge.direction
-            || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+            || tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
             1. / 0.5
         } else {
             1.
         }
-    } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string())
+    } else if tags.get("cycleway:right") == Some(&"track".to_string())
         && (SourceOrTarget::Target == edge.direction
-            || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
+            || tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
             1. / 0.5
         } else {
             1.
         }
-    } else if edge.edge.tags.get("cycleway") == Some(&"lane".to_string()) {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
-            1. / 0.5
-        } else {
-            1. / 0.9
-        }
-    } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+    } else if cycleway == Some(&"lane".to_string())
+        || tags.get("cycleway:both") == Some(&"lane".to_string())
+    {
+        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string())
+    } else if tags.get("cycleway:left") == Some(&"lane".to_string())
         && (SourceOrTarget::Source == edge.direction
-            || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+            || tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string())
+    } else if tags.get("cycleway:right") == Some(&"lane".to_string())
         && (SourceOrTarget::Target == edge.direction
-            || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
+            || tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string()) {
+        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if edge.edge.tags.get("higway") == Some(&"footway".to_string())
-        && edge.edge.tags.get("footway") == Some(&"crossing".to_string())
+    } else if tags.get("higway") == Some(&"footway".to_string())
+        && tags.get("footway") == Some(&"crossing".to_string())
     {
         1. / 0.7
-    } else if edge.edge.tags.get("highway") == Some(&"footway".to_string()) {
-        if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
-            || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
-        {
-            if edge.edge.tags.get("footway") == Some(&"sidewalk".to_string()) {
+    } else if highway == Some(&"footway".to_string()) {
+        if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
+            if tags.get("footway") == Some(&"sidewalk".to_string()) {
                 1. / 0.4
             } else {
                 1. / 0.9
             }
-        } else if edge.edge.tags.get("bicycle") == Some(&"dismount".to_string()) {
-            if edge.edge.tags.get("tunnel") == Some(&"yes".to_string()) {
+        } else if bicycle == Some(&"dismount".to_string()) {
+            if tags.get("tunnel") == Some(&"yes".to_string()) {
                 1. / 0.2
             } else {
                 1. / 0.3
@@ -288,94 +264,74 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             return 1. / 0.1;
         }
-    } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string())
-        || edge.edge.tags.get("cycleway") == Some(&"share_busway".to_string())
+    } else if cycleway == Some(&"shared_lane".to_string())
+        || cycleway == Some(&"share_busway".to_string())
+        || tags.get("cycleway:both") == Some(&"shared_lane".to_string())
+        || tags.get("cycleway:both") == Some(&"share_busway".to_string())
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
-            || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+        if cycleway == Some(&"crossing".to_string())
+            || smoothness == Some(&"bad".to_string())
+            || surface == Some(&"sett".to_string())
         {
             1. / 0.5
         } else {
             1. / 0.7
         }
-    } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string())
-        || edge.edge.tags.get("cycleway:both") == Some(&"share_busway".to_string())
+    } else if (tags.get("cycleway:left") == Some(&"shared_lane".to_string())
+        || tags.get("cycleway:left") == Some(&"share_busway".to_string()))
+        && (SourceOrTarget::Source == edge.direction
+            || tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
-            || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+        if cycleway == Some(&"crossing".to_string())
+            || smoothness == Some(&"bad".to_string())
+            || surface == Some(&"sett".to_string())
         {
             1. / 0.5
         } else {
             1. / 0.7
         }
-    } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-        || edge.edge.tags.get("cycleway:left") == Some(&"share_busway".to_string())
-            && (SourceOrTarget::Source == edge.direction
-                || edge.edge.tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+    } else if (tags.get("cycleway:right") == Some(&"shared_lane".to_string())
+        || tags.get("cycleway:right") == Some(&"share_busway".to_string()))
+        && (SourceOrTarget::Target == edge.direction
+            || tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
     {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
-            || edge.edge.tags.get("surface") == Some(&"sett".to_string())
+        if cycleway == Some(&"crossing".to_string())
+            || smoothness == Some(&"bad".to_string())
+            || surface == Some(&"sett".to_string())
         {
             1. / 0.5
         } else {
             1. / 0.7
         }
-    } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-        || edge.edge.tags.get("cycleway:right") == Some(&"share_busway".to_string())
-            && (SourceOrTarget::Target == edge.direction
-                || edge.edge.tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
-    {
-        if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
-            1. / 0.5
-        } else if edge.edge.tags.get("smoothness") == Some(&"bad".to_string())
-            || edge.edge.tags.get("surface") == Some(&"sett".to_string())
-        {
-            1. / 0.5
-        } else {
-            1. / 0.7
-        }
-    } else if edge.edge.tags.get("highway") == Some(&"residential".to_string()) {
-        if edge.edge.tags.get("surface") == Some(&"sett".to_string())
-            || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
-        {
+    } else if highway == Some(&"residential".to_string()) {
+        if surface == Some(&"sett".to_string()) || surface == Some(&"cobblestone".to_string()) {
             1. / 0.4
-        } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
-            || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
+        } else if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string())
         {
             1. / 0.85
         } else {
             1. / 0.6
         }
-    } else if edge.edge.tags.get("highway") == Some(&"service".to_string()) {
-        if edge.edge.tags.get("surface") == Some(&"chipseal".to_string()) {
+    } else if highway == Some(&"service".to_string()) {
+        if surface == Some(&"chipseal".to_string()) {
             1. / 0.5
         } else {
             1. / 0.6
         }
-    } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
+    } else if highway == Some(&"unclassified".to_string()) {
         1. / 0.5
-    } else if edge.edge.tags.get("highway") == Some(&"tertiary".to_string()) {
-        if edge.edge.tags.get("surface") == Some(&"sett".to_string())
-            || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
-        {
+    } else if highway == Some(&"tertiary".to_string()) {
+        if surface == Some(&"sett".to_string()) || surface == Some(&"cobblestone".to_string()) {
             1. / 0.3
         } else if edge.edge.in_bicycle_route {
             1. / 0.60
         } else {
             1. / 0.5
         }
-    } else if edge.edge.tags.get("higway") == Some(&"tertiary_link".to_string()) {
+    } else if tags.get("higway") == Some(&"tertiary_link".to_string()) {
         1. / 0.5
-    } else if edge.edge.tags.get("highway") == Some(&"secondary".to_string()) {
-        if edge.edge.tags.get("surface") == Some(&"sett".to_string())
-            || edge.edge.tags.get("surface") == Some(&"cobblestone".to_string())
-        {
+    } else if highway == Some(&"secondary".to_string()) {
+        if surface == Some(&"sett".to_string()) || surface == Some(&"cobblestone".to_string()) {
             1. / 0.3
         } else if edge.edge.in_bicycle_route {
             1. / 0.60
@@ -384,28 +340,26 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         }
     } else if edge.edge.in_bicycle_route {
         1. / 0.60
-    } else if edge.edge.tags.get("bicycle") == Some(&"yes".to_string())
-        || edge.edge.tags.get("bicycle") == Some(&"designated".to_string())
-    {
+    } else if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
         1. / 0.4
-    } else if edge.edge.tags.get("highway") == Some(&"secondary_link".to_string()) {
+    } else if tags.get("highway") == Some(&"secondary_link".to_string()) {
         1. / 0.4
-    } else if edge.edge.tags.get("higway") == Some(&"primary".to_string()) {
+    } else if tags.get("higway") == Some(&"primary".to_string()) {
         1. / 0.3
-    } else if edge.edge.tags.get("bicycle") == Some(&"designated".to_string()) {
+    } else if bicycle == Some(&"designated".to_string()) {
         1. / 0.7
-    } else if edge.edge.tags.get("higway") == Some(&"trunk".to_string()) {
+    } else if tags.get("higway") == Some(&"trunk".to_string()) {
         1. / 0.3
-    } else if edge.edge.tags.get("higway").is_some() {
+    } else if tags.get("higway").is_some() {
         1. / 0.3
-    } else if edge.edge.tags.get("higway") == Some(&"footway".to_string()) {
+    } else if tags.get("higway") == Some(&"footway".to_string()) {
         1. / 0.1
     } else {
         1. / 0.05
     };
 
     if edge.edge.road_work {
-        cost = cost * 3.;
+        cost *= 3.;
     }
 
     cost = match fast_or_safe {
