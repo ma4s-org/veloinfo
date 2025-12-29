@@ -7,6 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use geojson::JsonValue;
 
 use crate::VeloinfoState;
 
@@ -113,7 +114,7 @@ pub async fn bike_path_mvt(
     }
 }
 
-pub async fn bike_path() -> impl IntoResponse {
+pub async fn bike_path() -> Json<JsonValue> {
     let tilejson = serde_json::json!({
         "tilejson": "3.0.0",
         "name": "bike_path",

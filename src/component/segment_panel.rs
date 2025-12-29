@@ -33,7 +33,7 @@ pub async fn segment_panel_post(
     State(state): State<VeloinfoState>,
     jar: CookieJar,
     mut multipart: Multipart,
-) -> (CookieJar, impl IntoResponse) {
+) -> (CookieJar, Json<JsonValue>) {
     let user_id = match jar.get("uuid") {
         Some(uuid) => {
             let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
