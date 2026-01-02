@@ -1,4 +1,7 @@
-use crate::db::edge::{EdgePoint, SourceOrTarget};
+use crate::db::edge::{
+    Access, BicycleTag, Cycleway, EdgePoint, Footway, Highway, Oneway, Smoothness, SourceOrTarget,
+    Surface, Tunnel,
+};
 use crate::db::utils::distance_meters;
 
 pub trait H: Send {
@@ -7,14 +10,14 @@ pub trait H: Send {
 
     fn h(&self, start_point: &EdgePoint, goal: &EdgePoint) -> f64 {
         let (goal_lon, goal_lat) = if SourceOrTarget::Source == goal.direction {
-            (goal.edge.lon1, goal.edge.lat1)
+            (goal.lon1, goal.lat1)
         } else {
-            (goal.edge.lon2, goal.edge.lat2)
+            (goal.lon2, goal.lat2)
         };
         let (start_lon, start_lat) = if SourceOrTarget::Source == start_point.direction {
-            (start_point.edge.lon1, start_point.edge.lat1)
+            (start_point.lon1, start_point.lat1)
         } else {
-            (start_point.edge.lon2, start_point.edge.lat2)
+            (start_point.lon2, start_point.lat2)
         };
         let distance = distance_meters(start_lat, start_lon, goal_lat, goal_lon);
 
@@ -51,47 +54,37 @@ pub struct HBiggerSelection {}
 
 impl H for HBiggerSelection {
     fn get_cost(&self, edge: &EdgePoint) -> f64 {
-        let cost = if edge.edge.tags.get("highway") == Some(&"cycleway".to_string()) {
+        let cost = if edge.highway == Some(Highway::Cycleway) {
             1.
-        } else if edge.edge.tags.get("cyclestreet") == Some(&"yes".to_string()) {
+        } else if edge.cyclestreet {
             1.
-        } else if edge.edge.tags.get("cycleway") == Some(&"crossing".to_string()) {
+        } else if edge.cycleway == Some(Cycleway::Crossing) {
             1.
-        } else if edge.edge.tags.get("cycleway") == Some(&"track".to_string()) {
+        } else if edge.cycleway == Some(Cycleway::Track)
+            || edge.cycleway_both == Some(Cycleway::Track)
+            || edge.cycleway_left == Some(Cycleway::Track)
+            || edge.cycleway_right == Some(Cycleway::Track)
+        {
             1. / 0.9
-        } else if edge.edge.tags.get("cycleway:both") == Some(&"track".to_string()) {
-            1. / 0.9
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"track".to_string()) {
-            1. / 0.9
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"track".to_string()) {
-            1. / 0.9
-        } else if edge.edge.tags.get("cycleway") == Some(&"lane".to_string()) {
+        } else if edge.cycleway == Some(Cycleway::Lane)
+            || edge.cycleway_both == Some(Cycleway::Lane)
+            || edge.cycleway_left == Some(Cycleway::Lane)
+            || edge.cycleway_right == Some(Cycleway::Lane)
+        {
             1. / 0.8
-        } else if edge.edge.tags.get("cycleway:both") == Some(&"lane".to_string()) {
-            1. / 0.8
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"lane".to_string()) {
-            1. / 0.8
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"lane".to_string()) {
-            1. / 0.8
-        } else if edge.edge.tags.get("cycleway") == Some(&"shared_lane".to_string())
-            || edge.edge.tags.get("cycleway") == Some(&"share_busway".to_string())
+        } else if edge.cycleway == Some(Cycleway::SharedLane)
+            || edge.cycleway == Some(Cycleway::ShareBusway)
+            || edge.cycleway_both == Some(Cycleway::SharedLane)
+            || edge.cycleway_both == Some(Cycleway::ShareBusway)
+            || edge.cycleway_left == Some(Cycleway::SharedLane)
+            || edge.cycleway_left == Some(Cycleway::ShareBusway)
+            || edge.cycleway_right == Some(Cycleway::SharedLane)
+            || edge.cycleway_right == Some(Cycleway::ShareBusway)
         {
             1. / 0.7
-        } else if edge.edge.tags.get("cycleway:both") == Some(&"shared_lane".to_string())
-            || edge.edge.tags.get("cycleway:both") == Some(&"share_busway".to_string())
-        {
+        } else if edge.highway == Some(Highway::Unclassified) {
             1. / 0.7
-        } else if edge.edge.tags.get("highway") == Some(&"unclassified".to_string()) {
-            1. / 0.7
-        } else if edge.edge.tags.get("bicycle") == Some(&"designated".to_string()) {
-            1. / 0.7
-        } else if edge.edge.tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-            || edge.edge.tags.get("cycleway:left") == Some(&"share_busway".to_string())
-        {
-            1. / 0.7
-        } else if edge.edge.tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-            || edge.edge.tags.get("cycleway:right") == Some(&"share_busway".to_string())
-        {
+        } else if edge.bicycle == Some(BicycleTag::Designated) {
             1. / 0.7
         } else {
             1. / 0.1
@@ -125,138 +118,123 @@ enum FastOrSafe {
 fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     // if the target is the source we are reverse of the edge
     if SourceOrTarget::Source == edge.direction
-        && edge.edge.tags.get("oneway") == Some(&"yes".to_string())
-        && edge.edge.tags.get("oneway:bicycle") != Some(&"no".to_string())
-        && edge.edge.tags.get("cycleway:left:oneway") != Some(&"no".to_string())
-        && edge.edge.tags.get("cycleway:right:oneway") != Some(&"no".to_string())
+        && edge.oneway == Some(Oneway::Yes)
+        && edge.oneway_bicycle != Some(Oneway::No)
+        && edge.cycleway_left_oneway != Some(Oneway::No)
+        && edge.cycleway_right_oneway != Some(Oneway::No)
     {
         return 1. / 0.0005;
     }
 
-    if edge.edge.tags.get("winter_service") == Some(&"no".to_string()) && edge.edge.snow {
+    if edge.winter_service_no && edge.snow {
         return 1. / 0.0001;
     }
 
-    let tags = &edge.edge.tags;
-    let bicycle = tags.get("bicycle");
-    let highway = tags.get("highway");
-    let cycleway = tags.get("cycleway");
-    let surface = tags.get("surface");
-    let smoothness = tags.get("smoothness");
+    let bicycle = edge.bicycle.clone();
+    let highway = edge.highway.clone();
+    let cycleway = edge.cycleway.clone();
+    let surface = edge.surface.clone();
+    let smoothness = edge.smoothness.clone();
+    let access = edge.access.clone();
 
-    let mut cost: f64 = if bicycle == Some(&"no".to_string()) {
+    let mut cost: f64 = if bicycle == Some(BicycleTag::No) {
         return 1. / 0.0001;
-    } else if tags.get("access") == Some(&"private".to_string())
-        || tags.get("access") == Some(&"no".to_string())
-        || tags.get("informal") == Some(&"yes".to_string())
-    {
-        if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
+    } else if access == Some(Access::Private) || access == Some(Access::No) || edge.informal {
+        if bicycle == Some(BicycleTag::Yes) || bicycle == Some(BicycleTag::Designated) {
             1. / 0.4
         } else {
             return 1. / 0.0001;
         }
-    } else if highway == Some(&"proposed".to_string())
-        || tags.get("abandoned") == Some(&"yes".to_string())
-        || highway == Some(&"motorway".to_string())
+    } else if highway == Some(Highway::Proposed)
+        || edge.abandoned
+        || highway == Some(Highway::Motorway)
     {
         return 1. / 0.0001;
-    } else if tags.get("access") == Some(&"customers".to_string()) {
+    } else if access == Some(Access::Customers) {
         1. / 0.2
-    } else if tags.get("informal") == Some(&"yes".to_string()) {
+    } else if edge.informal {
         1. / 0.05
-    } else if highway == Some(&"steps".to_string()) {
-        if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
+    } else if highway == Some(Highway::Steps) {
+        if bicycle == Some(BicycleTag::Yes) || bicycle == Some(BicycleTag::Designated) {
             1. / 0.06
         } else {
             return 1. / 0.0001;
         }
-    } else if highway == Some(&"path".to_string())
-        && (bicycle == Some(&"dismount".to_string()) || bicycle == Some(&"discouraged".to_string()))
+    } else if highway == Some(Highway::Path)
+        && (bicycle == Some(BicycleTag::Dismount) || bicycle == Some(BicycleTag::Discouraged))
     {
         1. / 0.1
-    } else if bicycle == Some(&"discouraged".to_string()) {
+    } else if bicycle == Some(BicycleTag::Discouraged) {
         1. / 0.1
-    } else if tags.get("routing:bicycle") == Some(&"use_sidepath".to_string()) {
+    } else if edge.routing_bicycle_use_sidepath {
         1. / 0.1
-    } else if highway == Some(&"cycleway".to_string()) {
-        if tags.get("suface") == Some(&"fine_gravel".to_string())
-            || surface == Some(&"gravel".to_string())
-        {
+    } else if highway == Some(Highway::Cycleway) {
+        if surface == Some(Surface::FineGravel) || surface == Some(Surface::Gravel) {
             1. / 0.75
-        } else if cycleway == Some(&"crossing".to_string())
-            || smoothness == Some(&"bad".to_string())
-        {
+        } else if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
         }
-    } else if tags.get("cyclestreet") == Some(&"yes".to_string()) {
+    } else if edge.cyclestreet {
         0.95
-    } else if cycleway == Some(&"track".to_string())
-        || tags.get("cycleway:both") == Some(&"track".to_string())
-    {
-        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
+    } else if cycleway == Some(Cycleway::Track) || edge.cycleway_both == Some(Cycleway::Track) {
+        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
         }
-    } else if tags.get("cycleway:left") == Some(&"track".to_string())
+    } else if edge.cycleway_left == Some(Cycleway::Track)
         && (SourceOrTarget::Source == edge.direction
-            || tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+            || edge.cycleway_left_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
+        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
         }
-    } else if tags.get("cycleway:right") == Some(&"track".to_string())
+    } else if edge.cycleway_right == Some(Cycleway::Track)
         && (SourceOrTarget::Target == edge.direction
-            || tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
+            || edge.cycleway_right_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
+        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
         }
-    } else if cycleway == Some(&"lane".to_string())
-        || tags.get("cycleway:both") == Some(&"lane".to_string())
-    {
-        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
+    } else if cycleway == Some(Cycleway::Lane) || edge.cycleway_both == Some(Cycleway::Lane) {
+        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if tags.get("cycleway:left") == Some(&"lane".to_string())
+    } else if edge.cycleway_left == Some(Cycleway::Lane)
         && (SourceOrTarget::Source == edge.direction
-            || tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+            || edge.cycleway_left_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
+        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if tags.get("cycleway:right") == Some(&"lane".to_string())
+    } else if edge.cycleway_right == Some(Cycleway::Lane)
         && (SourceOrTarget::Target == edge.direction
-            || tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
+            || edge.cycleway_right_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(&"crossing".to_string()) || smoothness == Some(&"bad".to_string()) {
+        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if tags.get("higway") == Some(&"footway".to_string())
-        && tags.get("footway") == Some(&"crossing".to_string())
-    {
-        1. / 0.7
-    } else if highway == Some(&"footway".to_string()) {
-        if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
-            if tags.get("footway") == Some(&"sidewalk".to_string()) {
+    } else if highway == Some(Highway::Footway) {
+        if bicycle == Some(BicycleTag::Yes) || bicycle == Some(BicycleTag::Designated) {
+            if edge.footway == Some(Footway::Sidewalk) {
                 1. / 0.4
             } else {
                 1. / 0.9
             }
-        } else if bicycle == Some(&"dismount".to_string()) {
-            if tags.get("tunnel") == Some(&"yes".to_string()) {
+        } else if bicycle == Some(BicycleTag::Dismount) {
+            if edge.tunnel == Some(Tunnel::Yes) {
                 1. / 0.2
             } else {
                 1. / 0.3
@@ -264,101 +242,98 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             return 1. / 0.1;
         }
-    } else if cycleway == Some(&"shared_lane".to_string())
-        || cycleway == Some(&"share_busway".to_string())
-        || tags.get("cycleway:both") == Some(&"shared_lane".to_string())
-        || tags.get("cycleway:both") == Some(&"share_busway".to_string())
+    } else if cycleway == Some(Cycleway::SharedLane)
+        || cycleway == Some(Cycleway::ShareBusway)
+        || edge.cycleway_both == Some(Cycleway::SharedLane)
+        || edge.cycleway_both == Some(Cycleway::ShareBusway)
     {
-        if cycleway == Some(&"crossing".to_string())
-            || smoothness == Some(&"bad".to_string())
-            || surface == Some(&"sett".to_string())
+        if cycleway == Some(Cycleway::Crossing)
+            || smoothness == Some(Smoothness::Bad)
+            || surface == Some(Surface::Sett)
         {
             1. / 0.5
         } else {
             1. / 0.7
         }
-    } else if (tags.get("cycleway:left") == Some(&"shared_lane".to_string())
-        || tags.get("cycleway:left") == Some(&"share_busway".to_string()))
+    } else if (edge.cycleway_left == Some(Cycleway::SharedLane)
+        || edge.cycleway_left == Some(Cycleway::ShareBusway))
         && (SourceOrTarget::Source == edge.direction
-            || tags.get("cycleway:left:oneway") == Some(&"no".to_string()))
+            || edge.cycleway_left_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(&"crossing".to_string())
-            || smoothness == Some(&"bad".to_string())
-            || surface == Some(&"sett".to_string())
+        if cycleway == Some(Cycleway::Crossing)
+            || smoothness == Some(Smoothness::Bad)
+            || surface == Some(Surface::Sett)
         {
             1. / 0.5
         } else {
             1. / 0.7
         }
-    } else if (tags.get("cycleway:right") == Some(&"shared_lane".to_string())
-        || tags.get("cycleway:right") == Some(&"share_busway".to_string()))
+    } else if (edge.cycleway_right == Some(Cycleway::SharedLane)
+        || edge.cycleway_right == Some(Cycleway::ShareBusway))
         && (SourceOrTarget::Target == edge.direction
-            || tags.get("cycleway:right:oneway") == Some(&"no".to_string()))
+            || edge.cycleway_right_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(&"crossing".to_string())
-            || smoothness == Some(&"bad".to_string())
-            || surface == Some(&"sett".to_string())
+        if cycleway == Some(Cycleway::Crossing)
+            || smoothness == Some(Smoothness::Bad)
+            || surface == Some(Surface::Sett)
         {
             1. / 0.5
         } else {
             1. / 0.7
         }
-    } else if highway == Some(&"residential".to_string()) {
-        if surface == Some(&"sett".to_string()) || surface == Some(&"cobblestone".to_string()) {
+    } else if highway == Some(Highway::Residential) {
+        if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
             1. / 0.4
-        } else if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string())
-        {
+        } else if bicycle == Some(BicycleTag::Yes) || bicycle == Some(BicycleTag::Designated) {
             1. / 0.85
         } else {
             1. / 0.6
         }
-    } else if highway == Some(&"service".to_string()) {
-        if surface == Some(&"chipseal".to_string()) {
+    } else if highway == Some(Highway::Service) {
+        if surface == Some(Surface::Chipseal) {
             1. / 0.5
         } else {
             1. / 0.6
         }
-    } else if highway == Some(&"unclassified".to_string()) {
+    } else if highway == Some(Highway::Unclassified) {
         1. / 0.5
-    } else if highway == Some(&"tertiary".to_string()) {
-        if surface == Some(&"sett".to_string()) || surface == Some(&"cobblestone".to_string()) {
+    } else if highway == Some(Highway::Tertiary) {
+        if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
             1. / 0.3
-        } else if edge.edge.in_bicycle_route {
+        } else if edge.in_bicycle_route {
             1. / 0.60
         } else {
             1. / 0.5
         }
-    } else if tags.get("higway") == Some(&"tertiary_link".to_string()) {
-        1. / 0.5
-    } else if highway == Some(&"secondary".to_string()) {
-        if surface == Some(&"sett".to_string()) || surface == Some(&"cobblestone".to_string()) {
+    } else if highway == Some(Highway::Secondary) {
+        if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
             1. / 0.3
-        } else if edge.edge.in_bicycle_route {
+        } else if edge.in_bicycle_route {
             1. / 0.60
         } else {
             1. / 0.4
         }
-    } else if edge.edge.in_bicycle_route {
+    } else if edge.in_bicycle_route {
         1. / 0.60
-    } else if bicycle == Some(&"yes".to_string()) || bicycle == Some(&"designated".to_string()) {
+    } else if bicycle == Some(BicycleTag::Yes) || bicycle == Some(BicycleTag::Designated) {
         1. / 0.4
-    } else if tags.get("highway") == Some(&"secondary_link".to_string()) {
+    } else if highway == Some(Highway::SecondaryLink) {
         1. / 0.4
-    } else if tags.get("higway") == Some(&"primary".to_string()) {
+    } else if highway == Some(Highway::Primary) {
         1. / 0.3
-    } else if bicycle == Some(&"designated".to_string()) {
+    } else if bicycle == Some(BicycleTag::Designated) {
         1. / 0.7
-    } else if tags.get("higway") == Some(&"trunk".to_string()) {
+    } else if highway == Some(Highway::Trunk) {
         1. / 0.3
-    } else if tags.get("higway").is_some() {
+    } else if highway.is_some() {
         1. / 0.3
-    } else if tags.get("higway") == Some(&"footway".to_string()) {
+    } else if highway == Some(Highway::Footway) {
         1. / 0.1
     } else {
         1. / 0.05
     };
 
-    if edge.edge.road_work {
+    if edge.road_work {
         cost *= 3.;
     }
 
@@ -367,7 +342,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         FastOrSafe::Safe => cost,
     };
 
-    let score = match edge.edge.score {
+    let score = match edge.score {
         Some(score) => {
             if score == -1.0 {
                 1.

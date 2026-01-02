@@ -68,10 +68,126 @@ impl PartialEq for Edge {
     }
 }
 
-#[derive(Debug, Clone, Eq, Hash)]
+#[derive(Debug, Clone)]
 pub struct EdgePoint {
-    pub edge: ARc<Edge>,
+    pub id: i64,
+    pub lon1: f64,
+    pub lat1: f64,
+    pub lon2: f64,
+    pub lat2: f64,
+    pub length: f64,
+    pub way_id: i64,
+    pub source: i64,
+    pub target: i64,
+    pub in_bicycle_route: bool,
+    pub road_work: bool,
+    pub snow: bool,
+    pub winter_service_no: bool,
+    pub abandoned: bool,
+    pub score: Option<f64>,
     pub direction: SourceOrTarget,
+    pub cycleway: Option<Cycleway>,
+    pub cycleway_left: Option<Cycleway>,
+    pub cycleway_right: Option<Cycleway>,
+    pub cycleway_both: Option<Cycleway>,
+    pub highway: Option<Highway>,
+    pub bicycle: Option<BicycleTag>,
+    pub surface: Option<Surface>,
+    pub smoothness: Option<Smoothness>,
+    pub access: Option<Access>,
+    pub cyclestreet: bool,
+    pub footway: Option<Footway>,
+    pub tunnel: Option<Tunnel>,
+    pub oneway: Option<Oneway>,
+    pub oneway_bicycle: Option<Oneway>,
+    pub cycleway_left_oneway: Option<Oneway>,
+    pub cycleway_right_oneway: Option<Oneway>,
+    pub informal: bool,
+    pub routing_bicycle_use_sidepath: bool,
+}
+
+impl Eq for EdgePoint {}
+
+impl Hash for EdgePoint {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.direction.hash(state);
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Oneway {
+    Yes,
+    No,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Cycleway {
+    Track,
+    Lane,
+    Crossing,
+    SharedLane,
+    ShareBusway,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Highway {
+    Cycleway,
+    Unclassified,
+    Footway,
+    Residential,
+    Service,
+    Tertiary,
+    Secondary,
+    SecondaryLink,
+    Primary,
+    Trunk,
+    Path,
+    Steps,
+    Pedestrian,
+    Motorway,
+    Proposed,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum BicycleTag {
+    Yes,
+    No,
+    Designated,
+    Dismount,
+    Discouraged,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Surface {
+    Sett,
+    Cobblestone,
+    Gravel,
+    FineGravel,
+    Chipseal,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Smoothness {
+    Bad,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Access {
+    Private,
+    No,
+    Customers,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Footway {
+    Crossing,
+    Sidewalk,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Tunnel {
+    Yes,
 }
 
 #[derive(Debug, Clone, Eq, Hash)]
@@ -92,7 +208,175 @@ impl PartialEq for SourceOrTarget {
 
 impl PartialEq for EdgePoint {
     fn eq(&self, other: &Self) -> bool {
-        self.edge.id == other.edge.id && self.direction == other.direction
+        self.id == other.id && self.direction == other.direction
+    }
+}
+
+impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
+    fn from((edge, direction): (ARc<Edge>, SourceOrTarget)) -> Self {
+        let tags = &edge.tags.0;
+
+        let get = |k: &str| -> Option<&String> { tags.get(k) };
+
+        let parse_oneway = |v: Option<&String>| -> Option<Oneway> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "yes" => Some(Oneway::Yes),
+                    "no" => Some(Oneway::No),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_cycleway = |v: Option<&String>| -> Option<Cycleway> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "track" => Some(Cycleway::Track),
+                    "lane" => Some(Cycleway::Lane),
+                    "crossing" => Some(Cycleway::Crossing),
+                    "shared_lane" => Some(Cycleway::SharedLane),
+                    "share_busway" => Some(Cycleway::ShareBusway),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_highway = |v: Option<&String>| -> Option<Highway> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "cycleway" => Some(Highway::Cycleway),
+                    "unclassified" => Some(Highway::Unclassified),
+                    "footway" => Some(Highway::Footway),
+                    "residential" => Some(Highway::Residential),
+                    "service" => Some(Highway::Service),
+                    "tertiary" => Some(Highway::Tertiary),
+                    "secondary" => Some(Highway::Secondary),
+                    "secondary_link" => Some(Highway::SecondaryLink),
+                    "primary" => Some(Highway::Primary),
+                    "trunk" => Some(Highway::Trunk),
+                    "path" => Some(Highway::Path),
+                    "steps" => Some(Highway::Steps),
+                    "pedestrian" => Some(Highway::Pedestrian),
+                    "motorway" => Some(Highway::Motorway),
+                    "proposed" => Some(Highway::Proposed),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_bicycle = |v: Option<&String>| -> Option<BicycleTag> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "yes" => Some(BicycleTag::Yes),
+                    "no" => Some(BicycleTag::No),
+                    "designated" => Some(BicycleTag::Designated),
+                    "dismount" => Some(BicycleTag::Dismount),
+                    "discouraged" => Some(BicycleTag::Discouraged),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_surface = |v: Option<&String>| -> Option<Surface> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "sett" => Some(Surface::Sett),
+                    "cobblestone" => Some(Surface::Cobblestone),
+                    "gravel" => Some(Surface::Gravel),
+                    "fine_gravel" => Some(Surface::FineGravel),
+                    "chipseal" => Some(Surface::Chipseal),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_smoothness = |v: Option<&String>| -> Option<Smoothness> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "bad" => Some(Smoothness::Bad),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_access = |v: Option<&String>| -> Option<Access> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "private" => Some(Access::Private),
+                    "no" => Some(Access::No),
+                    "customers" => Some(Access::Customers),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_footway = |v: Option<&String>| -> Option<Footway> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "crossing" => Some(Footway::Crossing),
+                    "sidewalk" => Some(Footway::Sidewalk),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_tunnel = |v: Option<&String>| -> Option<Tunnel> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "yes" => Some(Tunnel::Yes),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let ep = EdgePoint {
+            id: edge.id,
+            lon1: edge.lon1,
+            lat1: edge.lat1,
+            lon2: edge.lon2,
+            lat2: edge.lat2,
+            length: edge.length,
+            way_id: edge.way_id,
+            source: edge.source,
+            target: edge.target,
+            in_bicycle_route: edge.in_bicycle_route,
+            road_work: edge.road_work,
+            snow: edge.snow,
+            score: edge.score,
+            direction,
+            cycleway: parse_cycleway(get("cycleway")),
+            cycleway_left: parse_cycleway(get("cycleway:left")),
+            cycleway_right: parse_cycleway(get("cycleway:right")),
+            cycleway_both: parse_cycleway(get("cycleway:both")),
+            highway: parse_highway(get("highway")),
+            bicycle: parse_bicycle(get("bicycle")),
+            surface: parse_surface(get("surface")).or_else(|| parse_surface(get("suface"))),
+            smoothness: parse_smoothness(get("smoothness")),
+            access: parse_access(get("access")),
+            cyclestreet: get("cyclestreet") == Some(&"yes".to_string()),
+            footway: parse_footway(get("footway")),
+            tunnel: parse_tunnel(get("tunnel")),
+            oneway: parse_oneway(get("oneway")),
+            oneway_bicycle: parse_oneway(get("oneway:bicycle")),
+            cycleway_left_oneway: parse_oneway(get("cycleway:left:oneway")),
+            cycleway_right_oneway: parse_oneway(get("cycleway:right:oneway")),
+            informal: get("informal") == Some(&"yes".to_string()),
+            routing_bicycle_use_sidepath: get("routing:bicycle")
+                == Some(&"use_sidepath".to_string()),
+            winter_service_no: get("winter_service") == Some(&"no".to_string()),
+            abandoned: get("abandoned") == Some(&"yes".to_string()),
+        };
+
+        ep
     }
 }
 
@@ -102,16 +386,15 @@ impl EdgePoint {
             SourceOrTarget::Source => SourceOrTarget::Target,
             SourceOrTarget::Target => SourceOrTarget::Source,
         };
-        EdgePoint {
-            edge: self.edge.clone(),
-            direction: new_direction,
-        }
+        let mut e = self.clone();
+        e.direction = new_direction;
+        e
     }
 
     pub fn get_node_id(&self) -> i64 {
         match self.direction {
-            SourceOrTarget::Source => self.edge.source,
-            SourceOrTarget::Target => self.edge.target,
+            SourceOrTarget::Source => self.source,
+            SourceOrTarget::Target => self.target,
         }
     }
 
@@ -153,17 +436,12 @@ impl EdgePoint {
                 let result: Vec<ARc<EdgePoint>> = results
                     .into_iter()
                     .map(|edge: Edge| {
-                        if edge.source == node_id {
-                            return ARc::new(EdgePoint {
-                                edge: ARc::new(edge),
-                                direction: SourceOrTarget::Target,
-                            });
+                        let direction = if edge.source == node_id {
+                            SourceOrTarget::Target
                         } else {
-                            return ARc::new(EdgePoint {
-                                edge: ARc::new(edge),
-                                direction: SourceOrTarget::Source,
-                            });
-                        }
+                            SourceOrTarget::Source
+                        };
+                        ARc::new((ARc::new(edge), direction).into())
                     })
                     .collect();
                 let mut cache = NEIGHBORS_CACHE.lock().await;
@@ -280,10 +558,10 @@ impl Edge {
                         s.send(axum::extract::ws::Message::Text(
                             format!(
                                 "[[{},{}],[{},{}]]",
-                                current_fwd.edge.lon1,
-                                current_fwd.edge.lat1,
-                                current_fwd.edge.lon2,
-                                current_fwd.edge.lat2
+                                current_fwd.lon1,
+                                current_fwd.lat1,
+                                current_fwd.lon2,
+                                current_fwd.lat2
                             )
                             .into(),
                         ))
@@ -302,7 +580,7 @@ impl Edge {
 
                 for neighbor in current_fwd.get_neighbors(conn).await.iter() {
                     let tentative_g_score =
-                        g_score_fwd[&current_fwd] + neighbor.edge.length * h.get_cost(&neighbor);
+                        g_score_fwd[&current_fwd] + neighbor.length * h.get_cost(&neighbor);
                     if tentative_g_score < *g_score_fwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_fwd.insert(neighbor.clone(), current_fwd.clone());
                         g_score_fwd.insert(neighbor.clone(), tentative_g_score);
@@ -319,10 +597,10 @@ impl Edge {
                         s.send(axum::extract::ws::Message::Text(
                             format!(
                                 "[[{},{}],[{},{}]]",
-                                current_bwd.edge.lon1,
-                                current_bwd.edge.lat1,
-                                current_bwd.edge.lon2,
-                                current_bwd.edge.lat2
+                                current_bwd.lon1,
+                                current_bwd.lat1,
+                                current_bwd.lon2,
+                                current_bwd.lat2
                             )
                             .into(),
                         ))
@@ -341,7 +619,7 @@ impl Edge {
 
                 for neighbor in current_bwd.get_neighbors(conn).await.iter() {
                     let tentative_g_score = g_score_bwd[&current_bwd]
-                        + neighbor.edge.length * h.get_cost(&neighbor.reverse());
+                        + neighbor.length * h.get_cost(&neighbor.reverse());
                     if tentative_g_score < *g_score_bwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_bwd.insert(neighbor.clone(), current_bwd.clone());
                         g_score_bwd.insert(neighbor.clone(), tentative_g_score);
@@ -390,18 +668,18 @@ impl Edge {
                 .map(|edge| async {
                     match edge.direction {
                         SourceOrTarget::Source => Point {
-                            lng: edge.edge.lon1,
-                            lat: edge.edge.lat1,
-                            way_id: edge.edge.way_id,
-                            node_id: edge.edge.source,
-                            length: edge.edge.length,
+                            lng: edge.lon1,
+                            lat: edge.lat1,
+                            way_id: edge.way_id,
+                            node_id: edge.source,
+                            length: edge.length,
                         },
                         SourceOrTarget::Target => Point {
-                            lng: edge.edge.lon2,
-                            lat: edge.edge.lat2,
-                            way_id: edge.edge.way_id,
-                            node_id: edge.edge.target,
-                            length: edge.edge.length,
+                            lng: edge.lon2,
+                            lat: edge.lat2,
+                            way_id: edge.way_id,
+                            node_id: edge.target,
+                            length: edge.length,
                         },
                     }
                 })
@@ -498,10 +776,7 @@ impl Edge {
                 } else {
                     SourceOrTarget::Target
                 };
-                Ok(ARc::new(EdgePoint {
-                    edge: ARc::new(edge),
-                    direction: point,
-                }))
+                Ok(ARc::new((ARc::new(edge), point).into()))
             }
             Err(e) => Err(e),
         }
