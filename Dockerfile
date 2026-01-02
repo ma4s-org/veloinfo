@@ -2,7 +2,7 @@ FROM rust:latest as base
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    fish \
+    fish hx \
     rustfmt \
     osm2pgsql osmium-tool pyosmium \
     nodejs \
@@ -25,6 +25,8 @@ RUN cargo install cargo-watch
 RUN cargo install cargo-edit
 RUN cargo install sqlx-cli --no-default-features --features postgres
 RUN rustup component add rustfmt
+RUN npm i typescript-language-server -g
+RUN npm i vscode-html-languageservice -g
 
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
 RUN chmod 0600 /root/.pgpass
