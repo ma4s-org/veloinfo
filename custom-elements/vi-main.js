@@ -18,10 +18,12 @@ import '/custom-elements/vi-info.js';
 import ViLayers from './vi-layers.js';
 import ViInfo from './vi-info.js';
 
+const html = String.raw;
+
 class ViMain extends HTMLElement {
     constructor() {
         super();
-        this.innerHTML = /*html*/`
+        this.innerHTML = html`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
                 <vi-search-input id="search"></vi-search-input>
@@ -76,7 +78,6 @@ class ViMain extends HTMLElement {
 
         this.querySelector('#snow_button').addEventListener('click', async () => {
             const map = this.map;
-            const canvas = map.getCanvas();
             const centerPoint = map.project(map.getCenter());
             const dialog = this.querySelector('#city_snow_dialog');
             const features = map.queryRenderedFeatures(centerPoint, { layers: ['city'] });
