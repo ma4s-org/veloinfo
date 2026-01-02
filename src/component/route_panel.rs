@@ -1,4 +1,4 @@
-use crate::utils::h::{get_h_moyen, get_h_rapid};
+use crate::utils::cost::{get_h_moyen, get_h_rapid};
 use askama::Template;
 use axum::{
     debug_handler,

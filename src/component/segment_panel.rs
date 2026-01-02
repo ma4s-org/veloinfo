@@ -2,7 +2,7 @@ use super::{info_panel::InfopanelContribution, score_selector::ScoreSelector};
 use crate::db::cycleway::{Cycleway, Node};
 use crate::db::edge::Edge;
 use crate::db::user::User;
-use crate::utils::h::get_h_bigger_selection;
+use crate::utils::cost::get_h_bigger_selection;
 use crate::{db::cyclability_score::CyclabilityScore, VeloinfoState};
 use axum::extract::multipart::Multipart;
 use axum::extract::{Path, State};
