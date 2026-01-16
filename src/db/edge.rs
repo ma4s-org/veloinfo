@@ -4,8 +4,8 @@ use std::{
     hash::Hash,
 };
 
-use crate::utils::h::H;
-use crate::{db::utils::Score, utils::h::get_h_moyen};
+use crate::utils::cost::H;
+use crate::{db::utils::Score, utils::cost::get_h_moyen};
 use axum::extract::ws::WebSocket;
 use futures::future::join_all;
 use lazy_static::lazy_static;
@@ -857,7 +857,7 @@ impl Edge {
 #[cfg(test)]
 mod tests {
 
-    use crate::utils::h::get_h_moyen;
+    use crate::utils::cost::get_h_moyen;
 
     use super::*;
     use std::env;
