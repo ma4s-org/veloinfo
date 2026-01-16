@@ -15,6 +15,8 @@ RUN cd libheif && git checkout tags/v1.18.1 -b v1.18.1
 
 RUN mkdir build
 RUN cd build && cmake --preset=release ../libheif && make && make install
+RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+RUN cargo binstall jj-cli --no-confirm
 
 FROM base as dev
 
