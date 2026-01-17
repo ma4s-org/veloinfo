@@ -171,6 +171,7 @@ class SearchResult extends HTMLElement {
 
     async clickSearchResult() {
         let map = document.querySelector('vi-main').map;
+        let viMain = document.querySelector('vi-main');
         let lng = this.getAttribute("lng");
         let lat = this.getAttribute("lat");
         // Stocker la cible dans le localStorage
@@ -193,11 +194,25 @@ class SearchResult extends HTMLElement {
         recentTargets.unshift(target);
         localStorage.setItem('recentTargets', JSON.stringify(recentTargets));
 
-        if (window.start_marker) {
-            window.start_marker.remove();
+        // Vérifier si on est en mode changeStart
+        const changeStartElement = document.querySelector('vi-change-start');
+        if (changeStartElement) {
+            // Mode changeStart : mettre à jour le départ et lancer la route
+            if (window.start_marker) {
+                window.start_marker.remove();
+            }
+            window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([lng, lat]).addTo(map);
+
+            // Lancer la route vers la destination existante
+            viMain.recalculateRoute("safe");
+        } else {
+            // Mode normal : changer le point de destination
+            if (window.start_marker) {
+                window.start_marker.remove();
+            }
+            // Le point choisi via la recherche est la destination : marqueur bleu
+            window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
         }
-        // Le point choisi via la recherche est la destination : marqueur bleu
-        window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
 
         const searchInput = this.closest('vi-search-input');
         if (searchInput) {
@@ -211,11 +226,15 @@ class SearchResult extends HTMLElement {
             }
         }
 
-        let result = await fetch(`/point_panel_lng_lat/${lng}/${lat}`);
-        let json = await result.json();
-        let pointPanel = new PointPanel(json.name);
-        document.getElementById("info").innerHTML = '';
-        document.getElementById("info").appendChild(pointPanel);
+        // En mode normal, afficher le point panel
+        if (!changeStartElement) {
+            let result = await fetch(`/point_panel_lng_lat/${lng}/${lat}`);
+            let json = await result.json();
+            let pointPanel = new PointPanel(json.name);
+            document.getElementById("info").innerHTML = '';
+            document.getElementById("info").appendChild(pointPanel);
+        }
+
         map.flyTo({
             center: [lng, lat],
         });
