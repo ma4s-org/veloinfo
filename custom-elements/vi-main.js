@@ -33,9 +33,21 @@ const LAYERS = {
     SEARCHED: "searched_route"
 };
 
+// Images de sprite accessibles à la demande
+const SPRITE_IMAGES = {
+    'bike-parking': '/pub/bicycle-parking.png',
+    'drinking-water': '/pub/drinking_water.png',
+    'bike-shop': '/pub/bike_shop.png',
+    'bicycle_repair_station': '/pub/bicycle_repair_station.png',
+    'bixi': '/pub/bixi.png',
+    'snow': '/pub/snow-margin.png',
+    'oneway': '/pub/oneway.png'
+};
+
 class ViMain extends HTMLElement {
     constructor() {
         super();
+        this._loadingImages = new Set();
         this.innerHTML = html`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
@@ -113,6 +125,54 @@ class ViMain extends HTMLElement {
             this.querySelector('#snow_yes').onclick = () => updateSnow(true);
             this.querySelector('#snow_no').onclick = () => updateSnow(false);
         });
+
+        // Vérifier si des paramètres de route sont dans l'URL
+        this.checkRouteParams();
+    }
+
+    checkRouteParams() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("start_lng") && params.has("start_lat") && params.has("end_lng") && params.has("end_lat")) {
+            const startLng = parseFloat(params.get("start_lng"));
+            const startLat = parseFloat(params.get("start_lat"));
+            const endLng = parseFloat(params.get("end_lng"));
+            const endLat = parseFloat(params.get("end_lat"));
+
+            // Créer les marqueurs
+            this.setMarkers(startLng, startLat, endLng, endLat);
+
+            // Attendre que la carte soit chargée avant de calculer la route
+            if (this.map.loaded()) {
+                this.recalculateRoute("safe");
+            } else {
+                this.map.once('load', () => {
+                    this.recalculateRoute("safe");
+                });
+            }
+        } else if (params.has("point_lng") && params.has("point_lat")) {
+            const pointLng = parseFloat(params.get("point_lng"));
+            const pointLat = parseFloat(params.get("point_lat"));
+
+            // Afficher le marqueur du point recherché
+            if (window.start_marker) window.start_marker.remove();
+            window.start_marker = new maplibregl.Marker({ color: "#00f" })
+                .setLngLat([pointLng, pointLat])
+                .addTo(this.map);
+
+            // Charger le segment panel autour de ce point
+            const loadSegment = async () => {
+                const response = await fetch(`/segment_panel_lng_lat/${pointLng}/${pointLat}`);
+                const jsonData = await response.json();
+                const segment_panel = new SegmentPanel(jsonData);
+                this.querySelector("#info").innerHTML = ``;
+                this.querySelector("#info").appendChild(segment_panel);
+            };
+            if (this.map.loaded()) {
+                loadSegment();
+            } else {
+                this.map.once('load', () => loadSegment());
+            }
+        }
     }
 
     addMap() {
@@ -145,22 +205,27 @@ class ViMain extends HTMLElement {
             minZoom: 8
         });
 
-        // Chargement des images
-        (async () => {
-            const images = [
-                { name: 'bike-parking', url: '/pub/bicycle-parking.png' },
-                { name: 'drinking-water', url: '/pub/drinking_water.png' },
-                { name: 'bike-shop', url: '/pub/bike_shop.png' },
-                { name: 'bicycle_repair_station', url: '/pub/bicycle_repair_station.png' },
-                { name: 'bixi', url: '/pub/bixi.png' },
-                { name: 'snow', url: '/pub/snow-margin.png' },
-                { name: 'oneway', url: '/pub/oneway.png' }
-            ];
-            for (const img of images) {
-                const res = await this.map.loadImage(img.url);
-                this.map.addImage(img.name, res.data);
+        // Fournir les images manquantes à la demande pour éviter les warnings
+        this.map.on('styleimagemissing', async (e) => {
+            const id = e.id;
+            const url = SPRITE_IMAGES[id];
+            if (!url) return;
+            // Avoid duplicate loads while previous addImage is in-flight
+            if (this.map.hasImage(id) || this._loadingImages.has(id)) return;
+            this._loadingImages.add(id);
+            try {
+                const res = await this.map.loadImage(url);
+                if (!this.map.hasImage(id)) {
+                    this.map.addImage(id, res.data);
+                }
+            } catch (_) {
+                // ignore
+            } finally {
+                this._loadingImages.delete(id);
             }
-        })();
+        });
+
+        // Les images seront ajoutées dynamiquement via styleimagemissing
 
         this.isGeolocateActive = false;
         this.map.addControl(new maplibregl.NavigationControl());
@@ -206,7 +271,22 @@ class ViMain extends HTMLElement {
             if (timeout) clearTimeout(timeout);
             timeout = setTimeout(() => {
                 const map = this.map;
-                window.history.replaceState({}, "", `/?lat=${map.getCenter().lat}&lng=${map.getCenter().lng}&zoom=${map.getZoom()}`);
+                // If a route or segment panel is present, preserve params; otherwise reset to position-only
+                const hasRoutePanel = !!this.querySelector('vi-route-panel');
+                const hasSegmentPanel = !!this.querySelector('vi-segment-panel');
+                if (hasRoutePanel || hasSegmentPanel) {
+                    const url = new URL(window.location);
+                    url.searchParams.set('lat', map.getCenter().lat);
+                    url.searchParams.set('lng', map.getCenter().lng);
+                    url.searchParams.set('zoom', map.getZoom());
+                    window.history.replaceState({}, '', url);
+                } else {
+                    window.history.replaceState(
+                        {},
+                        '',
+                        `/?lat=${map.getCenter().lat}&lng=${map.getCenter().lng}&zoom=${map.getZoom()}`
+                    );
+                }
                 localStorage.setItem("position", JSON.stringify({
                     lng: map.getCenter().lng,
                     lat: map.getCenter().lat,
@@ -277,6 +357,24 @@ class ViMain extends HTMLElement {
             .addTo(this.map);
     }
 
+    // Méthode helper pour mettre à jour l'URL avec les coordonnées de route
+    updateRouteUrl(startLng, startLat, endLng, endLat) {
+        const url = new URL(window.location);
+        url.searchParams.set('start_lng', startLng.toFixed(6));
+        url.searchParams.set('start_lat', startLat.toFixed(6));
+        url.searchParams.set('end_lng', endLng.toFixed(6));
+        url.searchParams.set('end_lat', endLat.toFixed(6));
+        window.history.replaceState({}, '', url);
+    }
+
+    // Méthode helper pour mettre à jour l'URL avec le point sélectionné (segment panel)
+    updateSegmentUrl(pointLng, pointLat) {
+        const url = new URL(window.location);
+        url.searchParams.set('point_lng', parseFloat(pointLng).toFixed(6));
+        url.searchParams.set('point_lat', parseFloat(pointLat).toFixed(6));
+        window.history.replaceState({}, '', url);
+    }
+
     async infoPanelUp() {
         const bounds = this.map.getBounds();
         const r = await fetch(`/info_panel/up/${bounds._sw.lng}/${bounds._sw.lat}/${bounds._ne.lng}/${bounds._ne.lat}`);
@@ -327,6 +425,8 @@ class ViMain extends HTMLElement {
             const segment_panel = new SegmentPanel(jsonData);
             this.querySelector("#info").innerHTML = ``;
             this.querySelector("#info").appendChild(segment_panel);
+            // Mettre à jour l'URL avec le point sélectionné pour partage
+            this.updateSegmentUrl(event.lngLat.lng, event.lngLat.lat);
         } else {
             const selected = this.map.getSource("selected");
             if (selected) {
@@ -376,6 +476,8 @@ class ViMain extends HTMLElement {
         const segment_panel = new SegmentPanel(jsonData);
         this.querySelector("#info").innerHTML = ``;
         this.querySelector("#info").appendChild(segment_panel);
+        // Mettre à jour l'URL avec la destination choisie
+        this.updateSegmentUrl(destLng, destLat);
     }
 
     async clear() {
@@ -396,6 +498,16 @@ class ViMain extends HTMLElement {
             if (this.map.getLayer(layer)) this.map.removeLayer(layer);
             if (this.map.getSource(layer)) this.map.removeSource(layer);
         });
+
+        // Nettoyer les paramètres de route de l'URL
+        const url = new URL(window.location);
+        url.searchParams.delete('start_lng');
+        url.searchParams.delete('start_lat');
+        url.searchParams.delete('end_lng');
+        url.searchParams.delete('end_lat');
+        url.searchParams.delete('point_lng');
+        url.searchParams.delete('point_lat');
+        window.history.replaceState({}, '', url);
 
         // Affiche le panneau d'info
         const data = await (await fetch("/info_panel/down")).json();
@@ -439,6 +551,14 @@ class ViMain extends HTMLElement {
                 routePanel.setAttribute('coordinates', JSON.stringify([data.coordinates])); // Tableau avec une seule route
                 info.innerHTML = '';
                 info.appendChild(routePanel);
+
+                // Mettre à jour l'URL avec les coordonnées de la route
+                this.updateRouteUrl(
+                    data.coordinates[0][0],
+                    data.coordinates[0][1],
+                    data.coordinates[data.coordinates.length - 1][0],
+                    data.coordinates[data.coordinates.length - 1][1]
+                );
 
                 // Ajuster la vue
                 const bearing = this.calculateBearing(

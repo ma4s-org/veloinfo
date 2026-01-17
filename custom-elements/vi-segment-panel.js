@@ -148,7 +148,6 @@ class SegmentPanel extends HTMLElement {
         var geom = JSON.parse(data.geom_json);
 
         if (data.fit_bounds) {
-            console.log("fit");
             let flattened = geom.reduce((acc, val) => acc.concat(val), []);
             map.fitBounds(document.querySelector('vi-main').fitBounds(flattened), { padding: window.innerHeight * .12 });
         }

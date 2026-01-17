@@ -100,7 +100,7 @@ class FollowPanel extends HTMLElement {
                         this.updating = false;
                         return;
                     } else {
-                        console.log(event.data);
+                        // non-coordinate message; ignore
                     }
                 }
                 this.updating = false;

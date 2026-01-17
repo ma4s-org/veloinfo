@@ -29,6 +29,16 @@ class RoutePanel extends HTMLElement {
             window.start_marker.remove();
             window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([startCoord[0], startCoord[1]]).addTo(map);
         }
+
+        // Mettre à jour l'URL avec les coordonnées de la route
+        const startCoord = safeCoordinates[0];
+        const endCoord = safeCoordinates[safeCoordinates.length - 1];
+        const url = new URL(window.location);
+        url.searchParams.set('start_lng', startCoord[0].toFixed(6));
+        url.searchParams.set('start_lat', startCoord[1].toFixed(6));
+        url.searchParams.set('end_lng', endCoord[0].toFixed(6));
+        url.searchParams.set('end_lat', endCoord[1].toFixed(6));
+        window.history.replaceState({}, '', url);
         if (map.getLayer("selected_safe")) {
             map.getSource("selected_safe").setData({
                 "type": "Feature",

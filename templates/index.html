@@ -49,8 +49,18 @@
         var u = "//{{ matomo_server }}/";
         _paq.push(['setTrackerUrl', u + 'matomo.php']);
         _paq.push(['setSiteId', '1']);
-        var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
-        g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+        var d = document, s = d.getElementsByTagName('script')[0];
+        // Load Matomo only if reachable to avoid console errors
+        fetch(u + 'matomo.js', { method: 'GET' })
+            .then(function (resp) {
+                if (!resp || (resp.status && resp.status >= 400)) return;
+                var g = d.createElement('script');
+                g.async = true;
+                g.src = u + 'matomo.js';
+                g.onerror = function () { /* noop */ };
+                s.parentNode.insertBefore(g, s);
+            })
+            .catch(function () { /* noop: Matomo unavailable */ });
     })();
 </script>
 <!-- End Matomo Code -->

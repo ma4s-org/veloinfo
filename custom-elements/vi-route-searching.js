@@ -47,7 +47,6 @@ export default class RouteSearching extends HTMLElement {
             wakeLock = await navigator.wakeLock.request("screen");
         } catch (err) {
             // the wake lock request fails - usually system related, such being low on battery
-            console.log(`${err.name}, ${err.message}`);
         }
         document.addEventListener("visibilitychange", async () => {
             if (wakeLock !== null && document.visibilityState === "visible") {
@@ -68,12 +67,10 @@ export default class RouteSearching extends HTMLElement {
 
         // Si end_marker existe, on utilise les marqueurs existants (mode changeStartMode)
         if (this.viMain.end_marker) {
-            console.log("Mode changeStartMode - utilisant les marqueurs existants");
             end = this.viMain.end_marker.getLngLat();
             start = { coords: { longitude: window.start_marker.getLngLat().lng, latitude: window.start_marker.getLngLat().lat } };
         } else {
             // Sinon, on demande la position GPS du départ
-            console.log("Mode normal - demandant la géolocalisation");
             // Changer la couleur du marqueur en bleu car c'est la destination
             if (window.start_marker) {
                 window.start_marker.remove();
@@ -132,8 +129,28 @@ export default class RouteSearching extends HTMLElement {
                 this.viMain.map.removeLayer("searched_route");
                 this.viMain.map.removeSource("searched_route");
                 coordinates = [];
+
                 this.viMain.querySelector("#info").innerHTML = event.data;
                 htmx.process(this.viMain.querySelector("#info"));
+
+                // Mettre à jour l'URL après que le RoutePanel soit créé
+                // Attendre un court instant pour que le custom element soit complètement initialisé
+                setTimeout(() => {
+                    const routePanel = this.viMain.querySelector("vi-route-panel");
+                    if (routePanel) {
+                        const coords = JSON.parse(routePanel.getAttribute('coordinates'));
+                        if (coords && coords[0]) {
+                            const safeCoords = coords[0];
+                            this.viMain.updateRouteUrl(
+                                safeCoords[0][0],
+                                safeCoords[0][1],
+                                safeCoords[safeCoords.length - 1][0],
+                                safeCoords[safeCoords.length - 1][1]
+                            );
+                        }
+                    }
+                }, 100);
+
                 return;
             } else {
                 if (coordinates.length > 10000) {
