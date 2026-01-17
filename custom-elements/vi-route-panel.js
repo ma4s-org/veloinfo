@@ -1,10 +1,17 @@
 class RoutePanel extends HTMLElement {
     constructor() {
         super();
+    }
+
+    connectedCallback() {
         const coordinates = JSON.parse(this.getAttribute('coordinates'));
+        if (!coordinates || !coordinates[0]) {
+            console.error("RoutePanel: coordinates not found");
+            return;
+        }
 
         const safeCoordinates = coordinates[0];
-        const fastCoordinates = coordinates[1];
+        const fastCoordinates = coordinates[1] || null; // Peut être undefined si une seule route
         let map = document.querySelector('vi-main').map;
         if (map.getLayer("selected_safe")) {
             map.getSource("selected_safe").setData({
@@ -41,48 +48,59 @@ class RoutePanel extends HTMLElement {
                 "Road labels")
         }
 
-        if (map.getLayer("selected_fast")) {
-            map.getSource("selected_fast").setData({
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "type": "MultiLineString",
-                    "coordinates": [fastCoordinates]
-                }
-            });
-        } else {
-            map.addSource("selected_fast", {
-                "type": "geojson",
-                "data": {
+        // Afficher la route rapide uniquement si elle existe
+        if (fastCoordinates) {
+            if (map.getLayer("selected_fast")) {
+                map.getSource("selected_fast").setData({
                     "type": "Feature",
                     "properties": {},
                     "geometry": {
                         "type": "MultiLineString",
                         "coordinates": [fastCoordinates]
                     }
-                }
-            })
-            map.addLayer({
-                "id": "selected_fast",
-                "type": "line",
-                "source": "selected_fast",
-                "paint": {
-                    "line-width": 8,
-                    "line-color": "hsla(310, 100%, 50%, 1.00)",
-                    "line-blur": 0,
-                    "line-opacity": 0.50
-                }
-            },
-                "Road labels")
+                });
+            } else {
+                map.addSource("selected_fast", {
+                    "type": "geojson",
+                    "data": {
+                        "type": "Feature",
+                        "properties": {},
+                        "geometry": {
+                            "type": "MultiLineString",
+                            "coordinates": [fastCoordinates]
+                        }
+                    }
+                })
+                map.addLayer({
+                    "id": "selected_fast",
+                    "type": "line",
+                    "source": "selected_fast",
+                    "paint": {
+                        "line-width": 8,
+                        "line-color": "hsla(310, 100%, 50%, 1.00)",
+                        "line-blur": 0,
+                        "line-opacity": 0.50
+                    }
+                },
+                    "Road labels")
+            }
+        } else {
+            // Nettoyer la route rapide si elle n'existe pas
+            if (map.getLayer("selected_fast")) {
+                map.removeLayer("selected_fast");
+            }
+            if (map.getSource("selected_fast")) {
+                map.removeSource("selected_fast");
+            }
         }
 
         document.querySelector('vi-main').clearDistanceCache();
         let veloinfoMap = document.querySelector('vi-main');
         let totalDistanceSafe = veloinfoMap.calculateTotalDistance(safeCoordinates).toFixed(1);
         veloinfoMap.clearDistanceCache();
-        let totalDistanceFast = veloinfoMap.calculateTotalDistance(fastCoordinates).toFixed(1);
+        let totalDistanceFast = fastCoordinates ? veloinfoMap.calculateTotalDistance(fastCoordinates).toFixed(1) : null;
         let totalDurationSafe = totalDistanceSafe / 15.0
-        let totalDurationFast = totalDistanceFast / 15.0
+        let totalDurationFast = totalDistanceFast ? totalDistanceFast / 15.0 : null;
         let durationStringSafe = "";
         let hours = Math.floor(totalDurationSafe);
         let minutes = Math.round((totalDurationSafe - hours) * 60.0)
@@ -91,12 +109,28 @@ class RoutePanel extends HTMLElement {
         }
         durationStringSafe += ` ${minutes} minutes à 15 km/h`
         let durationStringFast = "";
-        hours = Math.floor(totalDurationFast);
-        minutes = Math.round((totalDurationFast - hours) * 60.0)
-        if (hours >= 1.0) {
-            durationStringFast = hours + " heures et "
+        if (totalDurationFast) {
+            hours = Math.floor(totalDurationFast);
+            minutes = Math.round((totalDurationFast - hours) * 60.0)
+            if (hours >= 1.0) {
+                durationStringFast = hours + " heures et "
+            }
+            durationStringFast += ` ${minutes} minutes à 15 km/h`
         }
-        durationStringFast += ` ${minutes} minutes à 15 km/h`
+
+        // Construire le bouton rapide seulement s'il existe une route rapide
+        const errorText = this.getAttribute('error') ? this.getAttribute('error') : '';
+        const fastRouteButton = fastCoordinates ? `
+            <md-filled-button id="fast-route-btn"style="--md-sys-color-primary: #ffcbfcff">
+                <div style="font-weight: bold;">
+                    Itinéraire rapide
+                </div>
+                <div style="font-size: 0.9em;">
+                    Longueur: <span style="font-weight: bold; font-size: 1.3em;">${totalDistanceFast}</span> kms
+                </div>
+                ${errorText}
+            </md-filled-button>
+        ` : '';
 
         let innerHTML = /*html*/ ` 
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg" 
@@ -109,20 +143,15 @@ class RoutePanel extends HTMLElement {
                         <div style="font-size: 0.9em;">
                             Longueur: <span style="font-weight: bold; font-size: 1.3em;">${totalDistanceSafe}</span> kms
                         </div>
-                        ${this.getAttribute('error')}
+                        ${errorText}
                     </md-filled-button>
-                    <md-filled-button id="fast-route-btn"style="--md-sys-color-primary: #ffcbfcff">
-                        <div style="font-weight: bold;">
-                            Itinéraire rapide
-                        </div>
-                        <div style="font-size: 0.9em;">
-                            Longueur: <span style="font-weight: bold; font-size: 1.3em;">${totalDistanceFast}</span> kms
-                        </div>
-                        ${this.getAttribute('error')}
-                    </md-filled-button>
+                    ${fastRouteButton}
                 </div>
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding-bottom: 1em;">
                     <md-filled-button id="cancel-btn">annuler</md-filled-button>
+                    <md-filled-button id="change-start-btn">changer départ</md-filled-button>
+                </div>
+                <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding-bottom: 1em;">
                 </div>
             </div>
         `;
@@ -132,14 +161,21 @@ class RoutePanel extends HTMLElement {
             let innerHTML = '<vi-follow-panel route="safe" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
             document.getElementById("info").innerHTML = innerHTML;
         });
-        this.querySelector('#fast-route-btn').addEventListener('click', () => {
-            let innerHTML = '<vi-follow-panel route="fast" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
+        if (this.querySelector('#fast-route-btn')) {
+            this.querySelector('#fast-route-btn').addEventListener('click', () => {
+                let innerHTML = '<vi-follow-panel route="fast" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
+                document.getElementById("info").innerHTML = innerHTML;
+            });
+        }
+        this.querySelector('#change-start-btn').addEventListener('click', () => {
+            // Extraire la destination de la dernière coordonnée de la route sécurisée
+            const safeCoordinates = coordinates[0];
+            const destination = { lng: safeCoordinates[safeCoordinates.length - 1][0], lat: safeCoordinates[safeCoordinates.length - 1][1] };
+            // Stocker la destination dans vi-main
+            document.querySelector('vi-main').changeStartDestination = destination;
+            let innerHTML = '<vi-change-start></vi-change-start>'
             document.getElementById("info").innerHTML = innerHTML;
         });
-        // this.querySelector('#change-start-btn').addEventListener('click', () => {
-        //     let innerHTML = '<change-start></change-start>'
-        //     document.getElementById("info").innerHTML = innerHTML;
-        // });
         this.querySelector('#cancel-btn').addEventListener('click', () => {
             document.querySelector('vi-main').clear();
             document.getElementById("info").innerHTML = "";

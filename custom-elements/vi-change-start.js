@@ -4,6 +4,8 @@ class ChangeStart extends HTMLElement {
     }
 
     connectedCallback() {
+        // Récupérer la destination depuis vi-main
+        this.destination = document.querySelector('vi-main').changeStartDestination;
         let innerHTML = /*html*/`
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div class="p-4">
@@ -24,6 +26,7 @@ class ChangeStart extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector('#cancel-btn').addEventListener('click', () => {
+            document.querySelector('vi-main').changeStartDestination = null;
             document.querySelector('vi-main').clear();
         });
     }

@@ -196,7 +196,7 @@ class SearchResult extends HTMLElement {
         if (window.start_marker) {
             window.start_marker.remove();
         }
-        window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
+        window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([lng, lat]).addTo(map);
 
         const searchInput = this.closest('vi-search-input');
         if (searchInput) {

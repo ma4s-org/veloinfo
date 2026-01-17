@@ -153,7 +153,7 @@ class SegmentPanel extends HTMLElement {
             map.fitBounds(document.querySelector('vi-main').fitBounds(flattened), { padding: window.innerHeight * .12 });
         }
         if (!window.start_marker) {
-            window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(geom[0][0]).addTo(map);
+            window.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(geom[0][0]).addTo(map);
         }
         if (!data.edit) {
             if (map.getLayer("selected")) {

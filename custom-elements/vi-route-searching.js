@@ -64,15 +64,26 @@ export default class RouteSearching extends HTMLElement {
         });
 
         var end = window.start_marker.getLngLat();
-        // get the position of the device
-        this.querySelector("#search_position_dialog").removeAttribute("style");
-        this.querySelector("#search_position_dialog").setAttribute("open", "true");
-        var start = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition((position) => {
-                resolve(position);
-                this.querySelector("#search_position_dialog").removeAttribute("open");
+        var start;
+
+        // Si end_marker existe, on utilise les marqueurs existants (mode changeStartMode)
+        if (this.viMain.end_marker) {
+            console.log("Mode changeStartMode - utilisant les marqueurs existants");
+            end = this.viMain.end_marker.getLngLat();
+            start = { coords: { longitude: window.start_marker.getLngLat().lng, latitude: window.start_marker.getLngLat().lat } };
+        } else {
+            // Sinon, on demande la position GPS du départ
+            console.log("Mode normal - demandant la géolocalisation");
+            // get the position of the device
+            this.querySelector("#search_position_dialog").removeAttribute("style");
+            this.querySelector("#search_position_dialog").setAttribute("open", "true");
+            start = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    resolve(position);
+                    this.querySelector("#search_position_dialog").removeAttribute("open");
+                });
             });
-        });
+        }
         if (this.viMain.map.getSource("searched_route") == null) {
             this.viMain.map.addSource("searched_route", {
                 "type": "geojson",

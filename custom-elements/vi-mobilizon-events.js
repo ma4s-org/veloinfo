@@ -125,7 +125,7 @@ class ViMobilizonEvents extends HTMLElement {
                         if (window.start_marker) {
                             window.start_marker.remove();
                             window.start_marker = null;
-                        } window.start_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
+                        } window.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
                         document.querySelector('vi-main').route();
                     }

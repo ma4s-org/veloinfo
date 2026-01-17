@@ -20,6 +20,19 @@ import ViInfo from './vi-info.js';
 
 const html = String.raw;
 
+// Constantes de couleurs
+const MARKER_COLORS = {
+    START: "#f00",  // Rouge pour le départ
+    END: "#00f"     // Bleu pour l'arrivée
+};
+
+const LAYERS = {
+    SAFE: "selected_safe",
+    FAST: "selected_fast",
+    SELECTED: "selected",
+    SEARCHED: "searched_route"
+};
+
 class ViMain extends HTMLElement {
     constructor() {
         super();
@@ -177,6 +190,7 @@ class ViMain extends HTMLElement {
 
         this.map.on("click", (event) => {
             if (
+                document.querySelector('vi-change-start') ||
                 document.getElementById("info_panel_up") ||
                 document.getElementById("info_panel_down") ||
                 document.getElementById("segment_panel") ||
@@ -238,6 +252,31 @@ class ViMain extends HTMLElement {
         }
     }
 
+    // Méthode helper pour nettoyer les layers et sources
+    cleanupLayers(layerNames = [LAYERS.SAFE, LAYERS.FAST, LAYERS.SELECTED]) {
+        layerNames.forEach(layer => {
+            if (this.map.getLayer(layer)) {
+                this.map.removeLayer(layer);
+            }
+            if (this.map.getSource(layer)) {
+                this.map.removeSource(layer);
+            }
+        });
+    }
+
+    // Méthode helper pour gérer les marqueurs
+    setMarkers(startLng, startLat, endLng, endLat) {
+        if (window.start_marker) window.start_marker.remove();
+        window.start_marker = new maplibregl.Marker({ color: MARKER_COLORS.START })
+            .setLngLat([startLng, startLat])
+            .addTo(this.map);
+
+        if (this.end_marker) this.end_marker.remove();
+        this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
+            .setLngLat([endLng, endLat])
+            .addTo(this.map);
+    }
+
     async infoPanelUp() {
         const bounds = this.map.getBounds();
         const r = await fetch(`/info_panel/up/${bounds._sw.lng}/${bounds._sw.lat}/${bounds._ne.lng}/${bounds._ne.lat}`);
@@ -248,6 +287,20 @@ class ViMain extends HTMLElement {
     }
 
     async select(event) {
+        // Mode sélection du nouveau point de départ
+        if (document.querySelector('vi-change-start') && this.changeStartDestination) {
+            // Créer les marqueurs avec les nouvelles coordonnées
+            this.setMarkers(event.lngLat.lng, event.lngLat.lat,
+                this.changeStartDestination.lng, this.changeStartDestination.lat);
+
+            // Nettoyer la destination
+            this.changeStartDestination = null;
+
+            // Calculer seulement la route sécurisée avec recalculateRoute
+            this.recalculateRoute("safe");
+            return;
+        }
+
         if (window.start_marker && this.end_marker) {
             this.clear();
         }
@@ -258,7 +311,7 @@ class ViMain extends HTMLElement {
         }
 
         if (window.start_marker) window.start_marker.remove();
-        window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
+        window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
         const width = 20;
         let features = this.map.queryRenderedFeatures(
@@ -308,11 +361,16 @@ class ViMain extends HTMLElement {
         }
     }
 
-    async selectBigger(event) {
+    async selectBigger(event, destinationLngLat = null) {
         if (this.end_marker) this.end_marker.remove();
-        this.end_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
-        const r = await fetch(`/segment_panel_bigger/${window.start_marker.getLngLat().lng}/${window.start_marker.getLngLat().lat}/${event.lngLat.lng}/${event.lngLat.lat}`);
+        // Utiliser la destination fournie ou l'event
+        const destLng = destinationLngLat ? destinationLngLat.lng : event.lngLat.lng;
+        const destLat = destinationLngLat ? destinationLngLat.lat : event.lngLat.lat;
+
+        this.end_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([destLng, destLat]).addTo(this.map);
+
+        const r = await fetch(`/segment_panel_bigger/${window.start_marker.getLngLat().lng}/${window.start_marker.getLngLat().lat}/${destLng}/${destLat}`);
         const jsonData = await r.json();
         const segment_panel = new SegmentPanel(jsonData);
         this.querySelector("#info").innerHTML = ``;
@@ -349,6 +407,60 @@ class ViMain extends HTMLElement {
         const routeSearching = new RouteSearching(this);
         info.innerHTML = ``;
         info.appendChild(routeSearching);
+    }
+
+    async recalculateRoute(routeType) {
+        const info = document.getElementById("info");
+        info.innerHTML = `<div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
+            <div class="p-4">
+                <h2 class="text-xl font-bold">Calcul de l'itinéraire</h2>
+                <p>Veuillez patienter pendant que nous calculons votre itinéraire sécurisé...</p>
+            </div>
+        </div>`;
+
+        // Nettoyer les anciennes routes
+        this.cleanupLayers([LAYERS.SAFE, LAYERS.FAST, LAYERS.SELECTED]);
+
+        const startLng = window.start_marker.getLngLat().lng;
+        const startLat = window.start_marker.getLngLat().lat;
+        const endLng = this.end_marker.getLngLat().lng;
+        const endLat = this.end_marker.getLngLat().lat;
+
+        const socket = new WebSocket(`/recalculate_route/${routeType}/${startLng}/${startLat}/${endLng}/${endLat}`);
+
+        socket.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            if (data.coordinates) {
+                socket.close();
+
+                // Créer une instance de RoutePanel avec une seule route
+                const routePanel = document.createElement('vi-route-panel');
+                routePanel.setAttribute('coordinates', JSON.stringify([data.coordinates])); // Tableau avec une seule route
+                info.innerHTML = '';
+                info.appendChild(routePanel);
+
+                // Ajuster la vue
+                const bearing = this.calculateBearing(
+                    data.coordinates[0][0],
+                    data.coordinates[0][1],
+                    data.coordinates[data.coordinates.length - 1][0],
+                    data.coordinates[data.coordinates.length - 1][1]
+                );
+                const bounds = this.fitBounds(data.coordinates);
+                this.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
+            }
+        };
+
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            info.innerHTML = `<div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
+                <div class="p-4">
+                    <h2 class="text-xl font-bold">Erreur</h2>
+                    <p>Une erreur s'est produite lors du calcul de l'itinéraire.</p>
+                    <md-filled-button onclick="document.querySelector('vi-main').clear()">Fermer</md-filled-button>
+                </div>
+            </div>`;
+        };
     }
 
     fitBounds(geom) {
