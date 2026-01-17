@@ -311,7 +311,8 @@ class ViMain extends HTMLElement {
         }
 
         if (window.start_marker) window.start_marker.remove();
-        window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
+        // Premier clic = destination (bleu), le départ viendra de la géolocalisation
+        window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
         const width = 20;
         let features = this.map.queryRenderedFeatures(

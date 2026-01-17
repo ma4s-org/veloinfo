@@ -74,6 +74,11 @@ export default class RouteSearching extends HTMLElement {
         } else {
             // Sinon, on demande la position GPS du départ
             console.log("Mode normal - demandant la géolocalisation");
+            // Changer la couleur du marqueur en bleu car c'est la destination
+            if (window.start_marker) {
+                window.start_marker.remove();
+                window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([end.lng, end.lat]).addTo(this.viMain.map);
+            }
             // get the position of the device
             this.querySelector("#search_position_dialog").removeAttribute("style");
             this.querySelector("#search_position_dialog").setAttribute("open", "true");

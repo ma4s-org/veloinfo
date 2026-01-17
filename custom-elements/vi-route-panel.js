@@ -12,7 +12,23 @@ class RoutePanel extends HTMLElement {
 
         const safeCoordinates = coordinates[0];
         const fastCoordinates = coordinates[1] || null; // Peut être undefined si une seule route
-        let map = document.querySelector('vi-main').map;
+        const viMain = document.querySelector('vi-main');
+        let map = viMain.map;
+
+        // Créer le marqueur de destination (bleu) à la fin de la route si pas déjà présent
+        if (!viMain.end_marker) {
+            const endCoord = safeCoordinates[safeCoordinates.length - 1];
+            viMain.end_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([endCoord[0], endCoord[1]]).addTo(map);
+        }
+
+        // Mettre à jour le marqueur de départ (rouge) au début de la route
+        if (window.start_marker) {
+            const startCoord = safeCoordinates[0];
+            window.start_marker.setLngLat([startCoord[0], startCoord[1]]);
+            window.start_marker.getElement().style.filter = ''; // Reset color if needed
+            window.start_marker.remove();
+            window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([startCoord[0], startCoord[1]]).addTo(map);
+        }
         if (map.getLayer("selected_safe")) {
             map.getSource("selected_safe").setData({
                 "type": "Feature",
@@ -94,11 +110,10 @@ class RoutePanel extends HTMLElement {
             }
         }
 
-        document.querySelector('vi-main').clearDistanceCache();
-        let veloinfoMap = document.querySelector('vi-main');
-        let totalDistanceSafe = veloinfoMap.calculateTotalDistance(safeCoordinates).toFixed(1);
-        veloinfoMap.clearDistanceCache();
-        let totalDistanceFast = fastCoordinates ? veloinfoMap.calculateTotalDistance(fastCoordinates).toFixed(1) : null;
+        viMain.clearDistanceCache();
+        let totalDistanceSafe = viMain.calculateTotalDistance(safeCoordinates).toFixed(1);
+        viMain.clearDistanceCache();
+        let totalDistanceFast = fastCoordinates ? viMain.calculateTotalDistance(fastCoordinates).toFixed(1) : null;
         let totalDurationSafe = totalDistanceSafe / 15.0
         let totalDurationFast = totalDistanceFast ? totalDistanceFast / 15.0 : null;
         let durationStringSafe = "";
@@ -172,21 +187,21 @@ class RoutePanel extends HTMLElement {
             const safeCoordinates = coordinates[0];
             const destination = { lng: safeCoordinates[safeCoordinates.length - 1][0], lat: safeCoordinates[safeCoordinates.length - 1][1] };
             // Stocker la destination dans vi-main
-            document.querySelector('vi-main').changeStartDestination = destination;
+            viMain.changeStartDestination = destination;
             let innerHTML = '<vi-change-start></vi-change-start>'
             document.getElementById("info").innerHTML = innerHTML;
         });
         this.querySelector('#cancel-btn').addEventListener('click', () => {
-            document.querySelector('vi-main').clear();
+            viMain.clear();
             document.getElementById("info").innerHTML = "";
         });
 
-        var bearing = document.querySelector('vi-main').calculateBearing(
+        var bearing = viMain.calculateBearing(
             safeCoordinates[0][0],
             safeCoordinates[0][1],
             safeCoordinates[safeCoordinates.length - 1][0],
             safeCoordinates[safeCoordinates.length - 1][1]);
-        var bounds = document.querySelector('vi-main').fitBounds(safeCoordinates);
+        var bounds = viMain.fitBounds(safeCoordinates);
         map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
     }
 }
