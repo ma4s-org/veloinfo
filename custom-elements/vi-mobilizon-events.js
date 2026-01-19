@@ -122,10 +122,18 @@ class ViMobilizonEvents extends HTMLElement {
                         )
                         .addTo(map);
                     var listener = (e) => {
-                        if (window.start_marker) {
-                            window.start_marker.remove();
-                            window.start_marker = null;
-                        } window.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
+                        let end_marker = document.querySelector('vi-main').end_marker;
+                        if (end_marker) {
+                            end_marker.remove();
+                            document.querySelector('vi-main').end_marker = null;
+                        }
+                        let start_marker = document.querySelector('vi-main').start_marker;
+                        if (start_marker) {
+                            start_marker.remove();
+                            document.querySelector('vi-main').start_marker = null;
+                        }
+
+                        window.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
                         document.querySelector('vi-main').route();
                     }
