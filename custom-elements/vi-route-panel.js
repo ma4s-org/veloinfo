@@ -173,7 +173,7 @@ class RoutePanel extends HTMLElement {
                     ${fastRouteButton}
                 </div>
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 0.5em; padding-bottom: 1em; position: relative;">
-                    <md-outlined-button id="change-start-btn" style="position: absolute; left: 1em; transform: scale(0.85); transform-origin: left center; --md-sys-color-primary: #666666;">changer départ</md-outlined-button>
+                    <md-outlined-button id="change-start-btn" style="position: absolute; left: 1em; transform: scale(0.75); transform-origin: left center; --md-sys-color-primary: #666666;">changer départ</md-outlined-button>
                     <md-filled-button id="cancel-btn">annuler</md-filled-button>
                 </div>
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding-bottom: 1em;">
