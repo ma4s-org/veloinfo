@@ -127,13 +127,14 @@ class ViMobilizonEvents extends HTMLElement {
                             end_marker.remove();
                             document.querySelector('vi-main').end_marker = null;
                         }
-                        let start_marker = document.querySelector('vi-main').start_marker;
+                        const viMain = document.querySelector('vi-main');
+                        let start_marker = viMain.start_marker;
                         if (start_marker) {
                             start_marker.remove();
-                            document.querySelector('vi-main').start_marker = null;
+                            viMain.start_marker = null;
                         }
 
-                        window.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
+                        viMain.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
                         document.querySelector('vi-main').route();
                     }

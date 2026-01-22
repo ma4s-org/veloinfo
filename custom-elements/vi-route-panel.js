@@ -22,12 +22,12 @@ class RoutePanel extends HTMLElement {
         }
 
         // Mettre à jour le marqueur de départ (rouge) au début de la route
-        if (window.start_marker) {
+        if (viMain.start_marker) {
             const startCoord = safeCoordinates[0];
-            window.start_marker.setLngLat([startCoord[0], startCoord[1]]);
-            window.start_marker.getElement().style.filter = ''; // Reset color if needed
-            window.start_marker.remove();
-            window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([startCoord[0], startCoord[1]]).addTo(map);
+            viMain.start_marker.setLngLat([startCoord[0], startCoord[1]]);
+            viMain.start_marker.getElement().style.filter = ''; // Reset color if needed
+            viMain.start_marker.remove();
+            viMain.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([startCoord[0], startCoord[1]]).addTo(map);
         }
 
         // Mettre à jour l'URL avec les coordonnées de la route
@@ -203,7 +203,6 @@ class RoutePanel extends HTMLElement {
         });
         this.querySelector('#cancel-btn').addEventListener('click', () => {
             viMain.clear();
-            document.getElementById("info").innerHTML = "";
         });
 
         var bearing = viMain.calculateBearing(

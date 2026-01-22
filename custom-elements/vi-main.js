@@ -154,8 +154,8 @@ class ViMain extends HTMLElement {
             const pointLat = parseFloat(params.get("point_lat"));
 
             // Afficher le marqueur du point recherché
-            if (window.start_marker) window.start_marker.remove();
-            window.start_marker = new maplibregl.Marker({ color: "#00f" })
+            if (this.start_marker) this.start_marker.remove();
+            this.start_marker = new maplibregl.Marker({ color: "#00f" })
                 .setLngLat([pointLng, pointLat])
                 .addTo(this.map);
 
@@ -346,8 +346,8 @@ class ViMain extends HTMLElement {
 
     // Méthode helper pour gérer les marqueurs
     setMarkers(startLng, startLat, endLng, endLat) {
-        if (window.start_marker) window.start_marker.remove();
-        window.start_marker = new maplibregl.Marker({ color: MARKER_COLORS.START })
+        if (this.start_marker) this.start_marker.remove();
+        this.start_marker = new maplibregl.Marker({ color: MARKER_COLORS.START })
             .setLngLat([startLng, startLat])
             .addTo(this.map);
 
@@ -399,18 +399,18 @@ class ViMain extends HTMLElement {
             return;
         }
 
-        if (window.start_marker && this.end_marker) {
+        if (this.start_marker && this.end_marker) {
             this.clear();
         }
 
-        if (window.start_marker && this.map.getLayer("selected")) {
+        if (this.start_marker && this.map.getLayer("selected")) {
             this.selectBigger(event);
             return;
         }
 
-        if (window.start_marker) window.start_marker.remove();
+        if (this.start_marker) this.start_marker.remove();
         // Premier clic = destination (bleu), le départ viendra de la géolocalisation
-        window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
+        this.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
 
         const width = 20;
         let features = this.map.queryRenderedFeatures(
@@ -471,7 +471,7 @@ class ViMain extends HTMLElement {
 
         this.end_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([destLng, destLat]).addTo(this.map);
 
-        const r = await fetch(`/segment_panel_bigger/${window.start_marker.getLngLat().lng}/${window.start_marker.getLngLat().lat}/${destLng}/${destLat}`);
+        const r = await fetch(`/segment_panel_bigger/${this.start_marker.getLngLat().lng}/${this.start_marker.getLngLat().lat}/${destLng}/${destLat}`);
         const jsonData = await r.json();
         const segment_panel = new SegmentPanel(jsonData);
         this.querySelector("#info").innerHTML = ``;
@@ -481,9 +481,9 @@ class ViMain extends HTMLElement {
     }
 
     async clear() {
-        if (window.start_marker) {
-            window.start_marker.remove();
-            window.start_marker = null;
+        if (this.start_marker) {
+            this.start_marker.remove();
+            this.start_marker = null;
         }
         if (this.end_marker) {
             this.end_marker.remove();
@@ -534,8 +534,8 @@ class ViMain extends HTMLElement {
         // Nettoyer les anciennes routes
         this.cleanupLayers([LAYERS.SAFE, LAYERS.FAST, LAYERS.SELECTED]);
 
-        const startLng = window.start_marker.getLngLat().lng;
-        const startLat = window.start_marker.getLngLat().lat;
+        const startLng = this.start_marker.getLngLat().lng;
+        const startLat = this.start_marker.getLngLat().lat;
         const endLng = this.end_marker.getLngLat().lng;
         const endLat = this.end_marker.getLngLat().lat;
 

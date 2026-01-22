@@ -62,19 +62,19 @@ export default class RouteSearching extends HTMLElement {
             this.viMain.clear();
         });
 
-        var end = window.start_marker.getLngLat();
+        var end = this.viMain.start_marker.getLngLat();
         var start;
 
         // Si end_marker existe, on utilise les marqueurs existants (mode changeStartMode)
         if (this.viMain.end_marker) {
             end = this.viMain.end_marker.getLngLat();
-            start = { coords: { longitude: window.start_marker.getLngLat().lng, latitude: window.start_marker.getLngLat().lat } };
+            start = { coords: { longitude: this.viMain.start_marker.getLngLat().lng, latitude: this.viMain.start_marker.getLngLat().lat } };
         } else {
             // Sinon, on demande la position GPS du départ
             // Changer la couleur du marqueur en bleu car c'est la destination
-            if (window.start_marker) {
-                window.start_marker.remove();
-                window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([end.lng, end.lat]).addTo(this.viMain.map);
+            if (this.viMain.start_marker) {
+                this.viMain.start_marker.remove();
+                this.viMain.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([end.lng, end.lat]).addTo(this.viMain.map);
             }
             // get the position of the device
             this.querySelector("#search_position_dialog").removeAttribute("style");

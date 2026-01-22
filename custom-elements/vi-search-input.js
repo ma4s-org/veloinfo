@@ -198,20 +198,24 @@ class SearchResult extends HTMLElement {
         const changeStartElement = document.querySelector('vi-change-start');
         if (changeStartElement) {
             // Mode changeStart : mettre à jour le départ et lancer la route
-            if (window.start_marker) {
-                window.start_marker.remove();
+            if (viMain.start_marker) {
+                viMain.start_marker.remove();
             }
-            window.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([lng, lat]).addTo(map);
+            viMain.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([lng, lat]).addTo(map);
 
             // Lancer la route vers la destination existante
             viMain.recalculateRoute("safe");
         } else {
             // Mode normal : changer le point de destination
-            if (window.start_marker) {
-                window.start_marker.remove();
+            if (viMain.start_marker) {
+                viMain.start_marker.remove();
+            }
+            if (viMain.end_marker) {
+                viMain.end_marker.remove();
+                viMain.end_marker = null;
             }
             // Le point choisi via la recherche est la destination : marqueur bleu
-            window.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
+            viMain.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
         }
 
         const searchInput = this.closest('vi-search-input');

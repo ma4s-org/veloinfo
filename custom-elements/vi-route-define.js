@@ -1,7 +1,8 @@
 class RouteDefine extends HTMLElement {
     constructor() {
         super();
-        var destination = window.start_marker.getLngLat();
+        const viMain = document.querySelector('vi-main');
+        var destination = viMain.start_marker.getLngLat();
     }
 
     connectedCallback() {
