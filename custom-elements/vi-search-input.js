@@ -121,6 +121,11 @@ class SearchInput extends HTMLElement {
             if (searchResults) {
                 searchResults.innerHTML = "";
             }
+            const queryInput = this.querySelector("#query");
+            if (queryInput) {
+                queryInput.value = "";
+            }
+            this.query = "";
         }, 250);
     }
 
