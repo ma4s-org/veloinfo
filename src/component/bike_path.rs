@@ -81,9 +81,30 @@ pub async fn bike_path_mvt(
             FROM
                 all_bike_paths abp, bounds
             WHERE
-                abp.kind IS NOT NULL AND
-                ST_Intersects(abp.geom, ST_Transform(bounds.geom, 3857)) AND
-                NOT (abp.snow AND COALESCE(abp.tags->>'winter_service', 'yes') = 'no')
+                    abp.kind IS NOT NULL AND
+                    ST_Intersects(abp.geom, ST_Transform(bounds.geom, 3857)) AND
+                    NOT (
+                        abp.snow AND (
+                            COALESCE(abp.tags->>'winter_service', 'yes') = 'no'
+                            OR (
+                                (
+                                    (abp.tags->>'cycleway:conditional') IS NOT NULL
+                                    AND (abp.tags->>'cycleway:conditional') LIKE '%@snow%'
+                                    AND (abp.tags->>'cycleway:conditional') LIKE '%no%'
+                                )
+                                OR (
+                                    (abp.tags->>'cycleway:left:conditional') IS NOT NULL
+                                    AND (abp.tags->>'cycleway:left:conditional') LIKE '%@snow%'
+                                    AND (abp.tags->>'cycleway:left:conditional') LIKE '%no%'
+                                )
+                                OR (
+                                    (abp.tags->>'cycleway:right:conditional') IS NOT NULL
+                                    AND (abp.tags->>'cycleway:right:conditional') LIKE '%@snow%'
+                                    AND (abp.tags->>'cycleway:right:conditional') LIKE '%no%'
+                                )
+                            )
+                        )
+                    )
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
         FROM mvtgeom;

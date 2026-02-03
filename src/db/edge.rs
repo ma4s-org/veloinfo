@@ -128,6 +128,7 @@ pub enum Cycleway {
     Crossing,
     SharedLane,
     ShareBusway,
+    Snow,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -338,6 +339,21 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             }
         };
 
+        let cycleway_conditional_no_snow = match get("cycleway:conditional") {
+            Some(s) => s.contains("@snow") && s.contains("no"),
+            None => false,
+        };
+
+        let cycleway_left_conditional_no_snow = match get("cycleway:left:conditional") {
+            Some(s) => s.contains("@snow") && s.contains("no"),
+            None => false,
+        };
+
+        let cycleway_right_conditional_no_snow = match get("cycleway:right:conditional") {
+            Some(s) => s.contains("@snow") && s.contains("no"),
+            None => false,
+        };
+
         let ep = EdgePoint {
             id: edge.id,
             lon1: edge.lon1,
@@ -353,9 +369,21 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             snow: edge.snow,
             score: edge.score,
             direction,
-            cycleway: parse_cycleway(get("cycleway")),
-            cycleway_left: parse_cycleway(get("cycleway:left")),
-            cycleway_right: parse_cycleway(get("cycleway:right")),
+            cycleway: if edge.snow && cycleway_conditional_no_snow {
+                Some(Cycleway::Snow)
+            } else {
+                parse_cycleway(get("cycleway"))
+            },
+            cycleway_left: if edge.snow && cycleway_left_conditional_no_snow {
+                Some(Cycleway::Snow)
+            } else {
+                parse_cycleway(get("cycleway:left"))
+            },
+            cycleway_right: if edge.snow && cycleway_right_conditional_no_snow {
+                Some(Cycleway::Snow)
+            } else {
+                parse_cycleway(get("cycleway:right"))
+            },
             cycleway_both: parse_cycleway(get("cycleway:both")),
             highway: parse_highway(get("highway")),
             bicycle: parse_bicycle(get("bicycle")),
