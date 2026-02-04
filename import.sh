@@ -7,8 +7,25 @@ osm2pgsql --cache 4000 --drop -H db -U postgres -d carte -O flex -S import.lua q
 psql -h db -U postgres -d carte -c "
                      CREATE EXTENSION IF NOT EXISTS postgis;
                      CREATE EXTENSION IF NOT EXISTS unaccent;"
- 
 
+# Check if SRTM elevation data has been imported
+echo "Checking SRTM elevation data..."
+SRTM_EXISTS=$(psql -h db -U postgres -d carte -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'srtm_elevation_polygons');" 2>/dev/null | xargs)
+
+if [ "$SRTM_EXISTS" = "t" ]; then
+    SRTM_COUNT=$(psql -h db -U postgres -d carte -t -c "SELECT COUNT(*) FROM srtm_elevation_polygons;" 2>/dev/null | xargs)
+    if [ "$SRTM_COUNT" -gt 0 ]; then
+        echo "✓ SRTM elevation data already imported ($SRTM_COUNT polygons)"
+    else
+        echo "SRTM table exists but is empty, importing..."
+        /app/import_srtm.sh
+    fi
+else
+    echo "SRTM elevation data not found, importing..."
+    /app/import_srtm.sh
+fi
+
+echo ""
 echo "Recreating materialized views to apply any changes."
 psql -h db -U postgres -d carte -c "
                                 drop materialized view if exists last_cycleway_score cascade;
@@ -52,7 +69,17 @@ psql -h db -U postgres -d carte -c "
                                     awe.tags,
                                     (segment).geom,
                                     c.name as city_name,
-                                    in_bicycle_route
+                                    in_bicycle_route,
+                                    (SELECT elevation FROM srtm_elevation_polygons 
+                                     WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(
+                                        st_x(st_transform(ST_PointN((segment).geom, 1), 4326)),
+                                        st_y(st_transform(ST_PointN((segment).geom, 1), 4326))
+                                     ), 4326)) LIMIT 1) as elevation_start,
+                                    (SELECT elevation FROM srtm_elevation_polygons 
+                                     WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(
+                                        st_x(st_transform(ST_PointN((segment).geom, 2), 4326)),
+                                        st_y(st_transform(ST_PointN((segment).geom, 2), 4326))
+                                     ), 4326)) LIMIT 1) as elevation_end
                                 from _all_way_edge awe
                                 CROSS JOIN LATERAL ST_DumpSegments(awe.geom) as segment
                                 left join city c on ST_Within((segment).geom, c.geom)

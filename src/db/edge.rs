@@ -53,6 +53,8 @@ pub struct Edge {
     pub road_work: bool,
     pub in_bicycle_route: bool,
     pub snow: bool,
+    pub elevation_start: Option<f64>,
+    pub elevation_end: Option<f64>,
 }
 
 impl Eq for Edge {}
@@ -104,6 +106,8 @@ pub struct EdgePoint {
     pub cycleway_right_oneway: Option<Oneway>,
     pub informal: bool,
     pub routing_bicycle_use_sidepath: bool,
+    pub elevation_start: Option<f64>,
+    pub elevation_end: Option<f64>,
 }
 
 impl Eq for EdgePoint {}
@@ -418,6 +422,8 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
                 == Some(&"use_sidepath".to_string()),
             winter_service_no: get("winter_service") == Some(&"no".to_string()),
             abandoned: get("abandoned") == Some(&"yes".to_string()),
+            elevation_start: edge.elevation_start,
+            elevation_end: edge.elevation_end,
         };
 
         ep
@@ -464,7 +470,9 @@ impl EdgePoint {
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
                 cs.score,
-                case when csnow.city_name is not null then true else false end as snow
+                case when csnow.city_name is not null then true else false end as snow,
+                e.elevation_start,
+                e.elevation_end
             FROM edge e
                 left join road_work rw on ST_Intersects(e.geom, rw.geom)
                 left join last_cycleway_score cs on cs.way_id = e.way_id
@@ -802,7 +810,9 @@ impl Edge {
                 rw.geom is not null as road_work,
                 in_bicycle_route,
                 cs.score,
-                case when csnow.city_name is not null then true else false end as snow
+                case when csnow.city_name is not null then true else false end as snow,
+                e.elevation_start,
+                e.elevation_end
             FROM edge e
                 left join road_work rw on ST_Intersects(e.geom, rw.geom)
                 left join  last_cycleway_score cs on cs.way_id = e.way_id
@@ -846,7 +856,9 @@ impl Edge {
                 rw.geom is not null as road_work,
                 in_bicycle_route,
                 cs.score,
-                case when csnow.city_name is not null then true else false end as snow
+                case when csnow.city_name is not null then true else false end as snow,
+                e.elevation_start,
+                e.elevation_end
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
             left join last_cycleway_score cs on cs.way_id = e.way_id

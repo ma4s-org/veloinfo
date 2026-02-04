@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     gdal-bin \
+    unzip \
     cmake make libclang-dev libssl-dev pkg-config 
 
 RUN git clone https://github.com/strukturag/libheif.git
@@ -48,7 +49,7 @@ RUN apt-get update && apt-get install -y \
     osm2pgsql \
     osmium-tool \
     gdal-bin \
-    wget
+    wget unzip
 
 WORKDIR /app
 COPY --from=build /app/target/release/veloinfo /app/veloinfo

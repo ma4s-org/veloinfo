@@ -3,6 +3,7 @@ use crate::db::edge::{
     Surface, Tunnel,
 };
 use crate::db::utils::distance_meters;
+use crate::utils::elevation;
 
 pub trait H: Send {
     fn get_cost(&self, edge: &EdgePoint) -> f64;
@@ -335,6 +336,10 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     if edge.road_work {
         cost *= 3.;
     }
+
+    // Apply slope/elevation cost factor
+    let slope_cost_multiplier = elevation::get_edge_slope_cost_multiplier(edge);
+    cost *= slope_cost_multiplier;
 
     cost = match fast_or_safe {
         FastOrSafe::Fast => 1. + cost.log(20.),
