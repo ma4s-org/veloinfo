@@ -1,3 +1,6 @@
+-- Enable PostGIS Raster extension (required for RASTER type)
+CREATE EXTENSION IF NOT EXISTS postgis_raster;
+
 -- Create raster table for SRTM elevation data
 CREATE TABLE IF NOT EXISTS srtm_elevation (
     id SERIAL PRIMARY KEY,

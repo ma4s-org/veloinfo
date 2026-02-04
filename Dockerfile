@@ -58,6 +58,7 @@ COPY --from=build /app/pub /app/pub
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/custom-elements /app/custom-elements
 COPY --from=build /app/import.sh /app/import.sh
+COPY --from=build /app/import_srtm.sh /app/import_srtm.sh
 COPY --from=build /app/import.lua /app/import.lua
 COPY --from=build /usr/local/lib/libheif /usr/local/lib/libheif
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
