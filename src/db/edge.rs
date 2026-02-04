@@ -339,18 +339,34 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             }
         };
 
+        let normalize = |s: &str| -> String {
+            s.replace(' ', "")
+                .replace('(', "")
+                .replace(')', "")
+                .to_lowercase()
+        };
+
         let cycleway_conditional_no_snow = match get("cycleway:conditional") {
-            Some(s) => s.contains("@snow") && s.contains("no"),
+            Some(s) => {
+                let cleaned = normalize(s);
+                cleaned.contains("no") && cleaned.contains("@snow")
+            }
             None => false,
         };
 
         let cycleway_left_conditional_no_snow = match get("cycleway:left:conditional") {
-            Some(s) => s.contains("@snow") && s.contains("no"),
+            Some(s) => {
+                let cleaned = normalize(s);
+                cleaned.contains("no") && cleaned.contains("@snow")
+            }
             None => false,
         };
 
         let cycleway_right_conditional_no_snow = match get("cycleway:right:conditional") {
-            Some(s) => s.contains("@snow") && s.contains("no"),
+            Some(s) => {
+                let cleaned = normalize(s);
+                cleaned.contains("no") && cleaned.contains("@snow")
+            }
             None => false,
         };
 

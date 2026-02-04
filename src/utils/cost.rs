@@ -118,10 +118,11 @@ enum FastOrSafe {
 fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     // if the target is the source we are reverse of the edge
     if SourceOrTarget::Source == edge.direction
-        && edge.oneway == Some(Oneway::Yes)
-        && edge.oneway_bicycle != Some(Oneway::No)
-        && edge.cycleway_left_oneway != Some(Oneway::No)
-        && edge.cycleway_right_oneway != Some(Oneway::No)
+        && ((edge.oneway == Some(Oneway::Yes)
+            && edge.oneway_bicycle != Some(Oneway::No)
+            && edge.cycleway_left_oneway != Some(Oneway::No)
+            && edge.cycleway_right_oneway != Some(Oneway::No))
+            || edge.cycleway_left == Some(Cycleway::Snow))
     {
         return 1. / 0.0005;
     }
@@ -321,8 +322,6 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         1. / 0.4
     } else if highway == Some(Highway::Primary) {
         1. / 0.3
-    } else if bicycle == Some(BicycleTag::Designated) {
-        1. / 0.7
     } else if highway == Some(Highway::Trunk) {
         1. / 0.3
     } else if highway.is_some() {

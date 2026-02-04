@@ -89,18 +89,18 @@ pub async fn bike_path_mvt(
                             OR (
                                 (
                                     (abp.tags->>'cycleway:conditional') IS NOT NULL
-                                    AND (abp.tags->>'cycleway:conditional') LIKE '%@snow%'
-                                    AND (abp.tags->>'cycleway:conditional') LIKE '%no%'
+                                    AND regexp_replace(lower(abp.tags->>'cycleway:conditional'), '[()\s]', '', 'g') LIKE '%@snow%'
+                                    AND regexp_replace(lower(abp.tags->>'cycleway:conditional'), '[()\s]', '', 'g') LIKE '%no%'
                                 )
                                 OR (
                                     (abp.tags->>'cycleway:left:conditional') IS NOT NULL
-                                    AND (abp.tags->>'cycleway:left:conditional') LIKE '%@snow%'
-                                    AND (abp.tags->>'cycleway:left:conditional') LIKE '%no%'
+                                    AND regexp_replace(lower(abp.tags->>'cycleway:left:conditional'), '[()\s]', '', 'g') LIKE '%@snow%'
+                                    AND regexp_replace(lower(abp.tags->>'cycleway:left:conditional'), '[()\s]', '', 'g') LIKE '%no%'
                                 )
                                 OR (
                                     (abp.tags->>'cycleway:right:conditional') IS NOT NULL
-                                    AND (abp.tags->>'cycleway:right:conditional') LIKE '%@snow%'
-                                    AND (abp.tags->>'cycleway:right:conditional') LIKE '%no%'
+                                    AND regexp_replace(lower(abp.tags->>'cycleway:right:conditional'), '[()\s]', '', 'g') LIKE '%@snow%'
+                                    AND regexp_replace(lower(abp.tags->>'cycleway:right:conditional'), '[()\s]', '', 'g') LIKE '%no%'
                                 )
                             )
                         )
