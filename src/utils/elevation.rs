@@ -21,8 +21,10 @@ pub fn get_slope_cost(slope_percentage: f64) -> f64 {
             return 0.0; // Flat or very mild slope
         } else if slope_percentage < 5.0 {
             return 0.5; // Moderate slope
-        } else {
+        } else if slope_percentage < 10. {
             return 2.5; // Steep slope
+        } else {
+            return 5.0; // Very steep slope
         }
     } else {
         0.0
