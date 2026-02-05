@@ -93,7 +93,7 @@ pub struct EdgePoint {
     pub cycleway_right: Option<Cycleway>,
     pub cycleway_both: Option<Cycleway>,
     pub highway: Option<Highway>,
-    pub bicycle: Option<BicycleTag>,
+    pub bicycle: Option<Bicycle>,
     pub surface: Option<Surface>,
     pub smoothness: Option<Smoothness>,
     pub access: Option<Access>,
@@ -155,7 +155,7 @@ pub enum Highway {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum BicycleTag {
+pub enum Bicycle {
     Yes,
     No,
     Designated,
@@ -272,14 +272,14 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             }
         };
 
-        let parse_bicycle = |v: Option<&String>| -> Option<BicycleTag> {
+        let parse_bicycle = |v: Option<&String>| -> Option<Bicycle> {
             match v {
                 Some(s) => match s.as_str() {
-                    "yes" => Some(BicycleTag::Yes),
-                    "no" => Some(BicycleTag::No),
-                    "designated" => Some(BicycleTag::Designated),
-                    "dismount" => Some(BicycleTag::Dismount),
-                    "discouraged" => Some(BicycleTag::Discouraged),
+                    "yes" => Some(Bicycle::Yes),
+                    "no" => Some(Bicycle::No),
+                    "designated" => Some(Bicycle::Designated),
+                    "dismount" => Some(Bicycle::Dismount),
+                    "discouraged" => Some(Bicycle::Discouraged),
                     _ => None,
                 },
                 None => None,

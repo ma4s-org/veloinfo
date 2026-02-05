@@ -15,43 +15,16 @@ pub fn calculate_slope_percentage(
 }
 
 /// Get a cost multiplier based on slope
-/// Positive slope (uphill) increases cost, negative (downhill) decreases it slightly
-/// Based on research on cycling energy expenditure
-/// Returns a value >= 0.1 (never negative or zero)
+/// Positive slope (uphill) increases cost, negative (downhill) decreases it
+/// Returns a value >= 0 (never negative)
 pub fn get_slope_cost_multiplier(slope_percentage: f64) -> f64 {
-    // Flat terrain (±2% slope) has minimal impact
-    if slope_percentage.abs() <= 2.0 {
-        return 1.0;
-    }
-
-    let multiplier = if slope_percentage > 0.0 {
-        // For uphill slopes, cost increases exponentially
-        // Using empirical formula: cost increases ~10% per 1% slope
-        // For steep slopes (>10%), cost increases more dramatically
-        if slope_percentage <= 5.0 {
-            1.0 + (slope_percentage * 0.12)
-        } else if slope_percentage <= 10.0 {
-            1.0 + (5.0 * 0.12) + ((slope_percentage - 5.0) * 0.20)
-        } else {
-            // Very steep slopes: 1 + 0.6 + (slope-10)*0.3 = 1.6 + (slope-10)*0.3
-            1.6 + ((slope_percentage - 10.0) * 0.30)
-        }
+    if slope_percentage >= 0.0 {
+        // Uphill: cost increases linearly
+        1.0 + 0.1 * slope_percentage
     } else {
-        // Downhill slopes are easier but still require control
-        // -2% to -5% slope: slight decrease in cost (10% reduction)
-        // -5% to -10% slope: moderate decrease (20% reduction)
-        // Below -10%: be cautious (less than 30% reduction)
-        if slope_percentage >= -5.0 {
-            1.0 + (slope_percentage * 0.05) // small bonus for downhill
-        } else if slope_percentage >= -10.0 {
-            0.90 + ((slope_percentage + 5.0) * 0.02)
-        } else {
-            0.80 + ((slope_percentage + 10.0) * 0.01)
-        }
-    };
-
-    // Ensure multiplier is never negative or zero (minimum 0.1 for very steep descents)
-    multiplier.max(0.1)
+        // Downhill: cost decreases linearly, but never below 0
+        1. - 0.05 * slope_percentage.abs().min(6.0)
+    }
 }
 
 /// Calculate slope cost multiplier for an EdgePoint
