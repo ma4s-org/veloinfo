@@ -23,7 +23,7 @@ pub fn get_slope_cost_multiplier(slope_percentage: f64) -> f64 {
         1.0 + 0.1 * slope_percentage
     } else {
         // Downhill: cost decreases linearly, but never below 0
-        1. - 0.05 * slope_percentage.abs().min(6.0)
+        1. - 0.05 * slope_percentage.abs()
     }
 }
 
