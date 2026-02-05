@@ -233,7 +233,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             if edge.footway == Some(Footway::Sidewalk) {
                 1. / 0.4
             } else {
-                1. / 0.9
+                1. / 0.7
             }
         } else if bicycle == Some(Bicycle::Dismount) {
             if edge.tunnel == Some(Tunnel::Yes) {

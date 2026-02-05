@@ -18,26 +18,26 @@ pub fn calculate_slope_percentage(
 pub fn get_slope_cost(slope_percentage: f64) -> f64 {
     if slope_percentage >= 0.0 {
         if slope_percentage < 1.0 {
-            return 1.0; // Flat or very mild slope
+            return 0.0; // Flat or very mild slope
         } else if slope_percentage < 5.0 {
-            return 2.5; // Moderate slope
+            return 0.5; // Moderate slope
         } else {
-            return 5.; // Steep slope
+            return 2.5; // Steep slope
         }
     } else {
-        (1.0 - 0.05 * slope_percentage.abs()).max(0.7)
+        0.0
     }
 }
 
-/// Calculate slope cost multiplier for an EdgePoint
-/// Returns 1.0 if elevation data is not available
+/// Calculate slope cost for an EdgePoint
+/// Returns 0.0 if elevation data is not available
 pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
     match (edge.elevation_start, edge.elevation_end) {
         (Some(elev_start), Some(elev_end)) => {
             let slope_percentage = calculate_slope_percentage(elev_start, elev_end, edge.length);
             get_slope_cost(slope_percentage)
         }
-        _ => 1.0, // No elevation data, no slope penalty
+        _ => 0.0, // No elevation data, no slope penalty
     }
 }
 
