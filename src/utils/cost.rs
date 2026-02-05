@@ -338,8 +338,8 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     }
 
     // Apply slope/elevation cost factor
-    let slope_cost_multiplier = elevation::get_edge_slope_cost_multiplier(edge);
-    cost *= slope_cost_multiplier;
+    let slope_cost_bonus = elevation::get_edge_slope_cost(edge);
+    cost += slope_cost_bonus;
 
     cost = match fast_or_safe {
         FastOrSafe::Fast => 1. + cost.log(20.),
