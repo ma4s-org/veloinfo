@@ -15,15 +15,17 @@ pub fn calculate_slope_percentage(
 }
 
 /// Get a cost multiplier based on slope
-/// Positive slope (uphill) increases cost, negative (downhill) decreases it
-/// Returns a value >= 0 (never negative)
 pub fn get_slope_cost_multiplier(slope_percentage: f64) -> f64 {
     if slope_percentage >= 0.0 {
-        // Uphill: cost increases linearly
-        1.0 + 0.1 * slope_percentage
+        if slope_percentage < 1.0 {
+            return 1.0; // Flat or very mild slope
+        } else if slope_percentage < 5.0 {
+            return 2.5; // Moderate slope
+        } else {
+            return 5.; // Steep slope
+        }
     } else {
-        // Downhill: cost decreases linearly, but never below 0
-        1. - 0.05 * slope_percentage.abs()
+        (1.0 - 0.05 * slope_percentage.abs()).max(0.7)
     }
 }
 
