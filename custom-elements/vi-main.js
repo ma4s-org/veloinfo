@@ -397,7 +397,6 @@ class ViMain extends HTMLElement {
             // Nettoyer la destination
             this.changeStartDestination = null;
 
-            // Calculer seulement la route sécurisée avec recalculateRoute
             this.route();
             return;
         }
@@ -516,67 +515,6 @@ class ViMain extends HTMLElement {
         info.appendChild(routeSearching);
     }
 
-    async recalculateRoute(routeType) {
-        const info = document.getElementById("info");
-        info.innerHTML = `<div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-            <div class="p-4">
-                <h2 class="text-xl font-bold">Calcul de l'itinéraire</h2>
-                <p>Veuillez patienter pendant que nous calculons votre itinéraire sécurisé...</p>
-            </div>
-        </div>`;
-
-        // Nettoyer les anciennes routes
-        this.cleanupLayers([LAYERS.SAFE, LAYERS.FAST, LAYERS.SELECTED]);
-
-        const startLng = this.start_marker.getLngLat().lng;
-        const startLat = this.start_marker.getLngLat().lat;
-        const endLng = this.end_marker.getLngLat().lng;
-        const endLat = this.end_marker.getLngLat().lat;
-
-        const socket = new WebSocket(`/recalculate_route/${routeType}/${startLng}/${startLat}/${endLng}/${endLat}`);
-
-        socket.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            if (data.coordinates) {
-                socket.close();
-
-                // Créer une instance de RoutePanel avec une seule route
-                const routePanel = document.createElement('vi-route-panel');
-                routePanel.setAttribute('coordinates', JSON.stringify([data.coordinates])); // Tableau avec une seule route
-                info.innerHTML = '';
-                info.appendChild(routePanel);
-
-                // Mettre à jour l'URL avec les coordonnées de la route
-                this.updateRouteUrl(
-                    data.coordinates[0][0],
-                    data.coordinates[0][1],
-                    data.coordinates[data.coordinates.length - 1][0],
-                    data.coordinates[data.coordinates.length - 1][1]
-                );
-
-                // Ajuster la vue
-                const bearing = this.calculateBearing(
-                    data.coordinates[0][0],
-                    data.coordinates[0][1],
-                    data.coordinates[data.coordinates.length - 1][0],
-                    data.coordinates[data.coordinates.length - 1][1]
-                );
-                const bounds = this.fitBounds(data.coordinates);
-                this.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
-            }
-        };
-
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
-            info.innerHTML = `<div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-                <div class="p-4">
-                    <h2 class="text-xl font-bold">Erreur</h2>
-                    <p>Une erreur s'est produite lors du calcul de l'itinéraire.</p>
-                    <md-filled-button onclick="document.querySelector('vi-main').clear()">Fermer</md-filled-button>
-                </div>
-            </div>`;
-        };
-    }
 
     fitBounds(geom) {
         return geom.reduce(
