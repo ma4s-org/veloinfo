@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use itertools::Itertools;
 use regex::Regex;
 use sqlx::{Postgres, Row};
 use uuid::Uuid;
@@ -229,6 +230,8 @@ impl CyclabilityScore {
             vec![source, target]
         })
         .flatten()
+        .sorted()
+        .dedup()
         .collect::<Vec<i64>>();
 
         tokio::spawn(async move {
