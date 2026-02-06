@@ -12,10 +12,9 @@ export default class RouteSearching extends HTMLElement {
                         Veuillez patienter pendant que nous recherchons votre itinéraire...
                     </p>
                 </div>
-                <div class="flex justify-center">
-                        <md-filled-button id="cancel_button">
-                            annuler
-                        </md-filled-button>
+                <div style="display: flex; flex-direction: row; justify-content: center; gap: 0.5em; padding-bottom: 1em; position: relative;">
+                    <md-outlined-button id="change_start_button" style="position: absolute; left: 1em; transform: scale(0.75); transform-origin: left center; --md-sys-color-primary: #666666;">changer départ</md-outlined-button>
+                    <md-filled-button id="cancel_button">annuler</md-filled-button>
                 </div>
                 <md-dialog id="search_position_dialog" style="display: none;">
                     <div slot="content" class="flex flex-col justify-center">
@@ -86,6 +85,17 @@ export default class RouteSearching extends HTMLElement {
                 });
             });
         }
+        this.querySelector("#change_start_button").addEventListener("click", () => {
+            this.viMain.changeStartDestination = { lng: end.lng, lat: end.lat };
+            if (this.viMain.map.getLayer("searched_route")) {
+                this.viMain.map.removeLayer("searched_route");
+            }
+            if (this.viMain.map.getSource("searched_route")) {
+                this.viMain.map.removeSource("searched_route");
+            }
+            this.viMain.querySelector("#info").innerHTML = "<vi-change-start></vi-change-start>";
+        });
+
         if (this.viMain.map.getSource("searched_route") == null) {
             this.viMain.map.addSource("searched_route", {
                 "type": "geojson",
