@@ -896,7 +896,7 @@ impl Edge {
             println!("Starting cache prefill...");
 
             let routes = vec![
-                (235888032, 177522966, "Sainte-Anne-de-Bellevue to Quebec"),
+                (1419279436, 177522966, "Montréal to Quebec"),
                 (2352518821, 1870784004, "Mont-Tremblant to Sherbrooke"),
             ];
 
