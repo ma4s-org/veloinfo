@@ -178,8 +178,6 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             1.
         }
-    } else if edge.cyclestreet {
-        0.95
     } else if cycleway == Some(Cycleway::Track) || edge.cycleway_both == Some(Cycleway::Track) {
         if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
@@ -204,6 +202,8 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             1.
         }
+    } else if edge.cyclestreet {
+        1. / 0.9
     } else if cycleway == Some(Cycleway::Lane) || edge.cycleway_both == Some(Cycleway::Lane) {
         if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
             1. / 0.5
