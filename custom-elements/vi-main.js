@@ -143,10 +143,10 @@ class ViMain extends HTMLElement {
 
             // Attendre que la carte soit chargée avant de calculer la route
             if (this.map.loaded()) {
-                this.recalculateRoute("safe");
+                this.route();
             } else {
                 this.map.once('load', () => {
-                    this.recalculateRoute("safe");
+                    this.route();
                 });
             }
         } else if (params.has("point_lng") && params.has("point_lat")) {
@@ -250,7 +250,10 @@ class ViMain extends HTMLElement {
                     this.map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none');
                 });
             }, 1000);
-            this.infoPanelUp();
+            const params = new URLSearchParams(window.location.search);
+            if (!params.has("start_lng")) {
+                this.infoPanelUp();
+            }
         });
 
         this.map.on("click", (event) => {
@@ -395,7 +398,7 @@ class ViMain extends HTMLElement {
             this.changeStartDestination = null;
 
             // Calculer seulement la route sécurisée avec recalculateRoute
-            this.recalculateRoute("safe");
+            this.route();
             return;
         }
 
@@ -499,15 +502,6 @@ class ViMain extends HTMLElement {
             if (this.map.getSource(layer)) this.map.removeSource(layer);
         });
 
-        // Nettoyer les paramètres de route de l'URL
-        const url = new URL(window.location);
-        url.searchParams.delete('start_lng');
-        url.searchParams.delete('start_lat');
-        url.searchParams.delete('end_lng');
-        url.searchParams.delete('end_lat');
-        url.searchParams.delete('point_lng');
-        url.searchParams.delete('point_lat');
-        window.history.replaceState({}, '', url);
 
         // Affiche le panneau d'info
         const data = await (await fetch("/info_panel/down")).json();

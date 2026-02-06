@@ -209,7 +209,7 @@ class SearchResult extends HTMLElement {
             viMain.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([lng, lat]).addTo(map);
 
             // Lancer la route vers la destination existante
-            viMain.recalculateRoute("safe");
+            viMain.route();
         } else {
             // Mode normal : changer le point de destination
             if (viMain.start_marker) {
