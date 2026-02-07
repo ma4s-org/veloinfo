@@ -228,7 +228,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             1. / 0.9
         }
-    } else if highway == Some(Highway::Footway) {
+    } else if highway == Some(Highway::Footway) || highway == Some(Highway::Pedestrian) {
         if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
             if edge.footway == Some(Footway::Sidewalk) {
                 1. / 0.4
@@ -327,8 +327,6 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         1. / 0.3
     } else if highway.is_some() {
         1. / 0.3
-    } else if highway == Some(Highway::Footway) {
-        1. / 0.1
     } else {
         1. / 0.05
     };
@@ -341,7 +339,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         FastOrSafe::Fast => 1. + cost.log(20.),
         FastOrSafe::Safe => {
             let slope_cost_bonus = elevation::get_edge_slope_cost(edge);
-            cost + slope_cost_bonus
+            cost * (1. + slope_cost_bonus)
         }
     };
 

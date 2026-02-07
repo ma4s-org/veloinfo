@@ -17,17 +17,9 @@ pub fn calculate_slope_percentage(
 /// Get a cost multiplier based on slope
 pub fn get_slope_cost(slope_percentage: f64) -> f64 {
     if slope_percentage >= 0.0 {
-        if slope_percentage < 1.0 {
-            return 0.0; // Flat or very mild slope
-        } else if slope_percentage < 5.0 {
-            return 0.5; // Moderate slope
-        } else if slope_percentage < 10. {
-            return 2.5; // Steep slope
-        } else {
-            return 5.0; // Very steep slope
-        }
+        return sigmoid_transition(slope_percentage);
     } else {
-        0.0
+        sigmoid_transition(slope_percentage.abs()) * 0.2
     }
 }
 
@@ -41,6 +33,14 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
         }
         _ => 0.0, // No elevation data, no slope penalty
     }
+}
+
+fn sigmoid_transition(x: f64) -> f64 {
+    let amplitude = 5.;
+    let steepness = 0.4;
+    let midpoint = 10.0;
+
+    amplitude / (1.0 + (-steepness * (x - midpoint)).exp())
 }
 
 #[cfg(test)]
