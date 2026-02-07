@@ -5,4 +5,5 @@ set -e
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     CREATE EXTENSION IF NOT EXISTS postgis;
     CREATE EXTENSION IF NOT EXISTS postgis_topology;
+    ALTER DATABASE "$POSTGRES_DB" SET postgis.gdal_enabled_drivers = 'ENABLE_ALL';
 EOSQL

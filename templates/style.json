@@ -64,6 +64,16 @@
         "city": {
             "type": "vector",
             "url": "{{martin_url}}/city"
+        },
+        "dem": {
+            "type": "raster-dem",
+            "tiles": [
+                "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+            ],
+            "tileSize": 256,
+            "encoding": "terrarium",
+            "attribution": "DEM: Mapzen, AWS",
+            "maxzoom": 14
         }
     },
     "layers": [
@@ -76,6 +86,38 @@
             "paint": {
                 "background-color": "hsl(30,25%,98%)",
                 "background-opacity": 1
+            }
+        },
+        {
+            "id": "Hillshade",
+            "type": "hillshade",
+            "source": "dem",
+            "layout": {
+                "visibility": "visible"
+            },
+            "paint": {
+                "hillshade-exaggeration": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    4,
+                    0.35,
+                    8,
+                    0.5,
+                    10,
+                    0.75,
+                    12,
+                    0.6,
+                    16,
+                    0.4
+                ],
+                "hillshade-shadow-color": "hsla(0,0%,0%,0.5)",
+                "hillshade-highlight-color": "hsla(0,0%,100%,0.35)",
+                "hillshade-accent-color": "hsla(0,0%,0%,0.2)"
             }
         },
         {
