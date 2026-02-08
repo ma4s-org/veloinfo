@@ -253,7 +253,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             || smoothness == Some(Smoothness::Bad)
             || surface == Some(Surface::Sett)
         {
-            1. / 0.5
+            1. / 0.2
         } else {
             1. / 0.7
         }
@@ -266,7 +266,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             || smoothness == Some(Smoothness::Bad)
             || surface == Some(Surface::Sett)
         {
-            1. / 0.5
+            1. / 0.2
         } else {
             1. / 0.7
         }
@@ -279,13 +279,13 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             || smoothness == Some(Smoothness::Bad)
             || surface == Some(Surface::Sett)
         {
-            1. / 0.5
+            1. / 0.2
         } else {
             1. / 0.7
         }
     } else if highway == Some(Highway::Residential) {
         if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
-            1. / 0.4
+            1. / 0.2
         } else if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
             1. / 0.85
         } else {
@@ -295,7 +295,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         1. / 0.5
     } else if highway == Some(Highway::Tertiary) {
         if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
-            1. / 0.3
+            1. / 0.2
         } else if edge.in_bicycle_route {
             1. / 0.60
         } else {
@@ -309,7 +309,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         }
     } else if highway == Some(Highway::Secondary) {
         if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
-            1. / 0.3
+            1. / 0.2
         } else if edge.in_bicycle_route {
             1. / 0.60
         } else {
