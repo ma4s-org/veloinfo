@@ -60,6 +60,12 @@ class ViMain extends HTMLElement {
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;">
                         <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
                     </div>
+                    <div id="snow_button"
+                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;
+                               display: flex; justify-content: center; align-items: center; background-color: white;
+                               width: 31px; height: 31px; cursor: pointer;">
+                        <img style="width: 24px; height: 24px;" src="/pub/snow.png">
+                    </div>
                     <div id="speed_container"
                         style="justify-content: center; align-items: center; width: 31px; height: 31px;
                                 background-color: white; margin-top: 4px; padding: 4px; border-radius: 0.375rem;
@@ -68,12 +74,6 @@ class ViMain extends HTMLElement {
                             style="font-size: 1.2em; font-weight: bold; justify-content: center; align-items: center;">
                             0
                         </div>
-                    </div>
-                    <div id="snow_button"
-                        style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;
-                               display: flex; justify-content: center; align-items: center; background-color: white;
-                               width: 31px; height: 31px; cursor: pointer;">
-                        <img style="width: 24px; height: 24px;" src="/pub/snow.png">
                     </div>
                 </div>
                 <vi-mobilizon-events></vi-mobilizon-events>
@@ -404,6 +404,7 @@ class ViMain extends HTMLElement {
         if (this.start_marker && this.end_marker) {
             this.clear();
         }
+
 
         if (this.start_marker && this.map.getLayer("selected")) {
             this.selectBigger(event);
