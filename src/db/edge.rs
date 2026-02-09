@@ -110,6 +110,49 @@ pub struct EdgePoint {
     pub elevation_end: Option<f64>,
 }
 
+impl Default for EdgePoint {
+    fn default() -> Self {
+        EdgePoint {
+            id: 0,
+            lon1: 0.0,
+            lat1: 0.0,
+            lon2: 0.0,
+            lat2: 0.0,
+            length: 0.0,
+            way_id: 0,
+            source: 0,
+            target: 0,
+            in_bicycle_route: false,
+            road_work: false,
+            snow: false,
+            winter_service_no: false,
+            abandoned: false,
+            score: None,
+            direction: SourceOrTarget::Source,
+            cycleway: None,
+            cycleway_left: None,
+            cycleway_right: None,
+            cycleway_both: None,
+            highway: None,
+            bicycle: None,
+            surface: None,
+            smoothness: None,
+            access: None,
+            cyclestreet: false,
+            footway: None,
+            tunnel: None,
+            oneway: None,
+            oneway_bicycle: None,
+            cycleway_left_oneway: None,
+            cycleway_right_oneway: None,
+            informal: false,
+            routing_bicycle_use_sidepath: false,
+            elevation_start: None,
+            elevation_end: None,
+        }
+    }
+}
+
 impl Eq for EdgePoint {}
 
 impl Hash for EdgePoint {

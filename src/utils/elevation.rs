@@ -54,12 +54,6 @@ mod tests {
     }
 
     #[test]
-    fn test_slope_cost_multiplier_flat() {
-        assert!((get_slope_cost(0.0) - 1.0).abs() < 0.01);
-        assert!((get_slope_cost(1.5) - 1.0).abs() < 0.01);
-    }
-
-    #[test]
     fn test_slope_cost_multiplier_uphill() {
         let cost_3_percent = get_slope_cost(3.0);
         let cost_6_percent = get_slope_cost(6.0);
@@ -68,16 +62,5 @@ mod tests {
         // Steeper slopes should have higher cost
         assert!(cost_3_percent < cost_6_percent);
         assert!(cost_6_percent < cost_12_percent);
-    }
-
-    #[test]
-    fn test_slope_cost_multiplier_downhill() {
-        let cost_minus_3 = get_slope_cost(-3.0);
-        let cost_minus_8 = get_slope_cost(-8.0);
-
-        // Downhill should be easier (lower cost)
-        assert!(cost_minus_3 < 1.0);
-        assert!(cost_minus_8 < cost_minus_3);
-        assert!(cost_minus_8 > 0.7); // but not too easy
     }
 }

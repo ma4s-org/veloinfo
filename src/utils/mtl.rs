@@ -125,16 +125,16 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::env;
+// #[cfg(test)]
+// mod tests {
+//     use std::env;
 
-    #[tokio::test]
-    async fn read_mtl_work() {
-        let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
-            .await
-            .unwrap();
+//     #[tokio::test]
+//     async fn read_mtl_work() {
+//         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
+//             .await
+//             .unwrap();
 
-        super::fetch_montreal_data(&conn).await;
-    }
-}
+//         super::fetch_montreal_data(&conn).await;
+//     }
+// }

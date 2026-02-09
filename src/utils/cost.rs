@@ -34,7 +34,6 @@ pub fn get_h_bigger_selection() -> Box<dyn H> {
     Box::new(HBiggerSelection {})
 }
 
-#[allow(dead_code)]
 pub fn get_h_rapid() -> Box<dyn H> {
     Box::new(HRapid {})
 }
@@ -233,7 +232,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             if edge.footway == Some(Footway::Sidewalk) {
                 1. / 0.4
             } else {
-                1. / 0.7
+                1. / 0.9
             }
         } else if bicycle == Some(Bicycle::Dismount) {
             if edge.tunnel == Some(Tunnel::Yes) {
@@ -356,4 +355,32 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         None => 1.,
     };
     cost / score
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::db::edge::{EdgePoint, SourceOrTarget};
+    use crate::utils::cost::{get_cost, FastOrSafe};
+
+    #[test]
+    fn test_get_cost() {
+        let edge = EdgePoint {
+            direction: SourceOrTarget::Source,
+            ..EdgePoint::default()
+        };
+        let cost = get_cost(FastOrSafe::Safe, &edge);
+        assert_eq!(cost, 1. / 0.05);
+    }
+
+    #[test]
+    fn test_olmstead() {
+        let edge = EdgePoint {
+            bicycle: Some(crate::db::edge::Bicycle::Designated),
+            highway: Some(crate::db::edge::Highway::Pedestrian),
+            surface: Some(crate::db::edge::Surface::Gravel),
+            ..EdgePoint::default()
+        };
+        let cost = get_cost(FastOrSafe::Safe, &edge);
+        assert_eq!(cost, 1. / 0.9);
+    }
 }
