@@ -238,7 +238,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             if edge.tunnel == Some(Tunnel::Yes) {
                 1. / 0.08
             } else {
-                1. / 0.1
+                1. / 0.2
             }
         } else {
             return 1. / 0.1;
