@@ -337,8 +337,9 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     cost = match fast_or_safe {
         FastOrSafe::Fast => 1. + cost.log(20.),
         FastOrSafe::Safe => {
-            let slope_cost_bonus = elevation::get_edge_slope_cost(edge);
-            cost * (1. + slope_cost_bonus)
+            let slope_cost = elevation::get_edge_slope_cost(edge);
+            // On peut multiplier par 7. Plus haut, des anomalies apparaissent
+            cost + 7. * slope_cost
         }
     };
 

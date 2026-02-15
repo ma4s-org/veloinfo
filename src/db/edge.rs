@@ -128,7 +128,7 @@ impl Default for EdgePoint {
             winter_service_no: false,
             abandoned: false,
             score: None,
-            direction: SourceOrTarget::Source,
+            direction: SourceOrTarget::Target,
             cycleway: None,
             cycleway_left: None,
             cycleway_right: None,
