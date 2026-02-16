@@ -121,15 +121,9 @@ export default class RouteSearching extends HTMLElement {
             });
         }
         let calculateBearing = this.viMain.calculateBearing;
-        var bearing = calculateBearing(
-            start.coords.longitude,
-            start.coords.latitude,
-            end.lng,
-            end.lat
-        );
         let fitBounds = this.viMain.fitBounds;
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
-        this.viMain.map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
+        this.viMain.map.fitBounds(bounds, { pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
         this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat);
         let coordinates = [];

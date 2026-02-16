@@ -72,7 +72,6 @@
             ],
             "tileSize": 256,
             "encoding": "terrarium",
-            "attribution": "DEM: Mapzen, AWS",
             "maxzoom": 14
         }
     },

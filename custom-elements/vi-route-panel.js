@@ -205,13 +205,8 @@ class RoutePanel extends HTMLElement {
             viMain.clear();
         });
 
-        var bearing = viMain.calculateBearing(
-            safeCoordinates[0][0],
-            safeCoordinates[0][1],
-            safeCoordinates[safeCoordinates.length - 1][0],
-            safeCoordinates[safeCoordinates.length - 1][1]);
         var bounds = viMain.fitBounds(safeCoordinates);
-        map.fitBounds(bounds, { bearing, pitch: 0, padding: window.innerHeight * .12, duration: 900 });
+        map.fitBounds(bounds, { pitch: 0, padding: window.innerHeight * .12, duration: 900 });
     }
 }
 
