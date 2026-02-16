@@ -161,10 +161,12 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             return 1. / 0.0001;
         }
-    } else if highway == Some(Highway::Path)
-        && (bicycle == Some(Bicycle::Dismount) || bicycle == Some(Bicycle::Discouraged))
-    {
-        1. / 0.1
+    } else if highway == Some(Highway::Path) {
+        if (bicycle == Some(Bicycle::Dismount) || bicycle == Some(Bicycle::Discouraged)) {
+            1. / 0.05
+        } else {
+            1. / 0.1
+        }
     } else if bicycle == Some(Bicycle::Discouraged) {
         1. / 0.1
     } else if edge.routing_bicycle_use_sidepath {
