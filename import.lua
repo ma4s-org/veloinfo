@@ -473,16 +473,20 @@ local address_node = osm2pgsql.define_node_table('address_node', {
     }
 })
 
-local name = osm2pgsql.define_node_table('name', {
-    {
-        column = 'geom',
-        type = 'Point'
-    }, {
-        column = 'tags',
-        type = 'jsonb'
-    }, {
-        column = 'name',
-        type = 'text'
+local name = osm2pgsql.define_table({
+    name = 'name',
+    ids = { type = 'any', id_column = 'osm_id', type_column = 'osm_type' },
+    columns = {
+        {
+            column = 'geom',
+            type = 'Point'
+        }, {
+            column = 'tags',
+            type = 'jsonb'
+        }, {
+            column = 'name',
+            type = 'text'
+        }
     }
 })
 
@@ -688,6 +692,15 @@ function osm2pgsql.process_way(way)
             housenumber2 = way.nodes[#way.nodes]
         })
     end
+
+    if way.tags.name then
+        name:insert({
+            name = way.tags.name,
+            geom = way:as_linestring():centroid(),
+            tags = way.tags
+        })
+    end
+
 end
 
 function osm2pgsql.process_relation(relation)
@@ -730,6 +743,14 @@ function osm2pgsql.process_relation(relation)
             geom = relation:as_multipolygon(),
             tags = relation.tags,
             building = relation.tags.building
+        })
+    end
+
+    if relation.tags.name then
+        name:insert({
+            name = relation.tags.name,
+            geom = relation:as_multipolygon():centroid(),
+            tags = relation.tags
         })
     end
 end
