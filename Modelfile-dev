@@ -1,0 +1,5 @@
+FROM ministral-3:14b
+PARAMETER num_ctx 32768
+PARAMETER num_predict 4096
+PARAMETER temperature 0.1
+

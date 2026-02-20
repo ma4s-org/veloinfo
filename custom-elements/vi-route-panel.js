@@ -1,3 +1,5 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 class RoutePanel extends HTMLElement {
     constructor() {
         super();
@@ -12,7 +14,7 @@ class RoutePanel extends HTMLElement {
 
         const safeCoordinates = coordinates[0];
         const fastCoordinates = coordinates[1] || null; // Peut être undefined si une seule route
-        const viMain = document.querySelector('vi-main');
+        const viMain = getViMain();
         let map = viMain.map;
 
         // Créer le marqueur de destination (bleu) à la fin de la route si pas déjà présent

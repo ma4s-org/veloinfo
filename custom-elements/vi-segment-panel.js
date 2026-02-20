@@ -1,4 +1,5 @@
 import ViPhotoScroll from "./vi-photo-scroll.js";
+import { getViMain } from '/custom-elements/vi-context.js';
 
 class SegmentPanel extends HTMLElement {
     constructor(data) {
@@ -127,13 +128,13 @@ class SegmentPanel extends HTMLElement {
             let data = (await fetch(`/info_panel/down`)).json();
             document.querySelector('#info').innerHTML = "<vi-info></vi-info>";
             document.querySelector('vi-info').data = data;
-            document.querySelector('vi-main').clear();
+            getViMain().clear();
             event.preventDefault();
         });
 
         if (!data.edit) {
             this.querySelector('#route_md').onclick = () => {
-                document.querySelector('vi-main').route();
+                getViMain().route();
             };
             this.querySelector('#edit_md').onclick = async () => {
                 let r = await fetch(`/segment_panel/edit/ways/${data.way_ids}`);
@@ -144,14 +145,14 @@ class SegmentPanel extends HTMLElement {
             };
         }
 
-        let map = document.querySelector('vi-main').map;
+        let map = getViMain().map;
         var geom = JSON.parse(data.geom_json);
 
         if (data.fit_bounds) {
             let flattened = geom.reduce((acc, val) => acc.concat(val), []);
-            map.fitBounds(document.querySelector('vi-main').fitBounds(flattened), { padding: window.innerHeight * .12 });
+            map.fitBounds(getViMain().fitBounds(flattened), { padding: window.innerHeight * .12 });
         }
-        const viMain = document.querySelector('vi-main');
+        const viMain = getViMain();
         if (!viMain.start_marker) {
             viMain.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(geom[0][0]).addTo(map);
         }

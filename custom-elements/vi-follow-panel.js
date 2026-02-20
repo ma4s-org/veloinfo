@@ -1,7 +1,9 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 class FollowPanel extends HTMLElement {
     constructor() {
         super();
-        let map = document.querySelector('vi-main').map;
+        let map = getViMain().map;
         let coordinates = JSON.parse(this.getAttribute('coordinates'));
         let route = this.getAttribute('route');
         if (route === "safe") {
@@ -20,7 +22,7 @@ class FollowPanel extends HTMLElement {
             }
         }
 
-        let totalDistance = document.querySelector('vi-main').calculateTotalDistance(this.routeCoordinates, 0).toFixed(1);
+        let totalDistance = getViMain().calculateTotalDistance(this.routeCoordinates, 0).toFixed(1);
         let innerHTML = /*html*/ `
             <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
@@ -33,12 +35,16 @@ class FollowPanel extends HTMLElement {
                         </div>
                     </div>
                     <div style="display: flex;justify-content: center;">
-                        <md-filled-button hx-on:click="document.querySelector('vi-main').clear()" hx-target="#info">annuler</md-filled-button>
+                        <md-filled-button id="cancel-follow-btn">annuler</md-filled-button>
                     </div>
                 </div>
             </div>
         `;
         this.innerHTML = innerHTML;
+        this.querySelector('#cancel-follow-btn').addEventListener('click', () => {
+            getViMain().clear();
+            document.getElementById('info').innerHTML = '';
+        });
         htmx.process(this);
 
     }
@@ -55,8 +61,8 @@ class FollowPanel extends HTMLElement {
     }
 
     disconnectedCallback() {
-        if (document.querySelector('vi-main').isGeolocateActive) {
-            document.querySelector('vi-main').geolocate.trigger();
+        if (getViMain().isGeolocateActive) {
+            getViMain().geolocate.trigger();
         }
         clearInterval(this.intervalId);
     }
@@ -88,7 +94,7 @@ class FollowPanel extends HTMLElement {
                     if (data.coordinates) {
                         socket.close();
                         let sourceId = this.getAttribute('route') === "safe" ? "selected_safe" : "selected_fast";
-                        document.querySelector('vi-main').map.getSource(sourceId).setData({
+                        getViMain().map.getSource(sourceId).setData({
                             "type": "Feature",
                             "properties": {},
                             "geometry": {
@@ -105,7 +111,7 @@ class FollowPanel extends HTMLElement {
                 }
                 this.updating = false;
             }
-            let totalDistance = document.querySelector('vi-main').calculateTotalDistance(this.routeCoordinates, closestCoordinate).toFixed(1);
+            let totalDistance = getViMain().calculateTotalDistance(this.routeCoordinates, closestCoordinate).toFixed(1);
             if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             }
@@ -170,7 +176,7 @@ class FollowPanel extends HTMLElement {
             hundredMeterAwayIndex = hundredMeterAwayIndex === -1
                 ? coordinates.length - 1
                 : hundredMeterAwayIndex + closestCoordinate;
-            var bearing = document.querySelector('vi-main').calculateBearing(
+            var bearing = getViMain().calculateBearing(
                 longitude,
                 latitude,
                 coordinates[hundredMeterAwayIndex][0],
@@ -178,7 +184,7 @@ class FollowPanel extends HTMLElement {
             if (!document.body.contains(this)) {
                 return;
             }
-            let map = document.querySelector('vi-main').map;
+            let map = getViMain().map;
             map.easeTo({
                 pitch: 60,
                 bearing,
@@ -188,8 +194,8 @@ class FollowPanel extends HTMLElement {
                 if (!document.body.contains(this)) {
                     return;
                 }
-                if (!document.querySelector('vi-main').isGeolocateActive) {
-                    document.querySelector('vi-main').geolocate.trigger();
+                if (!getViMain().isGeolocateActive) {
+                    getViMain().geolocate.trigger();
                 }
             }, 1_600);
         });

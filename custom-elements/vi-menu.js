@@ -1,3 +1,5 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 class ViMenu extends HTMLElement {
     constructor() {
         super();
@@ -114,7 +116,7 @@ class ViMenu extends HTMLElement {
     }
 
     clickOSMEdit() {
-        const map = document.querySelector('vi-main').map;
+        const map = getViMain().map;
         let zoom = map && map.getZoom();
         let lat = map && map.getCenter().lat;
         let lng = map && map.getCenter().lng;

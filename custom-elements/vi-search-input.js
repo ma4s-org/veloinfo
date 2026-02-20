@@ -1,5 +1,6 @@
 import PointPanel from "./vi-point-panel.js";
 import ViSearchResult from "./vi-search-result.js";
+import { getViMain } from '/custom-elements/vi-context.js';
 
 class SearchInput extends HTMLElement {
     query = "";
@@ -68,7 +69,7 @@ class SearchInput extends HTMLElement {
         this.abortController = new AbortController();
         const signal = this.abortController.signal;
 
-        let map = document.querySelector('vi-main').map;
+        let map = getViMain().map;
         this.query = this.querySelector("#query").value;
         if (!this.query) {
             this.displayHistory();
@@ -175,8 +176,8 @@ class SearchResult extends HTMLElement {
     }
 
     async clickSearchResult() {
-        let map = document.querySelector('vi-main').map;
-        let viMain = document.querySelector('vi-main');
+        let map = getViMain().map;
+        let viMain = getViMain();
         let lng = this.getAttribute("lng");
         let lat = this.getAttribute("lat");
         // Stocker la cible dans le localStorage

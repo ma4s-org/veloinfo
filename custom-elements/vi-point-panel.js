@@ -1,3 +1,5 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 class PointPanel extends HTMLElement {
     constructor(name) {
         super();
@@ -22,10 +24,10 @@ class PointPanel extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector("#route_button").addEventListener("click", () => {
-            document.querySelector('vi-main').route();
+            getViMain().route();
         });
         this.querySelector("#cancel_button").addEventListener("click", () => {
-            document.querySelector('vi-main').clear();
+            getViMain().clear();
         });
     }
 }

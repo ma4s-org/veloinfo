@@ -17,6 +17,7 @@ import '/custom-elements/vi-change-start.js';
 import '/custom-elements/vi-info.js';
 import ViLayers from './vi-layers.js';
 import ViInfo from './vi-info.js';
+import { registerViMain, unregisterViMain } from '/custom-elements/vi-context.js';
 
 const html = String.raw;
 
@@ -92,6 +93,7 @@ class ViMain extends HTMLElement {
     }
 
     connectedCallback() {
+        registerViMain(this);
         this.addMap();
 
         this.querySelector('#layers_button').addEventListener('click', () => {

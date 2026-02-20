@@ -1,7 +1,9 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 class RouteDefine extends HTMLElement {
     constructor() {
         super();
-        const viMain = document.querySelector('vi-main');
+        const viMain = getViMain();
         var destination = viMain.start_marker.getLngLat();
     }
 

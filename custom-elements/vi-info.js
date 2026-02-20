@@ -1,3 +1,5 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 export default class ViInfo extends HTMLElement {
   constructor(data) {
     super();
@@ -55,7 +57,7 @@ export default class ViInfo extends HTMLElement {
       this.data = json;
     });
     this.querySelector("#info_panel_down_header")?.addEventListener("click", async () => {
-      let bounds = document.querySelector('vi-main').map.getBounds();
+      let bounds = getViMain().map.getBounds();
       let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
       let json = await r.json();
       this.data = json;

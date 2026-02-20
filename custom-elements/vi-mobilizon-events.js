@@ -1,3 +1,5 @@
+import { getViMain } from '/custom-elements/vi-context.js';
+
 class ViMobilizonEvents extends HTMLElement {
     constructor() {
         super();
@@ -103,7 +105,7 @@ class ViMobilizonEvents extends HTMLElement {
                     const dateStr = beginsDate.toLocaleDateString('fr-FR', options);
                     const hourStr = beginsDate.getHours() + "h";
                     const formattedDate = `${dateStr} à ${hourStr}`;
-                    let map = document.querySelector('vi-main').map;
+                    let map = getViMain().map;
                     const marker = new maplibregl.Marker({ element: el })
                         .setLngLat([coords[0], coords[1]])
                         .setPopup(new maplibregl.Popup({ offset: 25 })
@@ -122,12 +124,12 @@ class ViMobilizonEvents extends HTMLElement {
                         )
                         .addTo(map);
                     var listener = (e) => {
-                        let end_marker = document.querySelector('vi-main').end_marker;
+                        let end_marker = getViMain().end_marker;
                         if (end_marker) {
                             end_marker.remove();
-                            document.querySelector('vi-main').end_marker = null;
+                            getViMain().end_marker = null;
                         }
-                        const viMain = document.querySelector('vi-main');
+                        const viMain = getViMain();
                         let start_marker = viMain.start_marker;
                         if (start_marker) {
                             start_marker.remove();
@@ -136,7 +138,7 @@ class ViMobilizonEvents extends HTMLElement {
 
                         viMain.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
-                        document.querySelector('vi-main').route();
+                        getViMain().route();
                     }
                     marker.getPopup().on('open', () => {
                         const btn = marker.getPopup()._content.querySelector('#route_md-filled-button');
