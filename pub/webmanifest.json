@@ -40,5 +40,8 @@
             "sizes": "512x512",
             "type": "image/png"
         }
-    ]
+    ],
+    "service_worker": {
+        "src": "/service-worker.js"
+    }
 }

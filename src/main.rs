@@ -56,6 +56,19 @@ struct VeloinfoState {
     conn: PgPool,
 }
 
+async fn service_worker_js() -> impl axum::response::IntoResponse {
+    let content = tokio::fs::read_to_string("pub/service-worker.js")
+        .await
+        .unwrap_or_default();
+    (
+        [
+            ("Content-Type", "application/javascript; charset=utf-8"),
+            ("Service-Worker-Allowed", "/"),
+        ],
+        content,
+    )
+}
+
 #[tokio::main]
 async fn main() {
     let dev = env::var("ENV").unwrap().as_str().contains("dev");
@@ -147,6 +160,7 @@ async fn main() {
         )
         .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
+        .route("/pub/service-worker.js", get(service_worker_js))
         .nest_service("/dist/", ServeDir::new("dist"))
         .nest_service("/pub/", ServeDir::new("pub"))
         .nest_service("/custom-elements/", ServeDir::new("custom-elements"))
