@@ -1,7 +1,7 @@
 {
     "id": "veloinfo.quebec",
     "name": "Vélo-info",
-    "description": "L'application pour les cyclistes urbains",
+    "description": "L'application pour les cyclistes du Québec",
     "short_name": "Veloinfo",
     "start_url": "/",
     "display": "standalone",
@@ -19,7 +19,7 @@
         {
             "name": "Véloinfo",
             "url": "https://veloinfo.quebec",
-            "description": "Une route vers le Mont-Royal",
+            "description": "L'application pour les cyclistes du Québec",
             "icons": [
                 {
                     "src": "shortcut.png",
