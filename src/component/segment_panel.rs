@@ -139,7 +139,7 @@ pub async fn segment_panel_post(
                     "geom_json": "".to_string(),
                     "fit_bounds": false,
                     "user_name": user_name,
-                    "martin_url": env::var("MARTIN_URL").unwrap(),
+                    "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
                 })),
             );
         }
@@ -283,7 +283,7 @@ pub async fn segment_panel_edit(
         "geom_json": geom_json,
         "fit_bounds": false,
         "user_name": user_name,
-        "martin_url": env::var("MARTIN_URL").unwrap(),
+        "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     }));
     (jar, json)
 }
@@ -359,7 +359,7 @@ pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> Json<JsonVa
         "geom_json": serde_json::to_string(&geom).unwrap_or("".to_string()),
         "fit_bounds": false,
         "user_name": "".to_string(),
-        "martin_url": env::var("MARTIN_URL").unwrap(),
+        "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     });
     Json(json)
 }
@@ -485,7 +485,7 @@ async fn segment_panel_score_id(
         "geom_json": geom_json,
         "fit_bounds": true,
         "user_name": "".to_string(),
-        "martin_url": env::var("MARTIN_URL").unwrap(),
+        "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     }))
 }
 
@@ -543,7 +543,7 @@ pub async fn segment_panel_lng_lat(
         "geom_json": serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
         "fit_bounds": false,
         "user_name": "".to_string(),
-        "martin_url": env::var("MARTIN_URL").unwrap(),
+        "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     });
     Json(json)
 }

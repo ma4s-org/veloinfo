@@ -70,7 +70,6 @@ self.addEventListener('fetch', function(event) {
 async function updateCache(cache, request, response, timestamp) {
     const headers = new Headers(response.headers);
     headers.append('sw-cache-date', timestamp.toString());
-    headers.set('Access-Control-Allow-Origin', '*');
 
     const body = await response.clone().blob();
     await cache.put(request, new Response(body, {

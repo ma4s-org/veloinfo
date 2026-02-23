@@ -17,7 +17,7 @@ services:
       - IMAGE_DIR=/images
       - PGUSER=postgres
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/carte
-      - MARTIN_URL=http://localhost:3001
+      - MARTIN_URL=http://martin:3000
       - KEYCLOAK_BROWSER_URL=https://keycloak.veloinfo.ca/realms/master
       - KEYCLOAK_SERVER_URL=https://keycloak.veloinfo.ca/realms/master
       - VELOINFO_URL=http://localhost:3000

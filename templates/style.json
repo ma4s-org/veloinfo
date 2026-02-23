@@ -13,57 +13,57 @@
         },
         "landuse": {
             "type": "vector",
-            "url": "{{martin_url}}/landuse"
+            "url": "{{veloinfo_url}}/martin/landuse"
         },
         "landcover": {
             "type": "vector",
-            "url": "{{martin_url}}/landcover",
+            "url": "{{veloinfo_url}}/martin/landcover",
             "minzoom": 10
         },
         "landcover_far": {
             "type": "vector",
-            "url": "{{martin_url}}/landcover_far",
+            "url": "{{veloinfo_url}}/martin/landcover_far",
             "maxzoom": 10
         },
         "aeroway": {
             "type": "vector",
-            "url": "{{martin_url}}/aeroway"
+            "url": "{{veloinfo_url}}/martin/aeroway"
         },
         "boundary": {
             "type": "vector",
-            "url": "{{martin_url}}/boundary"
+            "url": "{{veloinfo_url}}/martin/boundary"
         },
         "transportation": {
             "type": "vector",
-            "url": "{{martin_url}}/transportation"
+            "url": "{{veloinfo_url}}/martin/transportation"
         },
         "building": {
             "type": "vector",
-            "url": "{{martin_url}}/building"
+            "url": "{{veloinfo_url}}/martin/building"
         },
         "water_name": {
             "type": "vector",
-            "url": "{{martin_url}}/water_name"
+            "url": "{{veloinfo_url}}/martin/water_name"
         },
         "veloinfo_all_way": {
             "type": "vector",
-            "url": "{{martin_url}}/all_way"
+            "url": "{{veloinfo_url}}/martin/all_way"
         },
         "veloinfo_all_node": {
             "type": "vector",
-            "url": "{{martin_url}}/all_node"
+            "url": "{{veloinfo_url}}/martin/all_node"
         },
         "veloinfo_name": {
             "type": "vector",
-            "url": "{{martin_url}}/name"
+            "url": "{{veloinfo_url}}/martin/name"
         },
         "road_work": {
             "type": "vector",
-            "url": "{{martin_url}}/road_work"
+            "url": "{{veloinfo_url}}/martin/road_work"
         },
         "city": {
             "type": "vector",
-            "url": "{{martin_url}}/city"
+            "url": "{{veloinfo_url}}/martin/city"
         },
         "dem": {
             "type": "raster-dem",
@@ -3664,7 +3664,7 @@
             ]
         }
     ],
-    "glyphs": "{{martin_url}}/font/{fontstack}/{range}",
+    "glyphs": "{{veloinfo_url}}/martin/font/{fontstack}/{range}",
     "bearing": 0,
     "pitch": 0,
     "center": [
