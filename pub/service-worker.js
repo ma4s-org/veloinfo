@@ -21,53 +21,58 @@ self.addEventListener('activate', function(event) {
     );
 });
 
+
 self.addEventListener('fetch', function(event) {
     const url = new URL(event.request.url);
 
-    // SCÉNARIO 1 : Les tuiles (Cache-First, TTL 1 semaine) — toutes origines
     if (dataPattern.test(url.pathname)) {
         event.respondWith(
-            caches.open(DATA_CACHE).then(cache =>
-                cache.match(event.request).then(function(cachedResponse) {
-                    const now = Date.now();
+            (async () => {
+                const cache = await caches.open(DATA_CACHE);
+                const cachedResponse = await cache.match(event.request);
+                const now = Date.now();
 
-                    if (cachedResponse) {
-                        const cachedDate = parseInt(cachedResponse.headers.get('sw-cache-date'));
-                        if (cachedDate && (now - cachedDate < ONE_WEEK)) {
-                            return cachedResponse;
-                        }
+                // 1. Stratégie Cache-First avec vérification de date
+                if (cachedResponse) {
+                    const cachedDate = parseInt(cachedResponse.headers.get('sw-cache-date'));
+                    if (cachedDate && (now - cachedDate < ONE_WEEK)) {
+                        return cachedResponse;
                     }
+                }
 
-                    return fetch(event.request)
-                        .then(networkResponse => updateCache(cache, event.request, networkResponse, now))
-                        .catch(() => cachedResponse || Promise.reject('Hors-ligne et pas de cache'));
-                })
-            )
+                // 2. Tentative réseau sécurisée
+                try {
+                    const networkResponse = await fetch(event.request);
+                    
+                    // On ne met en cache QUE si la réponse est valide
+                    if (networkResponse && networkResponse.ok) {
+                        // On utilise updateCache mais on s'assure qu'il ne bloque pas
+                        // en retournant la réponse originale immédiatement
+                        updateCache(cache, event.request, networkResponse.clone(), now)
+                            .catch(err => console.warn("Échec mise en cache:", err));
+                        return networkResponse;
+                    }
+                    
+                    return networkResponse;
+                } catch (err) {
+                    // 3. Fallback ultime : si le réseau lâche (ou reload brutal), 
+                    // on rend le vieux cache s'il existe, sinon on laisse l'erreur
+                    console.error("Erreur Fetch SW:", err);
+                    return cachedResponse || Response.error(); 
+                }
+            })()
         );
         return;
     }
 
-    // Ignorer les requêtes cross-origin pour le reste
-    if (url.origin !== self.location.origin) return;
-
-    // SCÉNARIO 2 : Tout le reste (Network-First avec mise en cache et fallback)
-    event.respondWith(
-        fetch(event.request)
-            .then(function(networkResponse) {
-                if (networkResponse.ok) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(STATIC_CACHE).then(cache => cache.put(event.request, responseClone));
-                }
-                return networkResponse;
-            })
-            .catch(function() {
-                return caches.match(event.request);
-            })
-    );
+    // Le reste de ton code (statiques, etc.)
 });
-
 // Fonction utilitaire pour cloner et dater la mise en cache
 async function updateCache(cache, request, response, timestamp) {
+    if (!response || !response.ok) {
+        return response; 
+    }
+
     const headers = new Headers(response.headers);
     headers.append('sw-cache-date', timestamp.toString());
 
