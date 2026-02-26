@@ -114,6 +114,8 @@ class ViMain extends HTMLElement {
             dialog.show();
 
             const updateSnow = async (snow) => {
+                this.querySelector("#snow_yes").disabled = true;
+                this.querySelector("#snow_no").disabled = true;
                 await fetch('/city_snow_edit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -122,6 +124,13 @@ class ViMain extends HTMLElement {
                 dialog.close();
                 map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
                 map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
+                // on vide les caches
+                const cacheNames = await caches.keys();
+                Promise.all(
+                    cacheNames.map(name => caches.delete(name))
+                );
+                this.querySelector("#snow_yes").disabled = false;
+                this.querySelector("#snow_no").disabled = false;
             };
 
             this.querySelector('#snow_yes').onclick = () => updateSnow(true);
