@@ -114,6 +114,11 @@ class SegmentPanel extends HTMLElement {
 
         this.querySelector('#save')?.addEventListener('click', async (event) => {
             that.querySelector('#save').disabled = true;
+            // clear the cache first
+            const cacheNames = await caches.keys();
+            Promise.all(
+                cacheNames.map(name => caches.delete(name))
+            );
             let response = await fetch('/segment_panel', {
                 method: 'POST',
                 body: new FormData(this.querySelector('form'))

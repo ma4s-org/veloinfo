@@ -122,8 +122,6 @@ class ViMain extends HTMLElement {
                     body: JSON.stringify({ name: cityName, snow })
                 });
                 dialog.close();
-                map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
-                map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
                 // on vide les caches
                 const cacheNames = await caches.keys();
                 Promise.all(
@@ -131,6 +129,8 @@ class ViMain extends HTMLElement {
                 );
                 this.querySelector("#snow_yes").disabled = false;
                 this.querySelector("#snow_no").disabled = false;
+                map.getSource('city_snow').setUrl(`${window.location.origin}/city_snow?t=${Date.now()}`);
+                map.getSource('bike_path').setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
             };
 
             this.querySelector('#snow_yes').onclick = () => updateSnow(true);

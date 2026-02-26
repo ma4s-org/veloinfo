@@ -56,6 +56,7 @@ pub async fn post_city_snow(
         };
     }
 
+    // On nettoye les caches
     let conn = conn.clone();
     tokio::spawn(async move {
         match Edge::get_edge_by_city(&city_name, &conn).await {
