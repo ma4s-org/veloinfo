@@ -16,13 +16,13 @@ use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
 use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::score_bounds_controler;
+use crate::utils::proxy::martin_proxy;
 use askama::Template;
 use askama_web::WebTemplate;
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderMap;
 use axum::http::HeaderValue;
 use axum::http::Request;
-use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::routing::{get, Router};
 use component::route_panel::route;
@@ -55,52 +55,6 @@ lazy_static! {
 #[derive(Clone, Debug)]
 struct VeloinfoState {
     conn: PgPool,
-}
-
-async fn martin_proxy(
-    axum::extract::Path(path): axum::extract::Path<String>,
-) -> impl axum::response::IntoResponse {
-    let martin_url = env::var("MARTIN_URL").unwrap();
-    let url = format!("{}/{}", martin_url, path);
-
-    match reqwest::get(&url).await {
-        Ok(response) => {
-            let status = axum::http::StatusCode::from_u16(response.status().as_u16())
-                .unwrap_or(axum::http::StatusCode::BAD_GATEWAY);
-            let content_type = response
-                .headers()
-                .get("content-type")
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("application/octet-stream")
-                .to_string();
-            let body_bytes = response.bytes().await.unwrap_or_default();
-            let veloinfo_url = env::var("VELOINFO_URL").unwrap();
-            let body = if content_type.contains("application/json") {
-                String::from_utf8_lossy(&body_bytes)
-                    .replace(&martin_url, &format!("{}/martin", veloinfo_url))
-                    .into_bytes()
-                    .into()
-            } else {
-                body_bytes
-            };
-            (status, [(axum::http::header::CONTENT_TYPE, content_type)], body)
-                .into_response()
-        }
-        Err(_) => axum::http::StatusCode::BAD_GATEWAY.into_response(),
-    }
-}
-
-async fn service_worker_js() -> impl axum::response::IntoResponse {
-    let content = tokio::fs::read_to_string("pub/service-worker.js")
-        .await
-        .unwrap_or_default();
-    (
-        [
-            ("Content-Type", "application/javascript; charset=utf-8"),
-            ("Service-Worker-Allowed", "/"),
-        ],
-        content,
-    )
 }
 
 #[tokio::main]
@@ -235,4 +189,17 @@ pub async fn index() -> (HeaderMap, IndexTemplate) {
         HeaderValue::from_static("text/html; charset=utf-8"),
     );
     (headers, template)
+}
+
+async fn service_worker_js() -> impl axum::response::IntoResponse {
+    let content = tokio::fs::read_to_string("pub/service-worker.js")
+        .await
+        .unwrap_or_default();
+    (
+        [
+            ("Content-Type", "application/javascript; charset=utf-8"),
+            ("Service-Worker-Allowed", "/"),
+        ],
+        content,
+    )
 }
