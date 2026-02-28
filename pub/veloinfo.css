@@ -1,3 +1,13 @@
+/* CSS Reset */
+* {
+    box-sizing: border-box;
+}
+
+html, body, h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+    padding: 0;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -30,4 +40,213 @@ h3 {
 .maplibregl-popup-content a {
     color: rgb(94 94 94);
     text-decoration: underline;
+}
+
+/* HTMX Indicator Styles */
+.spinner {
+    opacity: 0;
+    transition: opacity 0.5s ease-in;
+}
+
+.html-indicator .htmx-request {
+    opacity: 1;
+}
+
+.html-indicator.htmx-request {
+    opacity: 1;
+}
+
+.htmx-request {
+    cursor: not-allowed;
+    opacity: 50%;
+}
+
+/* Panel Style - Used for many panels in the app */
+.vi-panel {
+    position: absolute;
+    width: 100%;
+    max-height: 50%;
+    overflow: auto;
+    background-color: rgb(255 255 255);
+    z-index: 20;
+    bottom: 0;
+    border-radius: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .vi-panel {
+        width: 500px;
+    }
+}
+
+/* Flexbox Utilities */
+.flex {
+    display: flex;
+}
+
+.flex-row {
+    flex-direction: row;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.self-center {
+    align-self: center;
+}
+
+/* Margin Utilities */
+.m-1 {
+    margin: 0.25rem;
+}
+
+.m-2 {
+    margin: 0.5rem;
+}
+
+.m-4 {
+    margin: 1rem;
+}
+
+.mr-1 {
+    margin-right: 0.25rem;
+}
+
+.mr-2 {
+    margin-right: 0.5rem;
+}
+
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Padding Utilities */
+.p-4 {
+    padding: 1rem;
+}
+
+/* Width and Height Utilities */
+.w-4 {
+    width: 1rem;
+}
+
+.w-5 {
+    width: 1.25rem;
+}
+
+.w-10 {
+    width: 2.5rem;
+}
+
+.h-4 {
+    height: 1rem;
+}
+
+.h-5 {
+    height: 1.25rem;
+}
+
+.h-full {
+    height: 100%;
+}
+
+/* Custom height for dividers */
+.h-\[5px\] {
+    height: 5px;
+}
+
+/* Typography Utilities */
+.text-base {
+    font-size: 1rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+/* Border Utilities */
+.border-2 {
+    border: 2px solid;
+}
+
+.border-solid {
+    border-style: solid;
+}
+
+.rounded-lg {
+    border-radius: 0.5rem;
+}
+
+.rounded-md {
+    border-radius: 0.375rem;
+}
+
+/* Position and Z-index Utilities */
+.absolute {
+    position: absolute;
+}
+
+.inset-x-0 {
+    left: 0;
+    right: 0;
+}
+
+.bottom-0 {
+    bottom: 0;
+}
+
+.bottom-8 {
+    bottom: 2rem;
+}
+
+.z-20 {
+    z-index: 20;
+}
+
+.z-30 {
+    z-index: 30;
+}
+
+/* Overflow Utility */
+.overflow-auto {
+    overflow: auto;
+}
+
+/* Background Color Utilities */
+.bg-white {
+    background-color: rgb(255 255 255);
+}
+
+.bg-green-800 {
+    background-color: rgb(22 101 52);
+}
+
+.bg-yellow-300 {
+    background-color: rgb(253 224 71);
+}
+
+.bg-orange-500 {
+    background-color: rgb(249 115 22);
+}
+
+.bg-red-700 {
+    background-color: rgb(185 28 28);
 }

@@ -117,7 +117,7 @@ class ViMobilizonEvents extends HTMLElement {
                                         ${event.picture ? `<img src="${event.picture.url}" alt="${event.title}" style="width:100%;height:auto;"/>` : ''}
                                         <div style="display: flex; justify-content: center; margin-top: 8px;">
                                             <md-filled-button id="route_md-filled-button" >
-                                                <img slot="icon" src="/pub/directions.png" class="w-4 h-4 mr-1 ">itinéraire
+                                                <img slot="icon" src="/pub/directions.png" style="width: 1rem; height: 1rem; margin-right: 0.25rem;">itinéraire
                                             </md-filled-button>
                                         </div>
                                     </div>`)

@@ -34,35 +34,35 @@ class ViMenu extends HTMLElement {
 
             <md-menu anchor="vi-menu">
                 <md-menu-item id="ios" style="display: none;">
-                    <div class="flex" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
+                    <div style="display: flex;" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
                         <img src="/pub/install/apple.png">
-                        <div class="text-lg">
+                        <div style="font-size: 1.125rem;">
                             Installer sur IOS
                         </div>
                     </div>
                 </md-menu-item>
                 <md-menu-item id="android" style="display: none;">
-                    <div class="flex" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
+                    <div style="display: flex;" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
                         <img src="/pub/install/android.png">
-                        <div class="text-lg">
+                        <div style="font-size: 1.125rem;">
                             Installer sur Android
                         </div>
                     </div>
                 </md-menu-item>
                 <md-menu-item>
-                    <a href="https://masto.bike/@veloinfo" target="_blank" class="flex">
-                        <div class="flex">
+                    <a href="https://masto.bike/@veloinfo" target="_blank" style="display: flex;">
+                        <div style="display: flex;">
                             <img src="/pub/logo-big.png">
-                            <div class="text-lg">
+                            <div style="font-size: 1.125rem;">
                                 Infos et nouvelles
                             </div>
                         </div>
                     </a>
                 </md-menu-item>
                 <md-menu-item id="osm-edit">
-                    <div class="flex">
+                    <div style="display: flex;">
                         <img src="/pub/osm.svg">
-                        <div class="text-lg">
+                        <div style="font-size: 1.125rem;">
                             Editer sur OpenStreetMap
                         </div>
                     </div>

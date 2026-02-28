@@ -47,7 +47,7 @@ export default class ViInfo extends HTMLElement {
                 ▲
             </div>
         </div>
-        <div class="overflow-auto h-full">
+        <div style="overflow: auto; height: 100%;">
             <hr>
         </div>
        </div>`;

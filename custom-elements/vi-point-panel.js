@@ -8,15 +8,15 @@ class PointPanel extends HTMLElement {
 
     connectedCallback() {
         let innerHTML = /*html*/`
-            <div id="point_panel" class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-                <div>Près de ${this.name} <img id="spinner" class="htmx-indicator z-30 bottom-8 mx-auto inset-x-0"
+            <div id="point_panel" class="vi-panel">
+                <div>Près de ${this.name} <img id="spinner" class="htmx-indicator" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0;"
                         src="/pub/bars.svg" />
                 </div>
 
-                <div class="flex flex-row justify-center">
+                <div style="display: flex; flex-direction: row; justify-content: center;">
 
                     <md-filled-button id="route_button" >
-                    <img slot="icon" src="/pub/directions.png" class="w-4 h-4 mr-1">itinéraire</md-filled-button>
+                    <img slot="icon" src="/pub/directions.png" style="width: 1rem; height: 1rem; margin-right: 0.25rem;">itinéraire</md-filled-button>
                     <md-filled-button id="cancel_button">annuler</md-filled-button>
                 </div>
             </div>

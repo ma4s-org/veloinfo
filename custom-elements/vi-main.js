@@ -59,7 +59,7 @@ class ViMain extends HTMLElement {
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
                     <div id="layers_button"
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;">
-                        <img style="width: 29px; height: 29px" class="bg-white rounded-md self-center" src="/pub/layers.png">
+                        <img style="width: 29px; height: 29px; background-color: rgb(255 255 255); border-radius: 0.375rem; align-self: center;" src="/pub/layers.png">
                     </div>
                     <div id="snow_button"
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;

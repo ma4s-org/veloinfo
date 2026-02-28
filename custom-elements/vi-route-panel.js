@@ -159,8 +159,8 @@ class RoutePanel extends HTMLElement {
             </md-filled-button>
         ` : '';
 
-        let innerHTML = /*html*/ ` 
-            <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg" 
+        let innerHTML = /*html*/ `
+            <div class="vi-panel"
                 style="display: flex; justify-content: center; flex-direction: column">
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding: 1em;">
                     <md-filled-button id="safe-route-btn" style="--md-sys-color-primary: #c8dff5ff">

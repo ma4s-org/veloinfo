@@ -9,16 +9,16 @@ class ChangeStart extends HTMLElement {
         // Récupérer la destination depuis vi-main
         this.destination = getViMain().changeStartDestination;
         let innerHTML = /*html*/`
-            <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-                <div class="p-4">
-                    <h2 class="text-xl font-bold">
+            <div class="vi-panel">
+                <div style="padding: 1rem;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700;">
                         Changer le point de départ
                     </h2>
                     <p>
                         Veuillez sélectionner un nouveau point de départ sur la carte.
                     </p>
                 </div>
-                <div class="flex justify-center">
+                <div style="display: flex; justify-content: center;">
                         <md-filled-button id="cancel-btn">
                             annuler
                         </md-filled-button>

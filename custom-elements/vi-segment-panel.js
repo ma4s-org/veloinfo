@@ -269,7 +269,7 @@ class InfopanelContribution extends HTMLElement {
                     </div>
                 </div>
             </div>
-            <hr>        
+            <hr style="border: none; border-bottom: 1px solid #e5e7eb; margin: 0.5rem 0;">
         `;
 
         this.querySelector(`#contribution_${score_id}`)?.addEventListener('click', async () => {
@@ -296,11 +296,12 @@ class ScoreSelector extends HTMLElement {
         let categoryDiv = '';
         if (category == 'Good') {
             categoryDiv = `<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(20,83,45); 
-                            border-color: black; 
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px; 
+                <div style="background-color: rgb(20,83,45);
+                            border-color: black;
+                            border-style: solid;
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
                             border-width: 4px;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     État normal
@@ -308,10 +309,11 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         } else {
             categoryDiv = `<div id="good" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(20,83,45); 
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px;"></div>
+                <div style="background-color: rgb(20,83,45);
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
+                            border: 1px solid #d1d5db;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     État normal
                 </div>
@@ -319,11 +321,12 @@ class ScoreSelector extends HTMLElement {
         }
         if (category == 'Problems') {
             categoryDiv += `<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234, 179, 8); 
-                            border-color: black; 
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px; 
+                <div style="background-color: rgb(234, 179, 8);
+                            border-color: black;
+                            border-style: solid;
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
                             border-width: 4px;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     Problème mineur (ex: cohabitation avec voitures problématique)
@@ -331,10 +334,11 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         } else {
             categoryDiv += `<div id="problems" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234, 179, 8); 
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px;"></div>
+                <div style="background-color: rgb(234, 179, 8);
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
+                            border: 1px solid #d1d5db;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     Problème mineur (ex: cohabitation avec voitures problématique)
                 </div>
@@ -342,10 +346,11 @@ class ScoreSelector extends HTMLElement {
         }
         if (category == 'MajorProblems') {
             categoryDiv += `<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234,88,12); 
-                            border-color: black; 
-                            width: 2rem; 
-                            height: 2rem; 
+                <div style="background-color: rgb(234,88,12);
+                            border-color: black;
+                            border-style: solid;
+                            width: 2rem;
+                            height: 2rem;
                             border-width: 4px;
                             border-radius: 9999px;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
@@ -354,10 +359,11 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         } else {
             categoryDiv += `<div id="major-problems" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234,88,12);            
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px;"></div>
+                <div style="background-color: rgb(234,88,12);
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
+                            border: 1px solid #d1d5db;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     Problème majeur (ex: cohabitation avec voitures problématique)
                 </div>
@@ -365,11 +371,12 @@ class ScoreSelector extends HTMLElement {
         }
         if (category == 'Closed') {
             categoryDiv += `<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(153,27,27);   
-                            border-color: black;         
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px; 
+                <div style="background-color: rgb(153,27,27);
+                            border-color: black;
+                            border-style: solid;
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
                             border-width: 4px;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     Fermé (ex: travaux ou neige)
@@ -377,10 +384,11 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         } else {
             categoryDiv += `<div id="closed" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(153,27,27);            
-                            width: 2rem; 
-                            height: 2rem; 
-                            border-radius: 9999px;"></div>
+                <div style="background-color: rgb(153,27,27);
+                            width: 2rem;
+                            height: 2rem;
+                            border-radius: 9999px;
+                            border: 1px solid #d1d5db;"></div>
                 <div style="margin: 0.5rem; align-self: center;">
                     Fermé (ex: travaux ou neige)
                 </div>

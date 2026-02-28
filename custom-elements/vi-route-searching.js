@@ -3,9 +3,9 @@ export default class RouteSearching extends HTMLElement {
         super();
         this.viMain = viMain;
         let innerHTML = /*html*/`
-            <div class="absolute w-full max-h-[50%] overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
-                <div class="p-4">
-                    <h2 class="text-xl font-bold">
+            <div class="vi-panel">
+                <div style="padding: 1rem;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700;">
                         Recherche de route
                     </h2>
                     <p>
@@ -17,7 +17,7 @@ export default class RouteSearching extends HTMLElement {
                     <md-filled-button id="cancel_button">annuler</md-filled-button>
                 </div>
                 <md-dialog id="search_position_dialog" style="display: none;">
-                    <div slot="content" class="flex flex-col justify-center">
+                    <div slot="content" style="display: flex; flex-direction: column; justify-content: center;">
                         <div style="align-self: center;">
                             Recherche de votre position
                         </div>

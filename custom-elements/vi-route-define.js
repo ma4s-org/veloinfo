@@ -37,10 +37,10 @@ class RouteDefine extends HTMLElement {
                     height: 2.25rem;
                 } 
             </style>
-            <div class="absolute w-full overflow-auto md:w-[500px] bg-white z-20 bottom-0 rounded-lg">
+            <div class="vi-panel">
                 Vous partez de votre position actuelle ou vous pouvez entrer le point de départ : <br>
                 <vi-search-input></vi-search-input>
-                <div class="flex justify-center">
+                <div style="display: flex; justify-content: center;">
                     <md-filled-button hx-on:click="defineRoute()" hx-target="#info">définir l'itinéraire</md-filled-button>
                 </div>
             </div>
