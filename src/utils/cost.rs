@@ -333,7 +333,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     };
 
     if edge.road_work {
-        cost *= 3.;
+        cost *= 10.;
     }
 
     cost = match fast_or_safe {
