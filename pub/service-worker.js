@@ -37,9 +37,10 @@ self.addEventListener('fetch', function(event) {
 
             // Étape 1 : Vérifier si le cache existe et n'a pas expiré (12 heures)
             if (cachedResponse) {
-                const cachedDate = parseInt(cachedResponse.headers.get('sw-cache-date'));
-                // Si le cache a moins de 12 heures, le retourner
-                if (cachedDate && (now - cachedDate < CACHE_DURATION)) {
+                const cachedDateStr = cachedResponse.headers.get('sw-cache-date');
+                const cachedDate = cachedDateStr ? parseInt(cachedDateStr) : null;
+                // Si le cache a un timestamp valide et a moins de 12 heures, le retourner
+                if (cachedDate && !isNaN(cachedDate) && (now - cachedDate < CACHE_DURATION)) {
                     return cachedResponse;
                 }
             }
@@ -59,9 +60,13 @@ self.addEventListener('fetch', function(event) {
                 return networkResponse;
             } catch (err) {
                 // Étape 3 : Fallback en cas d'erreur réseau
-                // Retourne le cache expiré plutôt qu'une erreur
+                // Retourne le cache (même expiré) plutôt qu'une erreur qui avorte la requête
                 console.error("Erreur Fetch SW:", err);
-                return cachedResponse || Response.error();
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                // Ne retourner une erreur que si vraiment aucun cache n'existe
+                return Response.error();
             }
         })()
     );
@@ -79,19 +84,28 @@ async function updateCache(cache, request, response, timestamp) {
         return response;
     }
 
-    // Ajoute un header personnalisé avec la date de mise en cache
-    const headers = new Headers(response.headers);
-    headers.append('sw-cache-date', timestamp.toString());
+    // Ne pas mettre en cache les réponses vides (204, 304, etc.)
+    if (response.status === 204 || response.status === 304) {
+        return response;
+    }
 
-    // Clone la réponse en blob pour éviter les consommations multiples
-    const body = await response.clone().blob();
+    try {
+        // Ajoute un header personnalisé avec la date de mise en cache
+        const headers = new Headers(response.headers);
+        headers.append('sw-cache-date', timestamp.toString());
 
-    // Enregistre la réponse avec le header de date
-    await cache.put(request, new Response(body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: headers
-    }));
+        // Clone la réponse en blob pour éviter les consommations multiples
+        const body = await response.clone().blob();
+
+        // Enregistre la réponse avec le header de date
+        await cache.put(request, new Response(body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: headers
+        }));
+    } catch (err) {
+        console.warn("Erreur lors de la mise en cache:", err);
+    }
 
     return response;
 }
