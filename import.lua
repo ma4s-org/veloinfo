@@ -640,8 +640,8 @@ function osm2pgsql.process_way(way)
         })
     end
 
-    if (way.tags.highway or way.tags.railway) and way.tags.footway ~= "sidewalk" and way.tags.highway ~= "steps" and
-        way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
+    if (way.tags.highway or way.tags.railway or way.tags.footway) and way.tags.service ~= "parking_aisle" and
+            way.tags.highway ~= "proposed" then
         transportation:insert({
             name = way.tags.name,
             name_fr = way.tags["name:fr"],

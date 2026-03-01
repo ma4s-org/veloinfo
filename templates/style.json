@@ -1582,22 +1582,18 @@
                     "railway"
                 ],
                 [
-                    "any",
-                    [
-                        "!=",
-                        "highway",
-                        "footway"
-                    ],
-                    [
-                        "==",
-                        "bicycle",
-                        "dismount"
-                    ],
-                    [
-                        "==",
-                        "bicycle",
-                        "yes"
-                    ]
+                    "!=",
+                    "highway",
+                    "pedestrian"
+                ],
+                [
+                    "!=",
+                    "highway",
+                    "footway"
+                ],
+                [
+                    "!has",
+                    "footway"
                 ]
             ]
         },
@@ -1858,21 +1854,36 @@
                     "railway"
                 ],
                 [
-                    "any",
+                    "!=",
+                    "highway",
+                    "pedestrian"
+                ],
+                [
+                    "all",
                     [
-                        "!=",
-                        "highway",
+                        "any",
+                        [
+                            "all",
+                            [
+                                "==",
+                                "highway",
+                                "footway"
+                            ],
+                            [
+                                "==",
+                                "bridge",
+                                "yes"
+                            ]
+                        ],
+                        [
+                            "!=",
+                            "highway",
+                            "footway"
+                        ]
+                    ],
+                    [
+                        "!has",
                         "footway"
-                    ],
-                    [
-                        "==",
-                        "bicycle",
-                        "dismount"
-                    ],
-                    [
-                        "==",
-                        "bicycle",
-                        "yes"
                     ]
                 ]
             ]
@@ -1988,7 +1999,65 @@
                     "in",
                     "highway",
                     "path",
-                    "track"
+                    "track",
+                    "footway"
+                ],
+                [
+                    "!has",
+                    "tunnel"
+                ],
+                [
+                    "==",
+                    "bridge",
+                    "yes"
+                ]
+            ]
+        },
+        {
+            "id": "Footway",
+            "type": "line",
+            "source": "transportation",
+            "source-layer": "transportation",
+            "minzoom": 12,
+            "layout": {
+                "line-cap": "round",
+                "line-join": "round",
+                "visibility": "visible"
+            },
+            "paint": {
+                "line-color": "hsl(0, 0%, 80%)",
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    0.4,
+                    16,
+                    0.5,
+                    18,
+                    0.6,
+                    22,
+                    1
+                ],
+                "line-opacity": 1
+            },
+            "filter": [
+                "all",
+                [
+                    "any",
+                    [
+                        "==",
+                        "highway",
+                        "footway"
+                    ],
+                    [
+                        "has",
+                        "footway"
+                    ]
                 ],
                 [
                     "!has",
