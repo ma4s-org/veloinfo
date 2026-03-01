@@ -1582,14 +1582,22 @@
                     "railway"
                 ],
                 [
-                    "!=",
-                    "footway",
-                    "crossing"
-                ],
-                [
-                    "!=",
-                    "footway",
-                    "link"
+                    "any",
+                    [
+                        "!=",
+                        "highway",
+                        "footway"
+                    ],
+                    [
+                        "==",
+                        "bicycle",
+                        "dismount"
+                    ],
+                    [
+                        "==",
+                        "bicycle",
+                        "yes"
+                    ]
                 ]
             ]
         },
@@ -1850,14 +1858,22 @@
                     "railway"
                 ],
                 [
-                    "!=",
-                    "footway",
-                    "crossing"
-                ],
-                [
-                    "!=",
-                    "footway",
-                    "link"
+                    "any",
+                    [
+                        "!=",
+                        "highway",
+                        "footway"
+                    ],
+                    [
+                        "==",
+                        "bicycle",
+                        "dismount"
+                    ],
+                    [
+                        "==",
+                        "bicycle",
+                        "yes"
+                    ]
                 ]
             ]
         },

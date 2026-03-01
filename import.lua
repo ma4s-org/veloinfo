@@ -326,6 +326,12 @@ local transportation = osm2pgsql.define_table({
         }, {
             column = 'railway',
             type = 'text'
+        }, {
+            column = 'bicycle',
+            type = 'text'
+        }, {
+            column = 'footway',
+            type = 'text'
         }},
     indexes = {{
         column = 'geom',
@@ -643,8 +649,9 @@ function osm2pgsql.process_way(way)
             tags = way.tags,
             tunnel = way.tags.tunnel,
             highway = way.tags.highway,
-            railway = way.tags.railway
-
+            railway = way.tags.railway,
+            bicycle = way.tags.bicycle,
+            footway = way.tags.footway
         })
     end
 
