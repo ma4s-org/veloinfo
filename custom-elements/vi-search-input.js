@@ -4,6 +4,7 @@ import { getViMain } from '/custom-elements/vi-context.js';
 
 class SearchInput extends HTMLElement {
     query = "";
+    selectedIndex = -1;
     abortController = new AbortController();
     constructor() {
         super();
@@ -27,7 +28,7 @@ class SearchInput extends HTMLElement {
             <div id="top">
                 <form onsubmit="return false;">
                     <input id="query" name="query" type="search"
-                        name="query" placeholder="Rechercher" value="${this.query}" autofocus />
+                        placeholder="Rechercher" value="${this.query}" autofocus autocomplete="off" />
                     <input type="hidden" name="lng" value="{{lng}}">
                     <input type="hidden" name="lat" value="{{lat}}">
                 </form>
@@ -58,9 +59,45 @@ class SearchInput extends HTMLElement {
             </style>
         `;
         this.innerHTML = innerHTML;
-        this.querySelector("#query").addEventListener("keyup", (event) => this.search(event));
-        this.querySelector("#query").addEventListener("focusout", (event) => this.clearResult(event));
-        this.querySelector("#query").addEventListener("click", (event) => this.search(event));
+        const queryInput = this.querySelector("#query");
+        queryInput.addEventListener("keyup", (event) => this.handleKeyboardNav(event));
+        queryInput.addEventListener("focusout", (event) => this.clearResult(event));
+        queryInput.addEventListener("click", (event) => this.search(event));
+    }
+
+    handleKeyboardNav(event) {
+        const results = this.querySelector("#search_results")?.querySelectorAll("search-result") || [];
+
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            this.selectedIndex = Math.min(this.selectedIndex + 1, results.length - 1);
+            this.updateSelection(results);
+        } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+            this.updateSelection(results);
+        } else if (event.key === "Enter") {
+            event.preventDefault();
+            if (this.selectedIndex >= 0 && results[this.selectedIndex]) {
+                results[this.selectedIndex].querySelector("div").click();
+            } else {
+                this.search(event);
+            }
+            this.querySelector("#search_results").innerHTML = "";
+        } else {
+            this.selectedIndex = -1;
+            this.search(event);
+        }
+    }
+
+    updateSelection(results) {
+        results.forEach((result, index) => {
+            if (index === this.selectedIndex) {
+                result.classList.add("selected");
+            } else {
+                result.classList.remove("selected");
+            }
+        });
     }
 
     async search(event) {
@@ -78,8 +115,8 @@ class SearchInput extends HTMLElement {
         let lat = map.getCenter().lat;
         // Si enter on séléctionne le premier résultat
         if (event.key === "Enter") {
-            this.querySelector("#search_results div.result").click();
-            this.getElementById("search_results").innerHTML = "";
+            this.querySelector("#search_results div.result")?.click();
+            this.querySelector("#search_results").innerHTML = "";
             return;
         }
         let response = await fetch(`/search`, {
@@ -94,6 +131,7 @@ class SearchInput extends HTMLElement {
             let viSearchResult = new ViSearchResult(results.search_results, this.query);
             searchResults.innerHTML = '';
             searchResults.appendChild(viSearchResult);
+            this.selectedIndex = -1;
         }
     }
 
@@ -160,6 +198,14 @@ class SearchResult extends HTMLElement {
                     align-items: center;
                     cursor: pointer;
                     font-weight: bold;
+                    padding: 0.25rem;
+                    border-radius: 0.25rem;
+                }
+                search-result div:hover {
+                    background-color: rgba(0, 0, 0, 0.05);
+                }
+                search-result.selected div {
+                    background-color: rgba(0, 0, 0, 0.1);
                 }
                 search-result .circle {
                     background-color: #983f2f;

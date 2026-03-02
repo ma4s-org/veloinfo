@@ -15,30 +15,33 @@ pub async fn get(
 ) -> Vec<SearchResultDB> {
     match sqlx::query_as(
             r#"SELECT name, lng, lat FROM (
-                    SELECT 
-                        street || ', ' || city as name, 
-                        CASE
-                            WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_X(ST_Transform(geom, 4326))
-                            ELSE ST_X(ST_Transform(ST_PointN(geom, 1), 4326))
-                        END as lng,
-                        CASE
-                            WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_Y(ST_Transform(geom, 4326))
-                            ELSE ST_Y(ST_Transform(ST_PointN(geom, 1), 4326))
-                        END as lat,
-                        geom,
-                        ROW_NUMBER() OVER(PARTITION BY city, street ORDER BY ar.geom<-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)) AS rn
-                    FROM address_range ar 
-                    WHERE tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
-                union
-                    select 
-                        name || ' ' || coalesce(tags::JSONB->>'addr:street', '') || ' ' || coalesce(tags::JSONB->>'addr:city', '') as name,
-                        ST_X(ST_Transform(geom, 4326)) as lng,
-                        ST_Y(ST_Transform(geom, 4326)) as lat,
-                        geom,
-                        1 as rn 
-                    from name_query
-                    where tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
-            ) t WHERE rn = 1 and name is not null
+                    SELECT DISTINCT ON (name) name, lng, lat, geom FROM (
+                        SELECT
+                            street || ', ' || city as name,
+                            CASE
+                                WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_X(ST_Transform(geom, 4326))
+                                ELSE ST_X(ST_Transform(ST_PointN(geom, 1), 4326))
+                            END as lng,
+                            CASE
+                                WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_Y(ST_Transform(geom, 4326))
+                                ELSE ST_Y(ST_Transform(ST_PointN(geom, 1), 4326))
+                            END as lat,
+                            geom,
+                            ROW_NUMBER() OVER(PARTITION BY city, street ORDER BY ar.geom<-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)) AS rn
+                        FROM address_range ar
+                        WHERE tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
+                    union
+                        select
+                            name || ' ' || coalesce(tags::JSONB->>'addr:street', '') || ' ' || coalesce(tags::JSONB->>'addr:city', '') as name,
+                            ST_X(ST_Transform(geom, 4326)) as lng,
+                            ST_Y(ST_Transform(geom, 4326)) as lat,
+                            geom,
+                            1 as rn
+                        from name_query
+                        where tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
+                    ) t WHERE rn = 1 and name is not null
+                    ORDER BY name
+            ) result
             order by geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($2, $3), 4326), 3857)
             limit 20;
            "#,

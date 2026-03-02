@@ -492,6 +492,9 @@ local name = osm2pgsql.define_table({
         }, {
             column = 'name',
             type = 'text'
+        }, {
+            column = 'highway',
+            type = 'text'
         }
     }
 })
@@ -704,7 +707,8 @@ function osm2pgsql.process_way(way)
         name:insert({
             name = way.tags.name,
             geom = way:as_linestring():centroid(),
-            tags = way.tags
+            tags = way.tags,
+            highway = way.tags.highway
         })
     end
 
@@ -757,7 +761,8 @@ function osm2pgsql.process_relation(relation)
         name:insert({
             name = relation.tags.name,
             geom = relation:as_multipolygon():centroid(),
-            tags = relation.tags
+            tags = relation.tags,
+            highway = relation.tags.highway
         })
     end
 end
@@ -799,7 +804,8 @@ function osm2pgsql.process_node(node)
         name:insert({
             name = node.tags.name,
             geom = node:as_point(),
-            tags = node.tags
+            tags = node.tags,
+            highway = node.tags.highway
         })
     end
 end

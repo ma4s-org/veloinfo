@@ -1,7 +1,6 @@
 export default class ViSearchResult extends HTMLElement {
     constructor(results, query) {
         super();
-        this.attachShadow({ mode: 'open' });
         this.results = results;
         this.query = query;
     }
@@ -11,7 +10,7 @@ export default class ViSearchResult extends HTMLElement {
     }
 
     render() {
-        this.shadowRoot.innerHTML = `
+        this.innerHTML = `
             <div style="font-size: 1rem;">
                 recherche de <span style="font-weight: 700;">${this.query}</span>
             </div>
