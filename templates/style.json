@@ -3175,10 +3175,10 @@
                 "text-rotation-alignment": "auto"
             },
             "paint": {
-                "text-color": "hsl(204, 11%, 47%)",
+                "text-color": "hsl(204, 11%, 35%)",
                 "text-halo-blur": 0,
                 "text-halo-color": "hsl(0,0%,100%)",
-                "text-halo-width": 10
+                "text-halo-width": 12
             },
             "filter": [
                 "has",
@@ -3455,6 +3455,7 @@
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
             "minzoom": 14,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
@@ -3521,6 +3522,7 @@
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
             "minzoom": 14,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
@@ -3579,6 +3581,7 @@
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
             "minzoom": 11,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
@@ -3645,6 +3648,7 @@
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
             "minzoom": 14,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
@@ -3719,6 +3723,7 @@
             "source": "veloinfo_all_node",
             "source-layer": "all_node",
             "minzoom": 11,
+            "maxzoom": 22,
             "layout": {
                 "text-font": [
                     "Metropolis Semi Bold",
