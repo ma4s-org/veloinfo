@@ -57,5 +57,11 @@
 </script>
 <!-- End Matomo Code -->
 
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/pub/service-worker.js')
+            .catch(err => console.warn('Service Worker registration failed:', err));
+    }
+</script>
 
 </html>

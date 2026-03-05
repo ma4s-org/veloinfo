@@ -1,7 +1,3 @@
-if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/pub/service-worker.js", { scope: '/' });
-}
-
 import '/custom-elements/vi-follow-panel.js';
 import '/custom-elements/vi-route-panel.js';
 import RouteSearching from '/custom-elements/vi-route-searching.js';

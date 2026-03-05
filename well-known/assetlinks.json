@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "quebec.veloinfo.twa",
+    "sha256_cert_fingerprints": ["A3:6A:6E:9F:11:A2:36:74:34:33:B9:C2:49:79:14:37:CD:14:82:5A:87:E9:32:A5:95:D9:58:E7:45:23:A2:C0"]
+  }
+}]

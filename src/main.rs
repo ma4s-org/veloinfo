@@ -150,6 +150,7 @@ async fn main() {
         .route("/style.json", get(style))
         .route("/martin/{*path}", get(martin_proxy))
         .route("/pub/service-worker.js", get(service_worker_js))
+        .nest_service("/.well-known/", ServeDir::new("well-known"))
         .nest_service("/dist/", ServeDir::new("dist"))
         .nest_service("/pub/", ServeDir::new("pub"))
         .nest_service("/custom-elements/", ServeDir::new("custom-elements"))

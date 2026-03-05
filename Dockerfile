@@ -56,6 +56,7 @@ COPY --from=build /app/target/release/veloinfo /app/veloinfo
 COPY --from=build /app/migrations /app/migrations
 COPY --from=build /app/pub /app/pub
 COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/well-known /app/well-known
 COPY --from=build /app/custom-elements /app/custom-elements
 COPY --from=build /app/import.sh /app/import.sh
 COPY --from=build /app/import_srtm.sh /app/import_srtm.sh
