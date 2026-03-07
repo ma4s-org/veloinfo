@@ -16,7 +16,7 @@ class veloinfoInstallAndroid extends HTMLElement {
             <md-dialog class="install-dialog" id="ios-install">
                 <div slot="headline">Installer Véloinfo sur Android</div>
                 <div slot="content">
-                    <p>1. Sur Chrome touchez le menu</p>
+                    <p>1. Sur le navigateur touchez le menu</p>
                     <p>2. Touchez "Ajouter à l'écran d'accueil"</p>
                 </div>
                 <div slot="actions">

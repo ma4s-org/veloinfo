@@ -3,6 +3,7 @@
   "target": {
     "namespace": "android_app",
     "package_name": "quebec.veloinfo.twa",
-    "sha256_cert_fingerprints": ["A3:6A:6E:9F:11:A2:36:74:34:33:B9:C2:49:79:14:37:CD:14:82:5A:87:E9:32:A5:95:D9:58:E7:45:23:A2:C0"]
+    "sha256_cert_fingerprints": ["A3:6A:6E:9F:11:A2:36:74:34:33:B9:C2:49:79:14:37:CD:14:82:5A:87:E9:32:A5:95:D9:58:E7:45:23:A2:C0",
+                                "1E:F3:8A:E4:70:F1:FD:5A:26:26:CE:5B:82:E4:D4:30:7F:DF:31:0B:99:1D:C5:35:3F:25:CD:68:D1:A4:02:64"]
   }
 }]
