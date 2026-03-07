@@ -114,9 +114,7 @@ export default class ViLayers extends HTMLElement {
         });
 
         this.querySelector('#close_button').addEventListener('click', async () => {
-            let r = await fetch("/info_panel/down");
-            let json = await r.json();
-            let infoPanel = new ViInfo(json);
+            let infoPanel = new ViInfo(null);
             const info = this.viMain.querySelector("#info");
             info.innerHTML = ``;
             info.appendChild(infoPanel);

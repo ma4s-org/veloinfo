@@ -162,14 +162,6 @@ async fn get_name(names: &Option<Vec<Option<String>>>) -> String {
     }
 }
 
-pub async fn info_panel_down() -> Json<InfoPanelTemplate> {
-    InfoPanelTemplate {
-        arrow: "▲".to_string(),
-        contributions: Vec::new(),
-    }
-    .into()
-}
-
 pub async fn info_panel_up(
     State(state): State<VeloinfoState>,
     Path((lng1, lat1, lng2, lat2)): Path<(f64, f64, f64, f64)>,

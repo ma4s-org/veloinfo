@@ -1,5 +1,6 @@
 import ViPhotoScroll from "./vi-photo-scroll.js";
 import { getViMain } from '/custom-elements/vi-context.js';
+import ViInfo from "./vi-info.js";
 
 class SegmentPanel extends HTMLElement {
     constructor(data) {
@@ -130,9 +131,6 @@ class SegmentPanel extends HTMLElement {
             document.querySelector('#info').appendChild(segment_panel);
         });
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
-            let data = (await fetch(`/info_panel/down`)).json();
-            document.querySelector('#info').innerHTML = "<vi-info></vi-info>";
-            document.querySelector('vi-info').data = data;
             getViMain().clear();
             event.preventDefault();
         });

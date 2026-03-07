@@ -52,9 +52,7 @@ export default class ViInfo extends HTMLElement {
         </div>
        </div>`;
     this.querySelector("#info_panel_up_header")?.addEventListener("click", async () => {
-      let r = await fetch("/info_panel/down");
-      let json = await r.json();
-      this.data = json;
+      this.data = null;
     });
     this.querySelector("#info_panel_down_header")?.addEventListener("click", async () => {
       let bounds = getViMain().map.getBounds();

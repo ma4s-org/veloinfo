@@ -2,7 +2,6 @@ use crate::auth::auth;
 use crate::auth::logout;
 use crate::component::bike_path::bike_path;
 use crate::component::bike_path::bike_path_mvt;
-use crate::component::info_panel::info_panel_down;
 use crate::component::info_panel::info_panel_up;
 use crate::component::photo_scroll::photo_scroll;
 use crate::component::point_panel::point_panel_lng_lat;
@@ -107,7 +106,6 @@ async fn main() {
         .route("/", get(index))
         .route("/auth", get(auth))
         .route("/logout", get(logout))
-        .route("/info_panel/down", get(info_panel_down))
         .route(
             "/info_panel/up/{lng1}/{lat1}/{lng2}/{lat2}",
             get(info_panel_up),

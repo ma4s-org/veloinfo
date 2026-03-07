@@ -511,9 +511,9 @@ class ViMain extends HTMLElement {
 
 
         // Affiche le panneau d'info
-        const data = await (await fetch("/info_panel/down")).json();
-        this.querySelector("#info").innerHTML = `<vi-info></vi-info>`;
-        this.querySelector('vi-info').data = data;
+        let viInfo = new ViInfo(null);
+        this.querySelector("#info").innerHTML = ``;
+        this.querySelector('#info').appendChild(viInfo);
     }
 
     async route() {
