@@ -1,4 +1,5 @@
 import { getViMain } from '/custom-elements/vi-context.js';
+let html = String.raw;
 
 class RoutePanel extends HTMLElement {
     constructor() {
@@ -147,7 +148,7 @@ class RoutePanel extends HTMLElement {
 
         // Construire le bouton rapide seulement s'il existe une route rapide
         const errorText = this.getAttribute('error') ? this.getAttribute('error') : '';
-        const fastRouteButton = fastCoordinates ? `
+        const fastRouteButton = fastCoordinates ? html`
             <md-filled-button id="fast-route-btn"style="--md-sys-color-primary: #ffcbfcff">
                 <div style="font-weight: bold;">
                     Itinéraire rapide
@@ -159,7 +160,7 @@ class RoutePanel extends HTMLElement {
             </md-filled-button>
         ` : '';
 
-        let innerHTML = /*html*/ `
+        let innerHTML = html`
             <div class="vi-panel"
                 style="display: flex; justify-content: center; flex-direction: column">
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding: 1em;">

@@ -1,4 +1,5 @@
 import { getViMain } from '/custom-elements/vi-context.js';
+let html = String.raw;
 
 class PointPanel extends HTMLElement {
     constructor(name) {
@@ -7,7 +8,7 @@ class PointPanel extends HTMLElement {
     }
 
     connectedCallback() {
-        let innerHTML = /*html*/`
+        let innerHTML = html`
             <div id="point_panel" class="vi-panel">
                 <div>Près de ${this.name} <img id="spinner" class="htmx-indicator" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0;"
                         src="/pub/bars.svg" />

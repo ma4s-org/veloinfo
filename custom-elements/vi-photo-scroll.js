@@ -16,7 +16,8 @@ export default class ViPhotoScroll extends HTMLElement {
         this._next = next;
         this._way_ids = way_ids;
 
-        this.innerHTML = /*html*/`
+        let html = String.raw;
+        this.innerHTML = html`
         <div popover id="photo_scroll_inner" style="height:100%; max-width:100%; display:flex; align-items:center; justify-content:center; z-index:40;">
             ${previous ? `<button id="previous_button" style="position:absolute; bottom:0; left:0; font-size:1.5rem; background-color: rgba(255,255,255,0.5); padding:2rem; z-index:50;">&lt;</button>` : ''}
             ${next ? `<button id="next_button" style="position:absolute; bottom:0; right:0; font-size:1.5rem; background-color: rgba(255,255,255,0.5); padding:2rem; z-index:50;">&gt;</button>` : ''}

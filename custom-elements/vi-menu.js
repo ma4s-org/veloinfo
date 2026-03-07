@@ -1,10 +1,10 @@
 import { getViMain } from '/custom-elements/vi-context.js';
-
+let html = String.raw;
 class ViMenu extends HTMLElement {
     constructor() {
         super();
 
-        this.innerHTML = /*html*/ `
+        this.innerHTML = html`
             <style>
                 vi-menu {
                     position: absolute;

@@ -1,5 +1,7 @@
 import { getViMain } from '/custom-elements/vi-context.js';
 
+let html = String.raw;
+
 class ChangeStart extends HTMLElement {
     constructor() {
         super();
@@ -8,7 +10,7 @@ class ChangeStart extends HTMLElement {
     connectedCallback() {
         // Récupérer la destination depuis vi-main
         this.destination = getViMain().changeStartDestination;
-        let innerHTML = /*html*/`
+        let innerHTML = html`
             <div class="vi-panel">
                 <div style="padding: 1rem;">
                     <h2 style="font-size: 1.25rem; font-weight: 700;">

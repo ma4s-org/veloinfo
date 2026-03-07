@@ -1,6 +1,7 @@
 import ViPhotoScroll from "./vi-photo-scroll.js";
 import { getViMain } from '/custom-elements/vi-context.js';
 import ViInfo from "./vi-info.js";
+let html = String.raw;
 
 class SegmentPanel extends HTMLElement {
     constructor(data) {
@@ -10,14 +11,15 @@ class SegmentPanel extends HTMLElement {
 
     set data(data) {
         let photo_ids = data.photo_ids;
-        let photos = photo_ids ? photo_ids.map(id => /*html*/`
+        let html = String.raw;
+        let photos = photo_ids ? photo_ids.map(id => html`
             <img  style="height: 6rem; border-radius: 0.375rem; padding: 0.5rem; cursor: pointer;" src="/images/${id}_thumbnail.jpeg" alt="photo"
                 hx-get="/photo_scroll/${id}/${this.getAttribute('way_ids')}" hx-target="#photo_scroll">
         `).join('') : '';
 
         let inner = '';
         if (data.edit) {
-            inner = /*html*/`
+            inner = html`
                 <form>
                     <score-selector score="${data.score_selector.score}" category="${data.score_selector.category}"></score-selector>
                     <input type="hidden" name="way_ids" value="${data.way_ids}">
@@ -34,7 +36,7 @@ class SegmentPanel extends HTMLElement {
                 </form>
             `;
         } else {
-            inner = /*html*/`
+            inner = html`
                 <div>
                     <div style="display: flex; margin-bottom: 0.5rem; margin-top: 0.5rem;">
                         <div>
@@ -62,7 +64,7 @@ class SegmentPanel extends HTMLElement {
             `;
         }
 
-        let innerHTML = /*html*/`
+        let innerHTML = html`
             <div id="segment_panel" style="position: absolute; width: 100%; max-height: 50%; overflow: auto; max-width: 500px; background-color: white; z-index: 20; bottom: 0; border-radius: 0.5rem;">
                 <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0;" class="htmx-indicator" src="/pub/bars.svg" />
                 <div  style="padding: 0.5rem; margin: 0.25rem;">
@@ -77,7 +79,7 @@ class SegmentPanel extends HTMLElement {
                     <div style="text-transform: uppercase; margin: 0.5rem;">historique</div>
                     <div style="overflow: auto; max-height: 12rem; md:height: 500px;">
                         <hr>
-                        ${data.history.map(contribution => /*html*/`
+                        ${data.history.map(contribution => html`
                             <div style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">
                                 <infopanel-contribution
                                     created_at="${contribution.created_at}"
@@ -209,23 +211,23 @@ class ScoreCircle extends HTMLElement {
     connectedCallback() {
         const score = parseFloat(this.getAttribute('score'));
         if (score === 1.0) {
-            this.innerHTML = /*html*/` 
+            this.innerHTML = html` 
                 <div style="border-radius: 9999px; background-color: #064e3b; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
                 `;
         } else if (score >= 0.60) {
-            this.innerHTML = /*html*/` 
+            this.innerHTML = html` 
                 <div style="border-radius: 9999px; background-color: #fbbf24; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
                 `;
         } else if (score >= 0.30) {
-            this.innerHTML = /*html*/` 
+            this.innerHTML = html` 
                 <div style="border-radius: 9999px; background-color: #ea580c; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
                 `;
         } else if (score === 0.0) {
-            this.innerHTML = /*html*/` 
+            this.innerHTML = html` 
                 <div style="border-radius: 9999px; background-color: #b91c1c; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
                 `;
         } else {
-            this.innerHTML = /*html*/` 
+            this.innerHTML = html` 
                 <div style="border-radius: 9999px; background-color: #9ca3af; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
                 `;
         }
@@ -249,7 +251,7 @@ class InfopanelContribution extends HTMLElement {
 
         const user_name = this.getAttribute('user_name');
         const comment = this.getAttribute('comment');
-        this.innerHTML = /*html*/`
+        this.innerHTML = html`
             <div id="contribution_${score_id}" style="cursor: pointer; display: flex; margin: 0.25rem 0;">
                 <score-circle score="${score}"></score-circle>
                 <div  style="align-content: start; width: 100%;">
@@ -293,7 +295,7 @@ class ScoreSelector extends HTMLElement {
 
         let categoryDiv = '';
         if (category == 'Good') {
-            categoryDiv = `<div style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv = html`<div style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(20,83,45);
                             border-color: black;
                             border-style: solid;
@@ -306,7 +308,7 @@ class ScoreSelector extends HTMLElement {
                 </div>
             </div>`;
         } else {
-            categoryDiv = `<div id="good" style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv = html`<div id="good" style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(20,83,45);
                             width: 2rem;
                             height: 2rem;
@@ -318,7 +320,7 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         }
         if (category == 'Problems') {
-            categoryDiv += `<div style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv += html`<div style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(234, 179, 8);
                             border-color: black;
                             border-style: solid;
@@ -331,7 +333,7 @@ class ScoreSelector extends HTMLElement {
                 </div>
             </div>`;
         } else {
-            categoryDiv += `<div id="problems" style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv += html`<div id="problems" style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(234, 179, 8);
                             width: 2rem;
                             height: 2rem;
@@ -343,7 +345,7 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         }
         if (category == 'MajorProblems') {
-            categoryDiv += `<div style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv += html`<div style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(234,88,12);
                             border-color: black;
                             border-style: solid;
@@ -356,7 +358,7 @@ class ScoreSelector extends HTMLElement {
                 </div>
             </div>`;
         } else {
-            categoryDiv += `<div id="major-problems" style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv += html`<div id="major-problems" style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(234,88,12);
                             width: 2rem;
                             height: 2rem;
@@ -368,7 +370,7 @@ class ScoreSelector extends HTMLElement {
             </div>`;
         }
         if (category == 'Closed') {
-            categoryDiv += `<div style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv += html`<div style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(153,27,27);
                             border-color: black;
                             border-style: solid;
@@ -381,7 +383,7 @@ class ScoreSelector extends HTMLElement {
                 </div>
             </div>`;
         } else {
-            categoryDiv += `<div id="closed" style="display: flex; flex-direction: row; cursor: pointer;">
+            categoryDiv += html`<div id="closed" style="display: flex; flex-direction: row; cursor: pointer;">
                 <div style="background-color: rgb(153,27,27);
                             width: 2rem;
                             height: 2rem;
@@ -394,7 +396,7 @@ class ScoreSelector extends HTMLElement {
         }
 
 
-        this.innerHTML = /*html*/`
+        this.innerHTML = html`
         <div id="score_selector"  style="margin: 0.5rem;">
         <div style="font-weight: bold;">Confort :</div>
         ${categoryDiv}

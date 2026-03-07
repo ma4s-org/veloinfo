@@ -1,4 +1,5 @@
 import { getViMain } from '/custom-elements/vi-context.js';
+let html = String.raw;
 
 export default class ViInfo extends HTMLElement {
   constructor(data) {
@@ -12,7 +13,7 @@ export default class ViInfo extends HTMLElement {
 
   render(data) {
     this.innerHTML = data?.arrow === "▼" ?
-      `<div id="info_panel_up" style="position: absolute; width: 100%; height: 40%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem;">
+      html`<div id="info_panel_up" style="position: absolute; width: 100%; height: 40%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem;">
         <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0;" class="htmx-indicator" src="/pub/bars.svg">
         <div id="info_panel_up_header" style="width: 100%; height: 1.75rem; display: flex; justify-content: center; cursor: pointer;">
             <div style="text-transform: uppercase; font-weight: bold;">Contributions dans cette zone</div>
@@ -21,7 +22,7 @@ export default class ViInfo extends HTMLElement {
             </div>
         </div>
         <div style="overflow: auto; height: 100%;">
-          ${data.contributions?.map(contribution => /*html*/`
+          ${data.contributions?.map(contribution => html`
                             <div style="padding: 0.5rem;">
                                 <infopanel-contribution
                                     created_at="${contribution.created_at}"
@@ -39,7 +40,7 @@ export default class ViInfo extends HTMLElement {
 
         </div>
       </div>` :
-      `<div id="info_panel_down" style="position: absolute; height: 3rem; width: 100%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem;">     
+      html`<div id="info_panel_down" style="position: absolute; height: 3rem; width: 100%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem;">     
         <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0;" class="htmx-indicator" src="/pub/bars.svg">
         <div id="info_panel_down_header" style="width: 100%; height: 1.75rem; display: flex; justify-content: center; cursor: pointer;">
             <div style="text-transform: uppercase; font-weight: bold;">Contributions dans cette zone</div>

@@ -1,8 +1,10 @@
+let html = String.raw;
+
 export default class RouteSearching extends HTMLElement {
     constructor(viMain) {
         super();
         this.viMain = viMain;
-        let innerHTML = /*html*/`
+        let innerHTML = html`
             <div class="vi-panel">
                 <div style="padding: 1rem;">
                     <h2 style="font-size: 1.25rem; font-weight: 700;">

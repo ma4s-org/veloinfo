@@ -1,4 +1,5 @@
 import { getViMain } from '/custom-elements/vi-context.js';
+let html = String.raw;
 
 class RouteDefine extends HTMLElement {
     constructor() {
@@ -12,7 +13,7 @@ class RouteDefine extends HTMLElement {
     }
 
     render() {
-        let innerHTML = /*html*/ `
+        let innerHTML = html `
             <style>
                 vi-route-define vi-search-input {
                     justify-content: center;

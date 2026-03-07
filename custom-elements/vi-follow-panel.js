@@ -1,4 +1,5 @@
 import { getViMain } from '/custom-elements/vi-context.js';
+let html = String.raw;
 
 class FollowPanel extends HTMLElement {
     constructor() {
@@ -23,7 +24,7 @@ class FollowPanel extends HTMLElement {
         }
 
         let totalDistance = getViMain().calculateTotalDistance(this.routeCoordinates, 0).toFixed(1);
-        let innerHTML = /*html*/ `
+        let innerHTML = html`
             <div class="vi-panel">
                 <div id="follow" style="display: flex; flex-direction: column; justify-content: center;">
                     <div style="display: flex;justify-content: center;">
@@ -43,7 +44,6 @@ class FollowPanel extends HTMLElement {
         this.innerHTML = innerHTML;
         this.querySelector('#cancel-follow-btn').addEventListener('click', () => {
             getViMain().clear();
-            document.getElementById('info').innerHTML = '';
         });
         htmx.process(this);
 

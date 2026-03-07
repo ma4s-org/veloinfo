@@ -1,6 +1,7 @@
 import PointPanel from "./vi-point-panel.js";
 import ViSearchResult from "./vi-search-result.js";
 import { getViMain } from '/custom-elements/vi-context.js';
+let html = String.raw;
 
 class SearchInput extends HTMLElement {
     query = "";
@@ -24,7 +25,7 @@ class SearchInput extends HTMLElement {
     }
 
     connectedCallback() {
-        let innerHTML = /*html*/ `
+        let innerHTML = html`
             <div id="top">
                 <form onsubmit="return false;">
                     <input id="query" name="query" type="search"
@@ -178,7 +179,7 @@ class SearchResult extends HTMLElement {
     }
 
     connectedCallback() {
-        let innerHTML = `
+        let innerHTML = html`
             <div>
                 <div class="circle"></div>
                 <div class="name">${this.getAttribute("name")}</div>

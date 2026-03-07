@@ -1,10 +1,11 @@
 import ViInfo from "./vi-info.js";
+let html = String.raw;
 
 export default class ViLayers extends HTMLElement {
     constructor(viMain) {
         super();
         this.viMain = viMain;
-        let innerHTML = /*html*/`
+        let innerHTML = html`
             <div id="layers" style="position:absolute;width:500px;max-height:50%;overflow:auto;background:white;z-index:20;bottom:0;border-radius:0.5rem;">
                 <div style="display:flex;flex-direction:column;margin:0.5rem;">
                     <div style="display:flex;flex-direction:row;align-items:center;">

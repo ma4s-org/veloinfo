@@ -1,9 +1,11 @@
+let html = String.raw;
+
 class veloinfoInstallAndroid extends HTMLElement {
     static observedAttributes = ['open'];
 
     constructor() {
         super();
-        this.innerHTML = /*html*/ `
+        this.innerHTML = html`
             <style>
                 .install-dialog {
                     max-width: 400px;
