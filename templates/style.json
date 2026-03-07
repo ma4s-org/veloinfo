@@ -2611,7 +2611,7 @@
             "id": "cycleway",
             "source": "bike_path",
             "source-layer": "bike_path",
-            "minzoom": 8,
+            "minzoom": 10,
             "type": "line",
             "paint": {
                 "line-color": [
