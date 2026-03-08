@@ -64,7 +64,7 @@ pub async fn route(
                 return;
             }
         };
-        let (points, points_rapide) = join!(
+        let (mut points, mut points_rapide) = join!(
             Edge::a_star_bidirectional(
                 start.node_id,
                 end.node_id,
@@ -80,7 +80,6 @@ pub async fn route(
                 None,
             )
         );
-        let mut points = points;
 
         if points.len() == 0 {
             let error_panel =
@@ -109,6 +108,24 @@ pub async fn route(
             way_id: 0,
             node_id: 0,
         });
+        points_rapide.insert(
+            0,
+            Point {
+                lng: start_lng,
+                lat: start_lat,
+                length: 0.0,
+                way_id: 0,
+                node_id: 0,
+            },
+        );
+        points_rapide.push(Point {
+            lng: end_lng,
+            lat: end_lat,
+            length: 0.0,
+            way_id: 0,
+            node_id: 0,
+        });
+
         let edges_coordinate_safe: Vec<(f64, f64)> =
             points.iter().map(|point| (point.lng, point.lat)).collect();
         let edges_coordinate_fast: Vec<(f64, f64)> = points_rapide
