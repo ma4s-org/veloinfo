@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# IDE
+.idea/
+.DS_Store
+*.iml
+*.swp
+*.swo
+*~
+
+# Secrets - NEVER commit these
+*.keystore
+*.jks
+*.crt
+*.pem
+local.properties
+
+# Build artifacts
+*.apk
+*.aar
+*.class
+*.jar
+
+# Generated files
+manifest-checksum.txt

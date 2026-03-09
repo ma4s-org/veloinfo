@@ -1,0 +1,50 @@
+{
+  "packageId": "quebec.veloinfo.twa",
+  "host": "veloinfo.quebec",
+  "name": "Vélo-info",
+  "launcherName": "Veloinfo",
+  "display": "standalone",
+  "themeColor": "#FFFFFF",
+  "themeColorDark": "#FFFFFF",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://veloinfo.quebec/pub/logo-big.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/var/home/martin/dev/veloinfo/android/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "6",
+  "appVersionCode": 7,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://veloinfo.quebec/pub/webmanifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://veloinfo.quebec/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "6"
+}
