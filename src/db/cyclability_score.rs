@@ -177,12 +177,12 @@ impl CyclabilityScore {
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<i32, sqlx::Error> {
         let id: i32 = sqlx::query(
-            r#"INSERT INTO cyclability_score 
-                    (way_ids, score, comment, photo_path, photo_path_thumbnail, name, geom, user_id) 
-                    SELECT $1, $2, $3, $4, $5, array_agg(cw.name), ST_Union(cw.geom), $6
+            r#"INSERT INTO cyclability_score
+                    (way_ids, score, comment, photo_path, photo_path_thumbnail, name, geom, user_id)
+                    SELECT array_agg(cw.way_id), $2, $3, $4, $5, array_agg(cw.name), ST_Union(cw.geom), $6
                     from cycleway_way cw
                     where cw.way_id = any($1)
-                    group by $1, $2, $3, $4, $5, $6
+                    group by $2, $3, $4, $5, $6
                     RETURNING id"#,
         )
         .bind(way_ids)
