@@ -816,7 +816,7 @@ impl Edge {
                             (tags->>'highway' = 'pedestrian' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
                     AND (tags->>'highway' != 'motorway')
                     AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
-                    AND (tags->>'indoor' IS NULL OR tags->>'indoor' != 'yes')
+                    AND (tags->>'indoor' IS NULL OR (tags->>'indoor' != 'yes' AND tags->>'indoor' != 'room'))
                     AND (tags->>'access' IS NULL or tags->>'access'  in ('customers'))
             ) as subquery
             ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
