@@ -149,6 +149,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     } else if highway == Some(Highway::Proposed)
         || edge.abandoned
         || highway == Some(Highway::Motorway)
+        || highway == Some(Highway::Construction)
     {
         return 1. / 0.0001;
     } else if access == Some(Access::Customers) {

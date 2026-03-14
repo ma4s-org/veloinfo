@@ -195,6 +195,7 @@ pub enum Highway {
     Pedestrian,
     Motorway,
     Proposed,
+    Construction,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -309,6 +310,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
                     "pedestrian" => Some(Highway::Pedestrian),
                     "motorway" => Some(Highway::Motorway),
                     "proposed" => Some(Highway::Proposed),
+                    "construction" => Some(Highway::Construction),
                     _ => None,
                 },
                 None => None,
