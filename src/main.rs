@@ -104,7 +104,7 @@ async fn main() {
             sched
                 .add(
                     Job::new_tz(
-                        "0 0 3 * * *",
+                        "0 0 0 * * *",
                         chrono_tz::America::Montreal,
                         move |_uuid, _l| {
                             std::fs::File::create("lock/import").unwrap();
