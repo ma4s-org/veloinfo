@@ -7,7 +7,6 @@ PSQL_CMD="psql -h db -U postgres -d carte -v ON_ERROR_STOP=1"
 # URL pour le Canada entier (environ 2.2 Go)
 URL="https://download.geofabrik.de/north-america/canada-latest.osm.pbf"
 PBF_FILE="canada-latest.osm.pbf"
-NODES_FILE="/app/nodes.bin"
 
 # 1. Téléchargement des données
 echo "Téléchargement des données OSM Canada (Geofabrik)..."
@@ -19,14 +18,11 @@ echo "Préparation du schéma temporaire 'import'..."
 $PSQL_CMD -c "DROP SCHEMA IF EXISTS import CASCADE; CREATE SCHEMA import;"
 
 # 3. Importation optimisée avec osm2pgsql
-# --slim + --flat-nodes : Permet d'importer le Canada entier avec très peu de RAM
-echo "Lancement de osm2pgsql (Mode Low-RAM)..."
-osm2pgsql --cache 1000 --slim --drop --flat-nodes "$NODES_FILE" \
-          -H db -U postgres -d carte -O flex -S import.lua \
-          --schema import "$PBF_FILE"
+# --slim : Utilise la DB pour les données temporaires (évite les fichiers binaires géants)
+echo "Lancement de osm2pgsql (Mode Slim)..."
+osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
 
 # Nettoyage
-rm -f "$NODES_FILE"
 rm -f "$PBF_FILE"
 
 # S'assurer que les extensions sont là

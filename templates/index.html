@@ -62,6 +62,13 @@
         navigator.serviceWorker.register('/pub/service-worker.js', { scope: '/' })
             .catch(err => console.warn('Service Worker registration failed:', err));
     }
+
+    {% if dev %}
+    // Keep-alive ping to prevent LiveReload timeout (60s)
+    setInterval(() => {
+        fetch('/health-check').catch(() => {});
+    }, 30000);
+    {% endif %}
 </script>
 
 </html>

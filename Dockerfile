@@ -34,7 +34,19 @@ RUN npm i vscode-html-languageservice -g
 RUN echo "db:5432:carte:postgres:postgres" >> /root/.pgpass
 RUN chmod 0600 /root/.pgpass
 
-CMD npm install; cargo watch -x run --ignore tiles --ignore dist
+CMD npm install; cargo watch -x run \
+    --ignore "tiles/*" \
+    --ignore "dist/*" \
+    --ignore "*.osm.pbf" \
+    --ignore "nodes.bin" \
+    --ignore "package-lock.json" \
+    --ignore ".aider*" \
+    --ignore ".jj/*" \
+    --ignore ".vscode/*" \
+    --ignore "lock/*" \
+    --ignore "well-known/*" \
+    --ignore "images/*" \
+    --ignore "target/*"
 
 FROM base as build
 

@@ -156,6 +156,7 @@ async fn main() {
         .route("/style.json", get(style))
         .route("/martin/{*path}", get(martin_proxy)) // Proxy pour le serveur de tuiles Martin
         .route("/pub/service-worker.js", get(service_worker_js))
+        .route("/health-check", get(|| async { "ok" }))
         
         // Services de fichiers statiques
         .nest_service("/.well-known/", ServeDir::new("well-known"))
@@ -191,13 +192,19 @@ fn not_htmx_predicate<T>(req: &Request<T>) -> bool {
 #[template(path = "index.html", escape = "none")]
 pub struct IndexTemplate {
     pub matomo_server: String,
+    pub dev: bool,
 }
 
 /// Handler pour la page d'accueil
 #[axum::debug_handler]
 pub async fn index() -> (HeaderMap, IndexTemplate) {
+    let dev = env::var("ENV")
+        .unwrap_or_else(|_| "prod".into())
+        .as_str()
+        .contains("dev");
     let template = IndexTemplate {
         matomo_server: MATOMO_SERVER.clone(),
+        dev,
     };
     let mut headers = HeaderMap::new();
     headers.insert(
