@@ -2,40 +2,50 @@
 set -e
 set -o pipefail
 
-# Configuration psql
+# Configuration
 PSQL_CMD="psql -h db -U postgres -d carte -v ON_ERROR_STOP=1"
+# URL pour le Canada entier (environ 2.2 Go)
+URL="https://download.geofabrik.de/north-america/canada-latest.osm.pbf"
+PBF_FILE="canada-latest.osm.pbf"
+NODES_FILE="/app/nodes.bin"
 
-# Téléchargement des données
-echo "Téléchargement des données OSM..."
-rm -f quebec-latest.osm.pbf
-wget -q https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf 
+# 1. Téléchargement des données
+echo "Téléchargement des données OSM Canada (Geofabrik)..."
+rm -f "$PBF_FILE"
+wget -q "$URL" -O "$PBF_FILE"
 
-# 1. Préparation du schéma temporaire
+# 2. Préparation du schéma temporaire
 echo "Préparation du schéma temporaire 'import'..."
 $PSQL_CMD -c "DROP SCHEMA IF EXISTS import CASCADE; CREATE SCHEMA import;"
 
-# 2. Importation avec osm2pgsql
-echo "Lancement de osm2pgsql dans le schéma 'import'..."
-osm2pgsql --cache 4000 --drop -H db -U postgres -d carte -O flex -S import.lua --schema import quebec-latest.osm.pbf
+# 3. Importation optimisée avec osm2pgsql
+# --slim + --flat-nodes : Permet d'importer le Canada entier avec très peu de RAM
+echo "Lancement de osm2pgsql (Mode Low-RAM)..."
+osm2pgsql --cache 1000 --slim --drop --flat-nodes "$NODES_FILE" \
+          -H db -U postgres -d carte -O flex -S import.lua \
+          --schema import "$PBF_FILE"
+
+# Nettoyage
+rm -f "$NODES_FILE"
+rm -f "$PBF_FILE"
 
 # S'assurer que les extensions sont là
 $PSQL_CMD -c "CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS unaccent;"
 
-# 3. Vérification des données SRTM
+# 4. Vérification des données SRTM
 echo "Vérification des données d'élévation SRTM..."
 SRTM_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'srtm_elevation_polygons');" | xargs)
 
 if [ "$SRTM_EXISTS" != "t" ]; then
-    echo "Données SRTM absentes ou incomplètes, importation..."
+    echo "Données SRTM absentes, importation..."
     /app/import_srtm.sh
 fi
 
-# 4. Création des vues matérialisées dans le schéma 'import'
+# 5. Création des vues matérialisées dans le schéma 'import'
 echo "Création des vues matérialisées dans le schéma 'import'..."
 $PSQL_CMD <<EOF
     SET search_path = import, public;
 
-    -- Vue last_cycleway_score
     CREATE MATERIALIZED VIEW last_cycleway_score AS
         SELECT * FROM (
             SELECT c.*, cs.score,
@@ -45,15 +55,12 @@ $PSQL_CMD <<EOF
         ) t WHERE t.rn = 1;
     CREATE UNIQUE INDEX last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
 
-    -- Séquence pour les IDs de edges
     CREATE SEQUENCE edge_id;
 
-    -- Vue intermédiaire pour les edges
     CREATE MATERIALIZED VIEW _all_way_edge AS
         SELECT way_id, nodes, geom, name, tags, in_bicycle_route FROM all_way;       
     CREATE INDEX _all_way_edge_way_id_idx ON _all_way_edge (way_id);
 
-    -- Vue principale edge
     CREATE MATERIALIZED VIEW edge AS 
     SELECT  
         nextval('edge_id') as id,
@@ -86,7 +93,6 @@ $PSQL_CMD <<EOF
     CREATE INDEX edge_target_idx ON edge (target);
     CREATE INDEX edge_city_name_idx ON edge (city_name);
 
-    -- Vues pour la recherche d'adresses
     CREATE MATERIALIZED VIEW address_range AS
         SELECT a.geom, a.odd_even, an1.city, an1.street, an1.housenumber as start, an2.housenumber as end,
                (to_tsvector('simple', unaccent(coalesce(an1.street, '') || ' ' || coalesce(an1.city, '')))) as tsvector
@@ -102,7 +108,6 @@ $PSQL_CMD <<EOF
     CREATE INDEX textsearch_idx ON address_range USING GIN (tsvector);
     CREATE INDEX address_range_geom_idx ON address_range using gist(geom);
 
-    -- Vue pour la recherche de noms
     CREATE MATERIALIZED VIEW name_query AS
         SELECT name, geom, tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM name
         UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM building WHERE name IS NOT NULL
@@ -112,12 +117,10 @@ $PSQL_CMD <<EOF
     CREATE INDEX name_query_geom_idx ON name_query using gist(geom);
 EOF
 
-# 5. Échange atomique des schémas
+# 6. Échange atomique des schémas
 echo "Échange des tables vers le schéma public..."
 $PSQL_CMD <<EOF
 BEGIN;
--- On récupère la liste des relations dans import pour les déplacer dans public
--- On supprime d'abord les anciennes dans public
 DO \$\$ 
 DECLARE 
     r RECORD;

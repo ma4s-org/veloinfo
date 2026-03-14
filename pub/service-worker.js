@@ -1,4 +1,4 @@
-console.log.print("Enregistrement du service worker");
+console.log("Enregistrement du service worker");
 
 // Configuration du cache
 const CACHE_VERSION = 'v1';
@@ -31,6 +31,11 @@ self.addEventListener('activate', function(event) {
 
 // Event de fetch : intercepte toutes les requêtes réseau
 self.addEventListener('fetch', function(event) {
+    // On ne traite que les requêtes GET (le cache ne supporte pas POST, PUT, etc.)
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
     event.respondWith(
         (async () => {
             const cache = await caches.open(APP_CACHE);

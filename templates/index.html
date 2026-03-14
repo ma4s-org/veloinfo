@@ -59,7 +59,7 @@
 
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/pub/service-worker.js')
+        navigator.serviceWorker.register('/pub/service-worker.js', { scope: '/' })
             .catch(err => console.warn('Service Worker registration failed:', err));
     }
 </script>
