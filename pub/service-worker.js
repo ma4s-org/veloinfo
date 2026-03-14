@@ -1,3 +1,5 @@
+console.log.print("Enregistrement du service worker");
+
 // Configuration du cache
 const CACHE_VERSION = 'v1';
 const APP_CACHE = `app-cache-${CACHE_VERSION}`;
