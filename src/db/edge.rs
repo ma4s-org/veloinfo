@@ -552,16 +552,18 @@ impl EdgePoint {
     }
 }
 
+use std::collections::VecDeque;
+
 struct EdgePointCache {
     cache: HashMap<i64, ARc<Vec<ARc<EdgePoint>>>>,
-    keys: BTreeSet<i64>,
+    order: VecDeque<i64>,
 }
 
 impl EdgePointCache {
     pub fn new() -> Self {
         EdgePointCache {
             cache: HashMap::new(),
-            keys: BTreeSet::new(),
+            order: VecDeque::new(),
         }
     }
 
@@ -574,25 +576,28 @@ impl EdgePointCache {
         node_id: i64,
         neighbors: ARc<Vec<ARc<EdgePoint>>>,
     ) -> ARc<Vec<ARc<EdgePoint>>> {
-        if self.cache.len() > 3_000_000 {
-            // Limiter la taille du cache pour éviter une consommation excessive de mémoire
-            if let Some(oldest_key) = self.keys.pop_first() {
-                self.cache.remove(&oldest_key);
+        if self.cache.len() > 5_000_000 {
+            // Limiter la taille du cache pour éviter une consommation excessive de mémoire (FIFO)
+            if let Some(oldest_id) = self.order.pop_front() {
+                self.cache.remove(&oldest_id);
             }
         }
-        self.keys.insert(node_id);
+        if !self.cache.contains_key(&node_id) {
+            self.order.push_back(node_id);
+        }
         self.cache.insert(node_id, neighbors.clone());
         neighbors
     }
 
     pub async fn clear(&mut self) {
-        self.cache = HashMap::new();
-        self.keys = BTreeSet::new();
+        self.cache.clear();
+        self.order.clear();
     }
 
     pub async fn remove(&mut self, node_id: i64) {
         self.cache.remove(&node_id);
-        self.keys.remove(&node_id);
+        // On ne retire pas de 'order' car c'est coûteux (O(n)), 
+        // le mécanisme de nettoyage s'en chargera ou il sera ignoré lors du remove.
     }
 }
 
