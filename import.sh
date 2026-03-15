@@ -4,14 +4,27 @@ set -o pipefail
 
 # Configuration
 PSQL_CMD="psql -h db -U postgres -d carte -v ON_ERROR_STOP=1"
-# URL pour le Canada entier (environ 2.2 Go)
-URL="https://download.geofabrik.de/north-america/canada-latest.osm.pbf"
-PBF_FILE="canada-latest.osm.pbf"
+# URLs régionales pour Québec + Ontario + Nouveau-Brunswick
+QUEBEC_URL="https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf"
+ONTARIO_URL="https://download.geofabrik.de/north-america/canada/ontario-latest.osm.pbf"
+NB_URL="https://download.geofabrik.de/north-america/canada/new-brunswick-latest.osm.pbf"
+QUEBEC_FILE="quebec-latest.osm.pbf"
+ONTARIO_FILE="ontario-latest.osm.pbf"
+NB_FILE="new-brunswick-latest.osm.pbf"
+MERGED_FILE="canada-regions.osm.pbf"
 
-# 1. Téléchargement des données
-echo "Téléchargement des données OSM Canada (Geofabrik)..."
-rm -f "$PBF_FILE"
-wget -q "$URL" -O "$PBF_FILE"
+# 1. Téléchargement des données (Québec + Ontario + Nouveau-Brunswick)
+echo "Téléchargement des données OSM (Québec + Ontario + Nouveau-Brunswick)..."
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MERGED_FILE"
+wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
+wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
+wget -q "$NB_URL" -O "$NB_FILE"
+
+# Fusion des trois fichiers avec osmium
+echo "Fusion des données avec osmium..."
+osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" -o "$MERGED_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE"
+PBF_FILE="$MERGED_FILE"
 
 # 2. Préparation du schéma temporaire
 echo "Préparation du schéma temporaire 'import'..."
@@ -57,8 +70,8 @@ $PSQL_CMD <<EOF
         SELECT way_id, nodes, geom, name, tags, in_bicycle_route FROM all_way;       
     CREATE INDEX _all_way_edge_way_id_idx ON _all_way_edge (way_id);
 
-    CREATE MATERIALIZED VIEW edge AS 
-    SELECT  
+    CREATE MATERIALIZED VIEW edge AS
+    SELECT
         nextval('edge_id') as id,
         awe.nodes[(segment).path[1]] as source,
         awe.nodes[(segment).path[1]+1] as target,
@@ -67,12 +80,12 @@ $PSQL_CMD <<EOF
         st_x(st_transform(ST_PointN((segment).geom, 2), 4326)) as x2,
         st_y(st_transform(ST_PointN((segment).geom, 2), 4326)) as y2,
         awe.way_id, awe.tags, (segment).geom, c.name as city_name, in_bicycle_route,
-        (SELECT elevation FROM public.srtm_elevation_polygons 
+        (SELECT elevation FROM public.srtm_elevation_polygons
          WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(
             st_x(st_transform(ST_PointN((segment).geom, 1), 4326)),
             st_y(st_transform(ST_PointN((segment).geom, 1), 4326))
          ), 4326)) LIMIT 1) as elevation_start,
-        (SELECT elevation FROM public.srtm_elevation_polygons 
+        (SELECT elevation FROM public.srtm_elevation_polygons
          WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(
             st_x(st_transform(ST_PointN((segment).geom, 2), 4326)),
             st_y(st_transform(ST_PointN((segment).geom, 2), 4326))
@@ -80,7 +93,7 @@ $PSQL_CMD <<EOF
     FROM _all_way_edge awe
     CROSS JOIN LATERAL ST_DumpSegments(awe.geom) as segment
     LEFT JOIN city c ON ST_Within((segment).geom, c.geom)
-    WHERE awe.nodes[(segment).path[1]+1] IS NOT NULL;       
+    WHERE awe.nodes[(segment).path[1]+1] IS NOT NULL;
 
     CREATE INDEX edge_way_id_idx ON edge(way_id);
     CREATE INDEX edge_geom_idx ON edge using gist(geom);
