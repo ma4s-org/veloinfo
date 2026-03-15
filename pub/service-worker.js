@@ -36,6 +36,12 @@ self.addEventListener('fetch', function(event) {
         return;
     }
 
+    // Ignore les requêtes cross-origin (S3, CDN externes, etc.)
+    const url = new URL(event.request.url);
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
     event.respondWith(
         (async () => {
             const cache = await caches.open(APP_CACHE);
