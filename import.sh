@@ -4,26 +4,41 @@ set -o pipefail
 
 # Configuration
 PSQL_CMD="psql -h db -U postgres -d carte -v ON_ERROR_STOP=1"
-# URLs régionales pour Québec + Ontario + Nouveau-Brunswick
+# URLs régionales pour Canada + USA nord-est
 QUEBEC_URL="https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf"
 ONTARIO_URL="https://download.geofabrik.de/north-america/canada/ontario-latest.osm.pbf"
 NB_URL="https://download.geofabrik.de/north-america/canada/new-brunswick-latest.osm.pbf"
+MAINE_URL="https://download.geofabrik.de/north-america/us/maine-latest.osm.pbf"
+VERMONT_URL="https://download.geofabrik.de/north-america/us/vermont-latest.osm.pbf"
+NEWYORK_URL="https://download.geofabrik.de/north-america/us/new-york-latest.osm.pbf"
+
 QUEBEC_FILE="quebec-latest.osm.pbf"
 ONTARIO_FILE="ontario-latest.osm.pbf"
 NB_FILE="new-brunswick-latest.osm.pbf"
-MERGED_FILE="canada-regions.osm.pbf"
+MAINE_FILE="maine-latest.osm.pbf"
+VERMONT_FILE="vermont-latest.osm.pbf"
+NEWYORK_FILE="new-york-latest.osm.pbf"
+NEWYORK_NORTH_FILE="new-york-north.osm.pbf"
+MERGED_FILE="regions.osm.pbf"
 
-# 1. Téléchargement des données (Québec + Ontario + Nouveau-Brunswick)
-echo "Téléchargement des données OSM (Québec + Ontario + Nouveau-Brunswick)..."
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MERGED_FILE"
+# 1. Téléchargement des données
+echo "Téléchargement des données OSM (Canada + USA nord-est)..."
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
 wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
 wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
 wget -q "$NB_URL" -O "$NB_FILE"
+wget -q "$MAINE_URL" -O "$MAINE_FILE"
+wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
+wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
 
-# Fusion des trois fichiers avec osmium
+# Extraire le nord de New York (latitude > 43°N, env. frontière Québec)
+echo "Extraction du nord de New York..."
+osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
+
+# Fusion de tous les fichiers avec osmium
 echo "Fusion des données avec osmium..."
-osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" -o "$MERGED_FILE"
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE"
+osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
 PBF_FILE="$MERGED_FILE"
 
 # 2. Préparation du schéma temporaire
