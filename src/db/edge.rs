@@ -949,7 +949,8 @@ impl Edge {
             let routes = vec![
                 (11329849232, 177522966, "Montréal to Quebec"),
                 (2352518821, 1870784004, "Mont-Tremblant to Sherbrooke"),
-            ];
+                (11329849232, 60890409, "Montréal to Gatineau")
+               ];
 
             for (source, target, description) in routes {
                 println!("Calculating route: {}", description);
