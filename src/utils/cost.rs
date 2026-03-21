@@ -315,7 +315,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         if surface == Some(Surface::Chipseal) {
             1. / 0.05
         } else {
-            1. / 0.06
+            1. / 0.4
         }
     } else if highway == Some(Highway::Secondary) {
         if surface == Some(Surface::Sett)
