@@ -36,7 +36,7 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
 }
 
 fn sigmoid_transition(x: f64) -> f64 {
-    let steepness: f64 = 0.66 
+    let steepness: f64 = 0.66; 
     let midpoint: f64 = 8.0;
     let min_val: f64 = 1.0;
     let max_val: f64 = 3.0;
