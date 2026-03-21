@@ -250,13 +250,19 @@ class SearchResult extends HTMLElement {
         const changeStartElement = document.querySelector('vi-change-start');
         if (changeStartElement) {
             // Mode changeStart : mettre à jour le départ et lancer la route
-            if (viMain.start_marker) {
-                viMain.start_marker.remove();
+            const destination = viMain.changeStartDestination;
+            viMain.setMarkers(lng, lat, destination.lng, destination.lat);
+            viMain.changeStartDestination = null;
+            // Nettoyer l'ancien état
+            if (viMain.map.getLayer("searched_route")) {
+                viMain.map.removeLayer("searched_route");
             }
-            viMain.start_marker = new maplibregl.Marker({ color: "#f00" }).setLngLat([lng, lat]).addTo(map);
-
-            // Lancer la route vers la destination existante
+            if (viMain.map.getSource("searched_route")) {
+                viMain.map.removeSource("searched_route");
+            }
+            // Appeler directement route() pour créer RouteSearching
             viMain.route();
+            return;
         } else {
             // Mode normal : changer le point de destination
             if (viMain.start_marker) {

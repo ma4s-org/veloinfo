@@ -9,7 +9,8 @@ class ChangeStart extends HTMLElement {
 
     connectedCallback() {
         // Récupérer la destination depuis vi-main
-        this.destination = getViMain().changeStartDestination;
+        const viMain = getViMain();
+        this.destination = viMain.changeStartDestination;
         let innerHTML = html`
             <div class="vi-panel">
                 <div style="padding: 1rem;">
@@ -30,9 +31,18 @@ class ChangeStart extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector('#cancel-btn').addEventListener('click', () => {
-            getViMain().changeStartDestination = null;
-            getViMain().clear();
+            viMain.changeStartDestination = null;
+            viMain.clear();
         });
+
+        // Écouter le clic sur la carte pour sélectionner le nouveau départ
+        const handleMapClick = (event) => {
+            viMain.setMarkers(event.lngLat.lng, event.lngLat.lat, this.destination.lng, this.destination.lat);
+            viMain.changeStartDestination = null;
+            viMain.map.off("click", handleMapClick);
+            viMain.route();
+        };
+        viMain.map.on("click", handleMapClick);
     }
 }
 

@@ -19,11 +19,12 @@ export default class RouteSearching extends HTMLElement {
                     <md-filled-button id="cancel_button">annuler</md-filled-button>
                 </div>
                 <md-dialog id="search_position_dialog" style="display: none;">
-                    <div slot="content" style="display: flex; flex-direction: column; justify-content: center;">
+                    <div slot="content" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
                         <div style="align-self: center;">
                             Recherche de votre position
                         </div>
                         <img src="/pub/search_location.png" style="width: 128px; align-self: center;" />
+                        <md-outlined-button id="manual_position_button" style="margin-top: 1em; --md-sys-color-primary: #666666;">entrer votre position manuellement</md-outlined-button>
                     </div>
                 </md-dialog>
             </div>
@@ -63,13 +64,27 @@ export default class RouteSearching extends HTMLElement {
             this.viMain.clear();
         });
 
+        // Ajouter le gestionnaire pour le bouton "entrer votre position manuellement"
+        const dialog = this.querySelector("#search_position_dialog");
+        const manualPositionButton = dialog.querySelector("#manual_position_button");
+        manualPositionButton.addEventListener("click", () => {
+            this.viMain.changeStartDestination = { lng: end.lng, lat: end.lat };
+            dialog.close();
+            this.viMain.querySelector("#info").innerHTML = "<vi-change-start></vi-change-start>";
+        });
+
         var end = this.viMain.start_marker.getLngLat();
         var start;
-
         // Si end_marker existe, on utilise les marqueurs existants (mode changeStartMode)
         if (this.viMain.end_marker) {
             end = this.viMain.end_marker.getLngLat();
             start = { coords: { longitude: this.viMain.start_marker.getLngLat().lng, latitude: this.viMain.start_marker.getLngLat().lat } };
+        } else if (this.viMain.changeStartDestination) {
+            // Mode "entrer votre position manuellement" avec destination déjà définie
+            end = this.viMain.changeStartDestination;
+            // La position de départ sera sélectionnée via vi-change-start
+            // On attend que l'utilisateur clique sur la carte ou utilise la recherche
+            return;
         } else {
             // Sinon, on demande la position GPS du départ
             // Changer la couleur du marqueur en bleu car c'est la destination
@@ -87,6 +102,7 @@ export default class RouteSearching extends HTMLElement {
                 });
             });
         }
+
         this.querySelector("#change_start_button").addEventListener("click", () => {
             this.viMain.changeStartDestination = { lng: end.lng, lat: end.lat };
             if (this.viMain.map.getLayer("searched_route")) {
