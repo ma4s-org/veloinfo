@@ -243,10 +243,13 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             if edge.tunnel == Some(Tunnel::Yes) {
                 1. / 0.08
             } else {
-                1. / 0.2
+                1. / 0.1
             }
-        } else {
-            return 1. / 0.1;
+        } else if edge.footway == Some(Footway::Sidewalk){
+            1. / 0.01
+        }
+        else {
+            return 1. / 0.05;
         }
     } else if cycleway == Some(Cycleway::SharedLane)
         || cycleway == Some(Cycleway::ShareBusway)
@@ -310,9 +313,9 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         1. / 0.3
     } else if highway == Some(Highway::Service) {
         if surface == Some(Surface::Chipseal) {
-            1. / 0.1
+            1. / 0.05
         } else {
-            1. / 0.2
+            1. / 0.06
         }
     } else if highway == Some(Highway::Secondary) {
         if surface == Some(Surface::Sett)
@@ -350,7 +353,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         FastOrSafe::Safe => {
             let slope_cost = elevation::get_edge_slope_cost(edge);
             // On peut multiplier par 7. Plus haut, des anomalies apparaissent
-            cost + 7. * slope_cost
+            cost * slope_cost
         }
     };
 
