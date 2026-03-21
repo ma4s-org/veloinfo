@@ -31,7 +31,7 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
             let slope_percentage = calculate_slope_percentage(elev_start, elev_end, edge.length);
             get_slope_cost(slope_percentage)
         }
-        _ => 0.0, // No elevation data, no slope penalty
+        _ => 1.0, // No elevation data, no slope penalty
     }
 }
 
