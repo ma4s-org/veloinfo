@@ -73,6 +73,10 @@
             "tileSize": 256,
             "encoding": "terrarium",
             "maxzoom": 14
+        },
+        "ocean": {
+            "type": "vector",
+            "url": "{{veloinfo_url}}/martin/ocean"
         }
     },
     "layers": [
@@ -88,35 +92,12 @@
             }
         },
         {
-            "id": "Hillshade",
-            "type": "hillshade",
-            "source": "dem",
-            "layout": {
-                "visibility": "visible"
-            },
+            "id": "Ocean",
+            "type": "fill",
+            "source": "ocean",
+            "source-layer": "ocean",
             "paint": {
-                "hillshade-exaggeration": [
-                    "interpolate",
-                    [
-                        "linear"
-                    ],
-                    [
-                        "zoom"
-                    ],
-                    4,
-                    0.35,
-                    8,
-                    0.5,
-                    10,
-                    0.75,
-                    12,
-                    0.6,
-                    16,
-                    0.4
-                ],
-                "hillshade-shadow-color": "hsla(0,0%,0%,0.5)",
-                "hillshade-highlight-color": "hsla(0,0%,100%,0.35)",
-                "hillshade-accent-color": "hsla(0,0%,0%,0.2)"
+                "fill-color": "#aad3df"
             }
         },
         {
@@ -541,6 +522,38 @@
                     "yes"
                 ]
             ]
+        },
+        {
+            "id": "Hillshade",
+            "type": "hillshade",
+            "source": "dem",
+            "layout": {
+                "visibility": "visible"
+            },
+            "paint": {
+                "hillshade-exaggeration": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    4,
+                    0.35,
+                    8,
+                    0.5,
+                    10,
+                    0.75,
+                    12,
+                    0.6,
+                    16,
+                    0.4
+                ],
+                "hillshade-shadow-color": "hsla(0,0%,0%,0.5)",
+                "hillshade-highlight-color": "hsla(0,0%,100%,0.35)",
+                "hillshade-accent-color": "hsla(0,0%,0%,0.2)"
+            }
         },
         {
             "id": "Aeroway",

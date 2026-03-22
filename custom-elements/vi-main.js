@@ -209,7 +209,7 @@ class ViMain extends HTMLElement {
             style: '/style.json',
             center: [lng, lat],
             zoom: zoom,
-            minZoom: 8
+            minZoom: 5
         });
 
         // Fournir les images manquantes à la demande pour éviter les warnings

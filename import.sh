@@ -168,4 +168,25 @@ EOF
 echo "Nettoyage..."
 $PSQL_CMD -c "DROP SCHEMA IF EXISTS import CASCADE;"
 
+# 7. Import des océans du monde (Natural Earth)
+# Vérifie si la table ocean existe déjà
+OCEAN_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ocean');" | xargs)
+if [ "$OCEAN_EXISTS" = "t" ]; then
+    echo "La table ocean existe déjà, skipping..."
+else
+    echo "Importation des océans du monde..."
+    OCEAN_FILE="water-polygons-split-4326.zip"
+    if [ ! -f "$OCEAN_FILE" ]; then
+        wget -q "https://osmdata.openstreetmap.de/download/water-polygons-split-4326.zip" -O "$OCEAN_FILE"
+    fi
+    unzip -o -q "$OCEAN_FILE"
+    shp2pgsql -s 4326 water-polygons-split-4326/water_polygons.shp ocean | $PSQL_CMD
+    rm -rf water-polygons-split-4326 "$OCEAN_FILE"
+
+    echo "Création des index pour ocean..."
+    $PSQL_CMD <<EOF
+CREATE INDEX ocean_geom_idx ON ocean USING GIST (geom);
+EOF
+fi
+
 echo "Importation terminée avec succès !"
