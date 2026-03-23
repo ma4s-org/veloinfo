@@ -13,6 +13,7 @@ use axum_extra::extract::CookieJar;
 use futures::future::join_all;
 use geojson::JsonValue;
 use image::DynamicImage;
+use kamadak_exif::{In, Reader, Tag};
 use lazy_static::lazy_static;
 use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 use regex::Regex;
@@ -101,22 +102,12 @@ pub async fn segment_panel_post(
         None => (),
     };
 
-    let photo_path = match photo {
-        Some(_) => Some(IMAGE_DIR.to_string() + "/{}.jpeg"),
-        None => None,
-    };
-
-    let photo_path_thumbnail = match photo {
-        Some(_) => Some(IMAGE_DIR.to_string() + "/{}_thumbnail.jpeg"),
-        None => None,
-    };
-
     let id = match CyclabilityScore::insert(
         &score,
         &Some(comment),
         &way_ids_i64,
-        &photo_path,
-        &photo_path_thumbnail,
+        &None,
+        &None,
         user_id,
         &state.conn,
     )
@@ -146,7 +137,11 @@ pub async fn segment_panel_post(
     };
     if let Some(photo) = photo {
         let img = (|| -> Result<DynamicImage, Box<dyn std::error::Error>> {
-            let img = match image::load_from_memory(&photo) {
+            // Try to read EXIF orientation first
+            let exif_reader = Reader::new();
+            let exif = exif_reader.read_from_container(&mut std::io::Cursor::new(&photo)).ok();
+
+            let mut img = match image::load_from_memory(&photo) {
                 Ok(img) => img,
                 Err(_) => {
                     let lib_heif = LibHeif::new();
@@ -167,6 +162,22 @@ pub async fn segment_panel_post(
                     )
                 }
             };
+
+            // Apply EXIF orientation if available
+            if let Some(exif_data) = exif {
+                if let Some(orientation) = exif_data.get_field(Tag::Orientation, In::PRIMARY) {
+                    if let Some(value) = orientation.value.get_uint(0) {
+                        // Values: 1=normal, 3=180°, 6=90° clockwise, 8=270° clockwise
+                        match value {
+                            3 => img = img.rotate180(),
+                            6 => img = img.rotate90(),
+                            8 => img = img.rotate270(),
+                            _ => (), // No rotation needed
+                        }
+                    }
+                }
+            }
+
             Ok(img)
         })();
         match img {
@@ -175,21 +186,28 @@ pub async fn segment_panel_post(
                 if img.color().has_alpha() {
                     img = img.to_rgb8().into();
                 }
-                if let Err(e) =
-                    img.save(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
-                {
+                let full_path = IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg";
+                if let Err(e) = img.save(&full_path) {
                     eprintln!("Error while saving image: {}", e);
                 } else {
                     let img = img.resize(300, 300, image::imageops::FilterType::Lanczos3);
-                    if let Err(e) = img.save(
-                        IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg",
-                    ) {
+                    let thumb_path = IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg";
+                    if let Err(e) = img.save(&thumb_path) {
                         eprintln!("Error while saving thumbnail: {}", e);
                     }
                 }
             }
             Err(e) => eprintln!("Error while processing image: {}", e),
         }
+    }
+
+    // Update photo paths after successful save
+    let photo_path = Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg");
+    let photo_path_thumbnail = Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg");
+
+    // Update the record with photo paths
+    if let Err(e) = CyclabilityScore::update_photo_paths(id, &photo_path, &photo_path_thumbnail, &state.conn).await {
+        eprintln!("Error updating photo paths: {}", e);
     }
 
     (jar, segment_panel(state, way_ids).await)

@@ -239,6 +239,26 @@ impl CyclabilityScore {
         });
         Ok(id)
     }
+
+    pub async fn update_photo_paths(
+        id: i32,
+        photo_path: &Option<String>,
+        photo_path_thumbnail: &Option<String>,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"UPDATE cyclability_score
+               SET photo_path = $1,
+                   photo_path_thumbnail = $2
+               WHERE id = $3"#,
+        )
+        .bind(photo_path)
+        .bind(photo_path_thumbnail)
+        .bind(id)
+        .execute(conn)
+        .await?;
+        Ok(())
+    }
 }
 
 impl From<&CyclabilityScoreDb> for CyclabilityScore {
