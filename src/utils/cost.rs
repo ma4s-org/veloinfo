@@ -249,7 +249,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             1. / 0.1
         }
         else {
-            return 1. / 0.2;
+            return 1. / 0.3;
         }
     } else if cycleway == Some(Cycleway::SharedLane)
         || cycleway == Some(Cycleway::ShareBusway)
@@ -352,7 +352,6 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         FastOrSafe::Fast => 1. + cost.log(20.),
         FastOrSafe::Safe => {
             let slope_cost = elevation::get_edge_slope_cost(edge);
-            // On peut multiplier par 7. Plus haut, des anomalies apparaissent
             cost * slope_cost
         }
     };
