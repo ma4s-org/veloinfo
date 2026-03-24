@@ -131,59 +131,52 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         return 1. / 0.0001;
     }
 
-    let bicycle = edge.bicycle.clone();
-    let highway = edge.highway.clone();
-    let cycleway = edge.cycleway.clone();
-    let surface = edge.surface.clone();
-    let smoothness = edge.smoothness.clone();
-    let access = edge.access.clone();
-
-    let mut cost: f64 = if bicycle == Some(Bicycle::No) {
+    let mut cost: f64 = if edge.bicycle == Some(Bicycle::No) {
         return 1. / 0.0001;
-    } else if access == Some(Access::Private) || access == Some(Access::No) || edge.informal {
-        if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
+    } else if edge.access == Some(Access::Private) || edge.access == Some(Access::No) || edge.informal {
+        if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             1. / 0.4
         } else {
             return 1. / 0.0001;
         }
-    } else if highway == Some(Highway::Proposed)
+    } else if edge.highway == Some(Highway::Proposed)
         || edge.abandoned
-        || highway == Some(Highway::Motorway)
-        || highway == Some(Highway::Construction)
+        || edge.highway == Some(Highway::Motorway)
+        || edge.highway == Some(Highway::Construction)
     {
         return 1. / 0.0001;
-    } else if access == Some(Access::Customers) {
+    } else if edge.access == Some(Access::Customers) {
         1. / 0.2
     } else if edge.informal {
         1. / 0.05
-    } else if highway == Some(Highway::Steps) {
-        if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
+    } else if edge.highway == Some(Highway::Steps) {
+        if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             1. / 0.06
         } else {
             return 1. / 0.0001;
         }
-    } else if highway == Some(Highway::Path) {
-        if bicycle == Some(Bicycle::Yes) {
+    } else if edge.highway == Some(Highway::Path) {
+        if edge.bicycle == Some(Bicycle::Yes) {
             1. / 0.9
-        } else if bicycle == Some(Bicycle::Dismount) || bicycle == Some(Bicycle::Discouraged) {
+        } else if edge.bicycle == Some(Bicycle::Dismount) || edge.bicycle == Some(Bicycle::Discouraged) {
             1. / 0.4
         } else {
             1. / 0.1
         }
-    } else if bicycle == Some(Bicycle::Discouraged) {
+    } else if edge.bicycle == Some(Bicycle::Discouraged) {
         1. / 0.1
     } else if edge.routing_bicycle_use_sidepath {
         1. / 0.1
-    } else if highway == Some(Highway::Cycleway) {
-        if surface == Some(Surface::FineGravel) || surface == Some(Surface::Gravel) {
+    } else if edge.highway == Some(Highway::Cycleway) {
+        if edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel) {
             1. / 0.75
-        } else if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+        } else if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
         }
-    } else if cycleway == Some(Cycleway::Track) || edge.cycleway_both == Some(Cycleway::Track) {
-        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+    } else if edge.cycleway == Some(Cycleway::Track) || edge.cycleway_both == Some(Cycleway::Track) {
+        if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
@@ -192,7 +185,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         && (SourceOrTarget::Source == edge.direction
             || edge.cycleway_left_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+        if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
@@ -201,15 +194,15 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         && (SourceOrTarget::Target == edge.direction
             || edge.cycleway_right_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+        if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1.
         }
     } else if edge.cyclestreet {
         1. / 0.9
-    } else if cycleway == Some(Cycleway::Lane) || edge.cycleway_both == Some(Cycleway::Lane) {
-        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+    } else if edge.cycleway == Some(Cycleway::Lane) || edge.cycleway_both == Some(Cycleway::Lane) {
+        if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1. / 0.9
@@ -218,7 +211,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         && (SourceOrTarget::Source == edge.direction
             || edge.cycleway_left_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+        if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1. / 0.9
@@ -227,20 +220,20 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         && (SourceOrTarget::Target == edge.direction
             || edge.cycleway_right_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(Cycleway::Crossing) || smoothness == Some(Smoothness::Bad) {
+        if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
             1. / 0.9
         }
-    } else if highway == Some(Highway::Footway) || highway == Some(Highway::Pedestrian) {
-        if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
+    } else if edge.highway == Some(Highway::Footway) || edge.highway == Some(Highway::Pedestrian) {
+        if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             if edge.footway == Some(Footway::Sidewalk) {
                 1. / 0.4
             } else {
                 1. / 0.6
             }
-        } else if bicycle == Some(Bicycle::Dismount) {
-            if edge.tunnel == Some(Tunnel::Yes) {
+        } else if edge.bicycle == Some(Bicycle::Dismount) {
+            if edge.tunnel == Some(Tunnel::Yes) || edge.footway == Some(Footway::Sidewalk) {
                 1. / 0.08
             } else {
                 1. / 0.3
@@ -249,16 +242,16 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             1. / 0.1
         }
         else {
-            return 1. / 0.3;
+            return 1. / 0.2;
         }
-    } else if cycleway == Some(Cycleway::SharedLane)
-        || cycleway == Some(Cycleway::ShareBusway)
+    } else if edge.cycleway == Some(Cycleway::SharedLane)
+        || edge.cycleway == Some(Cycleway::ShareBusway)
         || edge.cycleway_both == Some(Cycleway::SharedLane)
         || edge.cycleway_both == Some(Cycleway::ShareBusway)
     {
-        if cycleway == Some(Cycleway::Crossing)
-            || smoothness == Some(Smoothness::Bad)
-            || surface == Some(Surface::Sett)
+        if edge.cycleway == Some(Cycleway::Crossing)
+            || edge.smoothness == Some(Smoothness::Bad)
+            || edge.surface == Some(Surface::Sett)
         {
             1. / 0.2
         } else {
@@ -269,9 +262,9 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         && (SourceOrTarget::Source == edge.direction
             || edge.cycleway_left_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(Cycleway::Crossing)
-            || smoothness == Some(Smoothness::Bad)
-            || surface == Some(Surface::Sett)
+        if edge.cycleway == Some(Cycleway::Crossing)
+            || edge.smoothness == Some(Smoothness::Bad)
+            || edge.surface == Some(Surface::Sett)
         {
             1. / 0.2
         } else {
@@ -282,25 +275,25 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         && (SourceOrTarget::Target == edge.direction
             || edge.cycleway_right_oneway == Some(Oneway::No))
     {
-        if cycleway == Some(Cycleway::Crossing)
-            || smoothness == Some(Smoothness::Bad)
-            || surface == Some(Surface::Sett)
+        if edge.cycleway == Some(Cycleway::Crossing)
+            || edge.smoothness == Some(Smoothness::Bad)
+            || edge.surface == Some(Surface::Sett)
         {
             1. / 0.2
         } else {
             1. / 0.7
         }
-    } else if highway == Some(Highway::Residential) {
-        if surface == Some(Surface::Sett) || surface == Some(Surface::Cobblestone) {
+    } else if edge.highway == Some(Highway::Residential) {
+        if edge.surface == Some(Surface::Sett) || edge.surface == Some(Surface::Cobblestone) {
             1. / 0.2
-        } else if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
+        } else if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             1. / 0.85
         } else {
             1. / 0.6
         }
-    } else if highway == Some(Highway::Tertiary) {
-        if surface == Some(Surface::Sett)
-            || surface == Some(Surface::Cobblestone)
+    } else if edge.highway == Some(Highway::Tertiary) {
+        if edge.surface == Some(Surface::Sett)
+            || edge.surface == Some(Surface::Cobblestone)
             || edge.tunnel == Some(Tunnel::Yes)
         {
             1. / 0.2
@@ -309,17 +302,17 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             1. / 0.5
         }
-    } else if highway == Some(Highway::Unclassified) {
+    } else if edge.highway == Some(Highway::Unclassified) {
         1. / 0.3
-    } else if highway == Some(Highway::Service) {
-        if surface == Some(Surface::Chipseal) {
+    } else if edge.highway == Some(Highway::Service) {
+        if edge.surface == Some(Surface::Chipseal) {
             1. / 0.05
         } else {
-            1. / 0.4
+            1. / 0.3
         }
-    } else if highway == Some(Highway::Secondary) {
-        if surface == Some(Surface::Sett)
-            || surface == Some(Surface::Cobblestone)
+    } else if edge.highway == Some(Highway::Secondary) {
+        if edge.surface == Some(Surface::Sett)
+            || edge.surface == Some(Surface::Cobblestone)
             || edge.tunnel == Some(Tunnel::Yes)
         {
             1. / 0.2
@@ -330,15 +323,15 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         }
     } else if edge.in_bicycle_route {
         1. / 0.60
-    } else if bicycle == Some(Bicycle::Yes) || bicycle == Some(Bicycle::Designated) {
+    } else if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
         1. / 0.4
-    } else if highway == Some(Highway::SecondaryLink) {
+    } else if edge.highway == Some(Highway::SecondaryLink) {
         1. / 0.4
-    } else if highway == Some(Highway::Primary) {
+    } else if edge.highway == Some(Highway::Primary) {
         1. / 0.3
-    } else if highway == Some(Highway::Trunk) {
+    } else if edge.highway == Some(Highway::Trunk) {
         1. / 0.3
-    } else if highway.is_some() {
+    } else if edge.highway.is_some() {
         1. / 0.3
     } else {
         1. / 0.05
