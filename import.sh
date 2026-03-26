@@ -89,8 +89,15 @@ $PSQL_CMD <<EOF
             aw.nodes[(segment).path[1]] as source,
             aw.nodes[(segment).path[1]+1] as target,
             (segment).geom as geom,
-            ST_Transform(ST_PointN((segment).geom, 1), 4326) as pt1,
-            ST_Transform(ST_PointN((segment).geom, 2), 4326) as pt2
+            -- On recrée la contrainte 2D exacte de ta requête originale pour les requêtes SRTM
+            ST_SetSRID(ST_MakePoint(
+                ST_X(ST_Transform(ST_PointN((segment).geom, 1), 4326)),
+                ST_Y(ST_Transform(ST_PointN((segment).geom, 1), 4326))
+            ), 4326) as pt1,
+            ST_SetSRID(ST_MakePoint(
+                ST_X(ST_Transform(ST_PointN((segment).geom, 2), 4326)),
+                ST_Y(ST_Transform(ST_PointN((segment).geom, 2), 4326))
+            ), 4326) as pt2
         FROM all_way aw
         CROSS JOIN LATERAL ST_DumpSegments(aw.geom) as segment
         WHERE aw.nodes[(segment).path[1]+1] IS NOT NULL
@@ -108,11 +115,12 @@ $PSQL_CMD <<EOF
         segments.geom, 
         c.name as city_name, 
         segments.in_bicycle_route,
-        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Intersects(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
-        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Intersects(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
+        -- On revient à ST_Contains strict avec les points 2D
+        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Contains(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
+        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Contains(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
     FROM segments
-    LEFT JOIN city c ON ST_Intersects(c.geom, segments.pt1);
-    
+
+    LEFT JOIN city c ON ST_Within(segments.geom, c.geom);    
     CREATE INDEX edge_way_id_idx ON edge(way_id);
     CREATE INDEX edge_geom_idx ON edge using gist(geom);
     CREATE UNIQUE INDEX edge_id_idx ON edge(id);
