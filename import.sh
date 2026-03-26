@@ -49,7 +49,6 @@ $PSQL_CMD -c "DROP SCHEMA IF EXISTS import CASCADE; CREATE SCHEMA import;"
 # --slim : Utilise la DB pour les données temporaires (évite les fichiers binaires géants)
 echo "Lancement de osm2pgsql (Mode Slim)..."
 osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
-
 # Nettoyage
 rm -f "$PBF_FILE"
 
@@ -81,35 +80,39 @@ $PSQL_CMD <<EOF
 
     CREATE SEQUENCE edge_id;
 
-    CREATE MATERIALIZED VIEW _all_way_edge AS
-        SELECT way_id, nodes, geom, name, tags, in_bicycle_route FROM all_way;       
-    CREATE INDEX _all_way_edge_way_id_idx ON _all_way_edge (way_id);
-
     CREATE MATERIALIZED VIEW edge AS
+    WITH segments AS (
+        SELECT 
+            aw.way_id, 
+            aw.tags, 
+            aw.in_bicycle_route,
+            aw.nodes[(segment).path[1]] as source,
+            aw.nodes[(segment).path[1]+1] as target,
+            (segment).geom as geom,
+            ST_Transform(ST_PointN((segment).geom, 1), 4326) as pt1,
+            ST_Transform(ST_PointN((segment).geom, 2), 4326) as pt2
+        FROM all_way aw
+        CROSS JOIN LATERAL ST_DumpSegments(aw.geom) as segment
+        WHERE aw.nodes[(segment).path[1]+1] IS NOT NULL
+    )
     SELECT
         nextval('edge_id') as id,
-        awe.nodes[(segment).path[1]] as source,
-        awe.nodes[(segment).path[1]+1] as target,
-        st_x(st_transform(ST_PointN((segment).geom, 1), 4326)) as x1,
-        st_y(st_transform(ST_PointN((segment).geom, 1), 4326)) as y1,
-        st_x(st_transform(ST_PointN((segment).geom, 2), 4326)) as x2,
-        st_y(st_transform(ST_PointN((segment).geom, 2), 4326)) as y2,
-        awe.way_id, awe.tags, (segment).geom, c.name as city_name, in_bicycle_route,
-        (SELECT elevation FROM public.srtm_elevation_polygons
-         WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(
-            st_x(st_transform(ST_PointN((segment).geom, 1), 4326)),
-            st_y(st_transform(ST_PointN((segment).geom, 1), 4326))
-         ), 4326)) LIMIT 1) as elevation_start,
-        (SELECT elevation FROM public.srtm_elevation_polygons
-         WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(
-            st_x(st_transform(ST_PointN((segment).geom, 2), 4326)),
-            st_y(st_transform(ST_PointN((segment).geom, 2), 4326))
-         ), 4326)) LIMIT 1) as elevation_end
-    FROM _all_way_edge awe
-    CROSS JOIN LATERAL ST_DumpSegments(awe.geom) as segment
-    LEFT JOIN city c ON ST_Within((segment).geom, c.geom)
-    WHERE awe.nodes[(segment).path[1]+1] IS NOT NULL;
-
+        segments.source,
+        segments.target,
+        ST_X(segments.pt1) as x1,
+        ST_Y(segments.pt1) as y1,
+        ST_X(segments.pt2) as x2,
+        ST_Y(segments.pt2) as y2,
+        segments.way_id, 
+        segments.tags, 
+        segments.geom, 
+        c.name as city_name, 
+        segments.in_bicycle_route,
+        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Intersects(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
+        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Intersects(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
+    FROM segments
+    LEFT JOIN city c ON ST_Intersects(c.geom, segments.pt1);
+    
     CREATE INDEX edge_way_id_idx ON edge(way_id);
     CREATE INDEX edge_geom_idx ON edge using gist(geom);
     CREATE UNIQUE INDEX edge_id_idx ON edge(id);
