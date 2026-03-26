@@ -4,8 +4,13 @@ use sqlx::PgPool;
 use tokio::process::Command;
 
 pub async fn import(conn: &PgPool) {
-    Edge::clear_all_cache().await;
     println!("Importing data");
+    let conn_clone = conn.clone();
+    tokio::spawn(async move {
+        println!("fetching montreal data");
+        mtl::fetch_montreal_data(&conn_clone).await;
+        println!("fetching montreal data done");
+    });
     match Command::new("./import.sh").output().await {
         Ok(output) => {
             if !output.status.success() {
@@ -20,11 +25,6 @@ pub async fn import(conn: &PgPool) {
             println!("Error2 importing: {:?}", e);
         }
     }
-
-    // clearing cache
-    println!("fetching montreal data");
-    mtl::fetch_montreal_data(&conn).await;
-    println!("fetching montreal data done");
     println!("clearing cache");
     Edge::clear_cache_and_reload(&conn).await;
 }
