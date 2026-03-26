@@ -63,7 +63,13 @@ pub async fn bike_path_mvt(
                 END as kind
             FROM
                 all_way aw
-            LEFT JOIN cyclability_score cscore ON aw.way_id = ANY(cscore.way_ids)
+            LEFT JOIN LATERAL (
+                SELECT way_ids, score
+                FROM cyclability_score
+                WHERE aw.way_id = ANY(cyclability_score.way_ids)
+                ORDER BY cyclability_score.created_at DESC
+                LIMIT 1
+            ) cscore ON true
             LEFT JOIN city ON ST_Intersects(aw.geom, city.geom)
             LEFT JOIN city_snow cs ON city.name = cs.city_name
             WHERE COALESCE(aw.tags->>'bicycle', 'yes') <> 'no'
