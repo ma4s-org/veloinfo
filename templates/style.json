@@ -1744,7 +1744,8 @@
                         [
                             "minor",
                             "service",
-                            "track"
+                            "track",
+                            "pedestrian"
                         ],
                         0,
                         1
@@ -1788,7 +1789,8 @@
                         [
                             "minor",
                             "service",
-                            "track"
+                            "track",
+                            "pedestrian"
                         ],
                         2,
                         2
@@ -1846,7 +1848,8 @@
                         [
                             "minor",
                             "service",
-                            "track"
+                            "track",
+                            "pedestrian"
                         ],
                         16,
                         16
@@ -1883,11 +1886,6 @@
                 [
                     "!has",
                     "railway"
-                ],
-                [
-                    "!=",
-                    "highway",
-                    "pedestrian"
                 ],
                 [
                     "all",
