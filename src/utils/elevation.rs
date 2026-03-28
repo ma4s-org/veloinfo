@@ -19,7 +19,11 @@ pub fn get_slope_cost(slope_percentage: f64) -> f64 {
     if slope_percentage >= 0.0 {
         return sigmoid_transition(slope_percentage);
     } else {
-        sigmoid_transition(slope_percentage.abs()) * 0.2
+        // Descente : coût réduit mais toujours > 1
+        let descent_benefit = sigmoid_transition(slope_percentage.abs());
+        // On réduit le coût de moitié par rapport à la montée équivalente
+        // tout en garantissant que le résultat reste > 1
+        (descent_benefit - 1.0) / 2.0 + 1.0
     }
 }
 
