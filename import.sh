@@ -115,9 +115,9 @@ $PSQL_CMD <<EOF
         segments.geom, 
         c.name as city_name, 
         segments.in_bicycle_route,
-        -- On revient à ST_Contains strict avec les points 2D
-        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Contains(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
-        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Contains(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
+        -- ST_Covers est plus permissif que ST_Contains pour les points sur les bords
+        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
+        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
     FROM segments
 
     LEFT JOIN city c ON ST_Within(segments.geom, c.geom);    

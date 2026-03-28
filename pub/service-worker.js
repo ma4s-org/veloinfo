@@ -37,8 +37,8 @@ self.addEventListener('fetch', function(event) {
     }
 
     // Ignore les requêtes cross-origin (S3, CDN externes, etc.)
-    const url = new URL(event.request.url);
-    if (url.origin !== self.location.origin) {
+    const requestUrl = new URL(event.request.url);
+    if (requestUrl.origin !== location.origin) {
         return;
     }
 

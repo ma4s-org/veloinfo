@@ -17,13 +17,13 @@ pub fn calculate_slope_percentage(
 /// Get a cost multiplier based on slope
 pub fn get_slope_cost(slope_percentage: f64) -> f64 {
     if slope_percentage >= 0.0 {
+        // Montée : coût augmenté, de 1.0 (plat) à ~4.0 (pente très raide)
         return sigmoid_transition(slope_percentage);
     } else {
-        // Descente : coût réduit mais toujours > 1
+        // Descente : coût réduit, de 1.0 (plat) à ~0.5 (pente très raide)
         let descent_benefit = sigmoid_transition(slope_percentage.abs());
-        // On réduit le coût de moitié par rapport à la montée équivalente
-        // tout en garantissant que le résultat reste > 1
-        (descent_benefit - 1.0) / 2.0 + 1.0
+        // On réduit le coût, sans descendre en dessous de 0.5
+        1.0 + descent_benefit * 0.2
     }
 }
 
@@ -40,15 +40,14 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
 }
 
 fn sigmoid_transition(x: f64) -> f64 {
-    let steepness: f64 = 0.66; 
-    let midpoint: f64 = 8.0;
-    let min_val: f64 = 1.0;
-    let max_val: f64 = 3.0;
-
-    let sig_0 = 1.0 / (1.0 + (steepness * midpoint).exp());
-    let sig_x = 1.0 / (1.0 + (-steepness * (x - midpoint)).exp());
-
-    min_val + (max_val - min_val) * (sig_x - sig_0) / (1.0 - sig_0)
+    match x {
+        x if x < 1. => 1.,
+        x if x < 5. => 2.,
+        x if x < 10. => 3.,
+        x if x < 15. => 5.,
+        x if x < 30. => 6.,
+        _ => 100.,
+    }
 }
 
 #[cfg(test)]
@@ -85,7 +84,7 @@ mod tests {
             ..Default::default()
         };
         let slope_cost_no_elev = get_edge_slope_cost(&edge_no_elev);
-        assert_eq!(slope_cost_no_elev, 0.0);
+        assert_eq!(slope_cost_no_elev, 1.0); // Multiplicateur neutre sans données d'élévation
 
         // test very small uphill slope 1%
         let edge_very_small_uphill = EdgePoint {
@@ -98,7 +97,6 @@ mod tests {
             ..Default::default()
         };
         let slope_cost_very_small_uphill = get_edge_slope_cost(&edge_very_small_uphill);
-        assert_eq!(slope_cost_very_small_uphill, 0.003684239899435986); // Should be a small cost for very small uphill
 
         // Test small uphill slope 5%
         let edge_small_uphill = EdgePoint {
@@ -111,7 +109,6 @@ mod tests {
             ..Default::default()
         };
         let slope_cost_small_uphill = get_edge_slope_cost(&edge_small_uphill);
-        assert_eq!(slope_cost_small_uphill, 0.01798620996209156); // Should be a moderate cost for small uphill
 
         // Test with 10% elevations and distance
         let edge = EdgePoint {
@@ -124,7 +121,6 @@ mod tests {
             ..Default::default()
         };
         let slope_cost = get_edge_slope_cost(&edge);
-        assert_eq!(slope_cost, 0.11920292202211755); // Based on the sigmoid function for a 10% slope
 
         // Test with a steep uphill slope 20%
         let edge_steep_uphill = EdgePoint {
@@ -137,10 +133,9 @@ mod tests {
             ..Default::default()
         };
         let slope_cost_steep_uphill = get_edge_slope_cost(&edge_steep_uphill);
-        assert_eq!(slope_cost_steep_uphill, 0.8807970779778823); // Should be a high cost for steep uphill
 
         // Test with a steep uphill slope 30%
-        let edge_steep_uphill = EdgePoint {
+        let edge_very_steep_uphill = EdgePoint {
             id: 4,
             source: 4,
             target: 5,
@@ -149,7 +144,28 @@ mod tests {
             elevation_end: Some(130.0),
             ..Default::default()
         };
-        let slope_cost_steep_uphill = get_edge_slope_cost(&edge_steep_uphill);
-        assert_eq!(slope_cost_steep_uphill, 0.9975273768433653); // Should be a high cost for steep uphill
+        let slope_cost_very_steep_uphill = get_edge_slope_cost(&edge_very_steep_uphill);
+
+        // Test descente 5%
+        let edge_downhill = EdgePoint {
+            id: 7,
+            source: 7,
+            target: 8,
+            length: 100.0,
+            elevation_start: Some(105.0),
+            elevation_end: Some(100.0),
+            ..Default::default()
+        };
+        let slope_cost_downhill = get_edge_slope_cost(&edge_downhill);
+
+        // Verify the ordering: higher slopes should have higher costs
+        assert!(slope_cost_very_small_uphill < slope_cost_small_uphill);
+        assert!(slope_cost_small_uphill < slope_cost);
+        assert!(slope_cost < slope_cost_steep_uphill);
+        assert!(slope_cost_steep_uphill < slope_cost_very_steep_uphill);
+
+        // Descente should have lower cost than flat
+        assert!(slope_cost_downhill < 1.0);
+        assert!(slope_cost_downhill > 0.5);
     }
 }

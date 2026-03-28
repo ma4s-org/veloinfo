@@ -133,7 +133,10 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
 
     let mut cost: f64 = if edge.bicycle == Some(Bicycle::No) {
         return 1. / 0.0001;
-    } else if edge.access == Some(Access::Private) || edge.access == Some(Access::No) || edge.informal {
+    } else if edge.access == Some(Access::Private)
+        || edge.access == Some(Access::No)
+        || edge.informal
+    {
         if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             1. / 0.4
         } else {
@@ -158,7 +161,9 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     } else if edge.highway == Some(Highway::Path) {
         if edge.bicycle == Some(Bicycle::Yes) {
             1. / 0.9
-        } else if edge.bicycle == Some(Bicycle::Dismount) || edge.bicycle == Some(Bicycle::Discouraged) {
+        } else if edge.bicycle == Some(Bicycle::Dismount)
+            || edge.bicycle == Some(Bicycle::Discouraged)
+        {
             1. / 0.4
         } else {
             1. / 0.1
@@ -170,12 +175,15 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     } else if edge.highway == Some(Highway::Cycleway) {
         if edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel) {
             1. / 0.75
-        } else if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
+        } else if edge.cycleway == Some(Cycleway::Crossing)
+            || edge.smoothness == Some(Smoothness::Bad)
+        {
             1. / 0.5
         } else {
             1.
         }
-    } else if edge.cycleway == Some(Cycleway::Track) || edge.cycleway_both == Some(Cycleway::Track) {
+    } else if edge.cycleway == Some(Cycleway::Track) || edge.cycleway_both == Some(Cycleway::Track)
+    {
         if edge.cycleway == Some(Cycleway::Crossing) || edge.smoothness == Some(Smoothness::Bad) {
             1. / 0.5
         } else {
@@ -238,10 +246,9 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             } else {
                 1. / 0.3
             }
-        } else if edge.footway == Some(Footway::Sidewalk){
+        } else if edge.footway == Some(Footway::Sidewalk) {
             1. / 0.1
-        }
-        else {
+        } else {
             return 1. / 0.2;
         }
     } else if edge.cycleway == Some(Cycleway::SharedLane)
