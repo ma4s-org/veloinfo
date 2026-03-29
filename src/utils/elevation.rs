@@ -20,10 +20,11 @@ pub fn get_slope_cost(slope_percentage: f64) -> f64 {
         // Montée : coût augmenté, de 1.0 (plat) à ~4.0 (pente très raide)
         return sigmoid_transition(slope_percentage);
     } else {
+        1.
         // Descente : coût réduit, de 1.0 (plat) à ~0.5 (pente très raide)
-        let descent_benefit = sigmoid_transition(slope_percentage.abs());
+        // let descent_benefit = sigmoid_transition(slope_percentage.abs());
         // On réduit le coût, sans descendre en dessous de 0.5
-        1.0 + descent_benefit * 0.2
+        // 1.0 + descent_benefit * 0.2
     }
 }
 
@@ -42,10 +43,13 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
 fn sigmoid_transition(x: f64) -> f64 {
     match x {
         x if x < 1. => 1.,
-        x if x < 5. => 2.,
-        x if x < 10. => 3.,
-        x if x < 15. => 5.,
-        x if x < 30. => 6.,
+        x if x < 5. => 1.5,
+        x if x < 10. => 2.,
+        x if x < 15. => 2.5,
+        x if x < 30. => 3.,
+        x if x < 60. => 3.5,
+        x if x < 80. => 4.,
+        x if x < 100. => 5.,
         _ => 100.,
     }
 }
