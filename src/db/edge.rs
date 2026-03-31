@@ -798,28 +798,53 @@ impl Edge {
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<Node, sqlx::Error> {
         let distance: NodeDb = match sqlx::query_as(
-            r#"        
+            r#"
             SELECT
                 way_id,
-                ST_AsText(ST_Transform(st_centroid(geom), 4326)) as geom,
+                ST_AsText(ST_Transform(point, 4326)) as geom,
                 node_id,
-                ST_X(st_transform(st_centroid(geom), 4326)) as lng,
-                ST_Y(st_transform(st_centroid(geom), 4326)) as lat
-            FROM (  
-                SELECT 
+                ST_X(st_transform(point, 4326)) as lng,
+                ST_Y(st_transform(point, 4326)) as lat
+            FROM (
+                SELECT
                         way_id,
                         source as node_id,
+                        ST_PointN(geom, 1) as point,
                         geom
                 FROM edge e
-                WHERE 
-                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000) 
+                WHERE
+                    ST_DWithin(geom, ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
                     AND (tags->>'highway' != 'track')
                     AND (tags->>'highway' != 'path')
                     AND (tags->>'highway' != 'steps')
-                    AND (tags->>'highway' != 'pedestrian' or 
+                    AND (tags->>'highway' != 'pedestrian' or
+                            (tags->>'highway' = 'pedestrian' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
+                    AND (tags->>'highway' != 'motorway')
+                    AND (tags->>'highway' != 'elevator')
+                    AND (tags->>'footway' IS NULL OR tags->>'footway' != 'sidewalk')
+                    AND (tags->>'indoor' IS NULL OR (tags->>'indoor' != 'yes' AND tags->>'indoor' != 'room'))
+                    AND (tags->>'access' IS NULL or tags->>'access'  in ('customers'))
+
+                UNION ALL
+
+                SELECT
+                        way_id,
+                        target as node_id,
+                        ST_PointN(geom, ST_NumPoints(geom)) as point,
+                        geom
+                FROM edge e
+                WHERE
+                    ST_DWithin(geom, ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
+                    AND tags->>'highway' is not null
+                    AND (tags->>'highway' != 'footway' or
+                            (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
+                    AND (tags->>'highway' != 'track')
+                    AND (tags->>'highway' != 'path')
+                    AND (tags->>'highway' != 'steps')
+                    AND (tags->>'highway' != 'pedestrian' or
                             (tags->>'highway' = 'pedestrian' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
                     AND (tags->>'highway' != 'motorway')
                     AND (tags->>'highway' != 'elevator')
@@ -827,7 +852,7 @@ impl Edge {
                     AND (tags->>'indoor' IS NULL OR (tags->>'indoor' != 'yes' AND tags->>'indoor' != 'room'))
                     AND (tags->>'access' IS NULL or tags->>'access'  in ('customers'))
             ) as subquery
-            ORDER BY geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
+            ORDER BY point <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
             LIMIT 1"#,
         )
         .bind(lng)
