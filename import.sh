@@ -23,64 +23,64 @@ MERGED_FILE="regions.osm.pbf"
 
 # 1. Téléchargement des données
 echo "Téléchargement des données OSM (Canada + USA nord-est)..."
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
-wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
-wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
-wget -q "$NB_URL" -O "$NB_FILE"
-wget -q "$MAINE_URL" -O "$MAINE_FILE"
-wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
-wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
+# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
+# wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
+# wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
+# wget -q "$NB_URL" -O "$NB_FILE"
+# wget -q "$MAINE_URL" -O "$MAINE_FILE"
+# wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
+# wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
 
 # Extraire le nord de New York (latitude > 43°N, env. frontière Québec)
 echo "Extraction du nord de New York..."
-osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
+# osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
 
 # Fusion de tous les fichiers avec osmium
 echo "Fusion des données avec osmium..."
-osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
-PBF_FILE="$MERGED_FILE"
+# osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
+# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
+# PBF_FILE="$MERGED_FILE"
 
 # 2. Préparation du schéma temporaire
 echo "Préparation du schéma temporaire 'import'..."
-$PSQL_CMD -c "DROP SCHEMA IF EXISTS import CASCADE; CREATE SCHEMA import;"
+$PSQL_CMD -c "CREATE SCHEMA IF NOT EXISTS import;"
 
-# 3. Importation optimisée avec osm2pgsql
+# 4. Importation optimisée avec osm2pgsql
 # --slim : Utilise la DB pour les données temporaires (évite les fichiers binaires géants)
 echo "Lancement de osm2pgsql (Mode Slim)..."
-osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
+# osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
 # Nettoyage
 rm -f "$PBF_FILE"
 
 # S'assurer que les extensions sont là
 $PSQL_CMD -c "CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS unaccent;"
 
-# 4. Vérification des données SRTM
+# 5. Vérification des données SRTM
 echo "Vérification des données d'élévation SRTM..."
-SRTM_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'srtm_elevation_polygons');" | xargs)
+SRTM_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'import' AND table_name = 'srtm_elevation_polygons');" | xargs)
 
 if [ "$SRTM_EXISTS" != "t" ]; then
     echo "Données SRTM absentes, importation..."
     /app/import_srtm.sh
 fi
 
-# 5. Création des vues matérialisées dans le schéma 'import'
+# 4. Création des vues matérialisées dans le schéma 'import'
 echo "Création des vues matérialisées dans le schéma 'import'..."
 $PSQL_CMD <<EOF
     SET search_path = import, public;
 
-    CREATE MATERIALIZED VIEW last_cycleway_score AS
+    CREATE MATERIALIZED VIEW IF NOT EXISTS last_cycleway_score AS
         SELECT * FROM (
             SELECT c.*, cs.score,
             ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
             FROM public.cyclability_score cs 
             JOIN cycleway_way c ON c.way_id = ANY(cs.way_ids)
         ) t WHERE t.rn = 1;
-    CREATE UNIQUE INDEX last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
 
-    CREATE SEQUENCE edge_id;
+    CREATE SEQUENCE IF NOT EXISTS edge_id;
 
-    CREATE MATERIALIZED VIEW edge AS
+    CREATE MATERIALIZED VIEW IF NOT EXISTS edge AS
     WITH segments AS (
         SELECT 
             aw.way_id, 
@@ -116,19 +116,19 @@ $PSQL_CMD <<EOF
         c.name as city_name, 
         segments.in_bicycle_route,
         -- ST_Covers est plus permissif que ST_Contains pour les points sur les bords
-        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
-        (SELECT elevation FROM public.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
+        (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
+        (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
     FROM segments
 
     LEFT JOIN city c ON ST_Within(segments.geom, c.geom);    
-    CREATE INDEX edge_way_id_idx ON edge(way_id);
-    CREATE INDEX edge_geom_idx ON edge using gist(geom);
-    CREATE UNIQUE INDEX edge_id_idx ON edge(id);
-    CREATE INDEX edge_source_idx ON edge (source);
-    CREATE INDEX edge_target_idx ON edge (target);
-    CREATE INDEX edge_city_name_idx ON edge (city_name);
+    CREATE INDEX IF NOT EXISTS edge_way_id_idx ON edge(way_id);
+    CREATE INDEX IF NOT EXISTS edge_geom_idx ON edge using gist(geom);
+    CREATE UNIQUE INDEX IF NOT EXISTS edge_id_idx ON edge(id);
+    CREATE INDEX IF NOT EXISTS edge_source_idx ON edge (source);
+    CREATE INDEX IF NOT EXISTS edge_target_idx ON edge (target);
+    CREATE INDEX IF NOT EXISTS edge_city_name_idx ON edge (city_name);
 
-    CREATE MATERIALIZED VIEW address_range AS
+    CREATE MATERIALIZED VIEW IF NOT EXISTS address_range AS
         SELECT a.geom, a.odd_even, an1.city, an1.street, an1.housenumber as start, an2.housenumber as end,
                (to_tsvector('simple', unaccent(coalesce(an1.street, '') || ' ' || coalesce(an1.city, '')))) as tsvector
         FROM address a
@@ -140,16 +140,16 @@ $PSQL_CMD <<EOF
                (to_tsvector('simple', unaccent(coalesce(street, '') || ' ' || coalesce(city, '')))) as tsvector
         FROM address_node an;
 
-    CREATE INDEX textsearch_idx ON address_range USING GIN (tsvector);
-    CREATE INDEX address_range_geom_idx ON address_range using gist(geom);
+    CREATE INDEX IF NOT EXISTS textsearch_idx ON address_range USING GIN (tsvector);
+    CREATE INDEX IF NOT EXISTS address_range_geom_idx ON address_range using gist(geom);
 
-    CREATE MATERIALIZED VIEW name_query AS
+    CREATE MATERIALIZED VIEW IF NOT EXISTS name_query AS
         SELECT name, geom, tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM name
         UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM building WHERE name IS NOT NULL
         UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(name)) as tsvector FROM landcover WHERE name IS NOT NULL;
 
-    CREATE INDEX name_query_textsearch_idx ON name_query USING GIN (tsvector);
-    CREATE INDEX name_query_geom_idx ON name_query using gist(geom);
+    CREATE INDEX IF NOT EXISTS name_query_textsearch_idx ON name_query USING GIN (tsvector);
+    CREATE INDEX IF NOT EXISTS name_query_geom_idx ON name_query using gist(geom);
 EOF
 
 # 6. Échange atomique des schémas

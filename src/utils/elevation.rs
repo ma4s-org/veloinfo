@@ -14,44 +14,33 @@ pub fn calculate_slope_percentage(
     ((elevation_end - elevation_start) / distance_meters) * 100.0
 }
 
-/// Get a cost multiplier based on slope
-pub fn get_slope_cost(slope_percentage: f64) -> f64 {
-    if slope_percentage >= 0.0 {
-        // Montée : coût augmenté, de 1.0 (plat) à ~4.0 (pente très raide)
-        return sigmoid_transition(slope_percentage);
-    } else {
-        1.
-        // Descente : coût réduit, de 1.0 (plat) à ~0.5 (pente très raide)
-        // let descent_benefit = sigmoid_transition(slope_percentage.abs());
-        // On réduit le coût, sans descendre en dessous de 0.5
-        // 1.0 + descent_benefit * 0.2
-    }
-}
-
-/// Calculate slope cost for an EdgePoint
-/// Returns 0.0 if elevation data is not available
 pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
     match (edge.elevation_start, edge.elevation_end) {
         (Some(elev_start), Some(elev_end)) => {
             let slope_percentage = calculate_slope_percentage(elev_start, elev_end, edge.length);
-            get_slope_cost(slope_percentage)
+            sigmoid_transition(slope_percentage)
         }
         _ => 1.0, // No elevation data, no slope penalty
     }
 }
 
 fn sigmoid_transition(x: f64) -> f64 {
-    match x {
-        x if x < 1. => 1.,
-        x if x < 5. => 1.5,
-        x if x < 10. => 2.,
-        x if x < 15. => 2.5,
-        x if x < 30. => 3.,
-        x if x < 60. => 3.5,
-        x if x < 80. => 4.,
-        x if x < 100. => 5.,
-        _ => 100.,
-    }
+    // 1. Gérer l'extrême positif
+    if x > 20. {
+        return x;
+    };
+    let steepness: f64 = 0.25;
+    let midpoint: f64 = 7.0;
+    let min_val: f64 = 1.0;
+
+    // 2. Définir le plafond selon la direction
+    let max_val: f64 = if x > 0. { 20.0 } else { 5.0 };
+
+    // 3. LA CORRECTION : Utiliser la valeur absolue de la pente
+    let abs_x = x.abs();
+    let sig_0 = 1.0 / (1.0 + (steepness * midpoint).exp());
+    let sig_x = 1.0 / (1.0 + (-steepness * (abs_x - midpoint)).exp());
+    min_val + (max_val - min_val) * (sig_x - sig_0) / (1.0 - sig_0)
 }
 
 #[cfg(test)]
@@ -62,17 +51,6 @@ mod tests {
     fn test_flat_slope() {
         assert!((calculate_slope_percentage(100.0, 101.0, 50.0) - 2.0).abs() < 0.01);
         assert!((calculate_slope_percentage(100.0, 100.0, 100.0) - 0.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_slope_cost_multiplier_uphill() {
-        let cost_3_percent = get_slope_cost(3.0);
-        let cost_6_percent = get_slope_cost(6.0);
-        let cost_12_percent = get_slope_cost(12.0);
-
-        // Steeper slopes should have higher cost
-        assert!(cost_3_percent < cost_6_percent);
-        assert!(cost_6_percent < cost_12_percent);
     }
 
     #[test]

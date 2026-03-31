@@ -70,6 +70,16 @@ echo ""
 echo "✓ raster2pgsql is installed"
 echo ""
 
+# Create import schema if it doesn't exist
+echo "Creating import schema..."
+if [ -z "$DB_PASSWORD" ]; then
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS import;"
+else
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS import;"
+fi
+echo "✓ Import schema ready"
+echo ""
+
 # Enable PostGIS Raster extension
 echo "Enabling PostGIS Raster extension..."
 if [ -z "$DB_PASSWORD" ]; then
@@ -84,7 +94,7 @@ echo ""
 echo "Generating SQL script from GeoTIFF (tiled for performance)..."
 SQL_FILE="/tmp/srtm_load.sql"
 # -t: tile size, -d: drop table, -I: create spatial index, -C: add constraints, -M: analyze
-raster2pgsql -t 256x256 -d -I -C -M "$SRTM_FILE" public.srtm_elevation > "$SQL_FILE"
+raster2pgsql -t 256x256 -d -I -C -M "$SRTM_FILE" import.srtm_elevation > "$SQL_FILE"
 echo "✓ SQL script generated at $SQL_FILE"
 echo ""
 
@@ -104,9 +114,9 @@ fi
 
 # Check if load was successful
 if [ -z "$DB_PASSWORD" ]; then
-    TABLE_EXISTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'srtm_elevation');" 2>/dev/null | xargs)
+    TABLE_EXISTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'import' AND table_name = 'srtm_elevation');" 2>/dev/null | xargs)
 else
-    TABLE_EXISTS=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'srtm_elevation');" 2>/dev/null | xargs)
+    TABLE_EXISTS=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'import' AND table_name = 'srtm_elevation');" 2>/dev/null | xargs)
 fi
 
 if [ "$TABLE_EXISTS" != "t" ]; then
@@ -118,58 +128,57 @@ fi
 echo "✓ SRTM data loaded successfully"
 echo "Optimizing raster indexes..."
 if [ -z "$DB_PASSWORD" ]; then
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON srtm_elevation USING GIST (ST_ConvexHull(rast));"
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ANALYZE srtm_elevation;"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON import.srtm_elevation USING GIST (ST_ConvexHull(rast));"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ANALYZE import.srtm_elevation;"
 else
-    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON srtm_elevation USING GIST (ST_ConvexHull(rast));"
-    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ANALYZE srtm_elevation;"
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON import.srtm_elevation USING GIST (ST_ConvexHull(rast));"
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ANALYZE import.srtm_elevation;"
 fi
 echo "✓ Raster index and stats updated"
 
 echo "Building polygon elevation table (this can be VERY large and may take a while)..."
     if [ -z "$DB_PASSWORD" ]; then
         psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
-DROP TABLE IF EXISTS srtm_elevation_polygons;
-CREATE TABLE srtm_elevation_polygons (
+DROP TABLE IF EXISTS import.srtm_elevation_polygons;
+CREATE TABLE import.srtm_elevation_polygons (
     geom geometry(Polygon, 4326),
     elevation double precision
 );
-INSERT INTO srtm_elevation_polygons (geom, elevation)
+INSERT INTO import.srtm_elevation_polygons (geom, elevation)
 SELECT (p).geom, (p).val
 FROM (
     SELECT ST_PixelAsPolygons(rast, 1) AS p
-    FROM srtm_elevation
+    FROM import.srtm_elevation
 ) AS polys;
-CREATE INDEX srtm_elevation_polygons_geom_idx ON srtm_elevation_polygons USING GIST (geom);
-ANALYZE srtm_elevation_polygons;
+CREATE INDEX srtm_elevation_polygons_geom_idx ON import.srtm_elevation_polygons USING GIST (geom);
+ANALYZE import.srtm_elevation_polygons;
 EOF
     else
         PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
-DROP TABLE IF EXISTS srtm_elevation_polygons;
-CREATE TABLE srtm_elevation_polygons (
+DROP TABLE IF EXISTS import.srtm_elevation_polygons;
+CREATE TABLE import.srtm_elevation_polygons (
     geom geometry(Polygon, 4326),
     elevation double precision
 );
-INSERT INTO srtm_elevation_polygons (geom, elevation)
+INSERT INTO import.srtm_elevation_polygons (geom, elevation)
 SELECT (p).geom, (p).val
 FROM (
     SELECT ST_PixelAsPolygons(rast, 1) AS p
-    FROM srtm_elevation
+    FROM import.srtm_elevation
 ) AS polys;
-CREATE INDEX srtm_elevation_polygons_geom_idx ON srtm_elevation_polygons USING GIST (geom);
-ANALYZE srtm_elevation_polygons;
+CREATE INDEX srtm_elevation_polygons_geom_idx ON import.srtm_elevation_polygons USING GIST (geom);
+ANALYZE import.srtm_elevation_polygons;
 EOF
     fi
     echo "✓ Polygon elevation table built"
-fi
 echo ""
 
 # Verify the data
 echo "Verifying SRTM data..."
 if [ -z "$DB_PASSWORD" ]; then
-    RASTER_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM srtm_elevation;")
+    RASTER_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM import.srtm_elevation;")
 else
-    RASTER_COUNT=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM srtm_elevation;")
+    RASTER_COUNT=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM import.srtm_elevation;")
 fi
 
 echo "✓ Rasters in database: $RASTER_COUNT"
