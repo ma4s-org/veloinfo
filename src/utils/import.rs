@@ -6,7 +6,7 @@ use tokio::process::Command;
 pub async fn import(conn: &PgPool) {
     println!("Importing data");
     let conn_clone = conn.clone();
-    tokio::spawn(async move {
+    let handle = tokio::spawn(async move {
         println!("fetching montreal data");
         mtl::fetch_montreal_data(&conn_clone).await;
         println!("fetching montreal data done");
@@ -25,6 +25,9 @@ pub async fn import(conn: &PgPool) {
             println!("Error2 importing: {:?}", e);
         }
     }
+    if let Err(e) = handle.await {
+        println!("Erreur dans fetch_montreal_data: {:?}", e);
+    };
     println!("clearing cache");
     Edge::clear_cache_and_reload(&conn).await;
 }

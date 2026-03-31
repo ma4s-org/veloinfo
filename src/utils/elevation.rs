@@ -25,21 +25,23 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
 }
 
 fn sigmoid_transition(x: f64) -> f64 {
-    // 1. Gérer l'extrême positif
+    // 1. Gérer l'extrême positif avec une croissance très lente (1/10e)
     if x > 20. {
-        return x;
+        return (x / 3.0) - 1.0;
     };
+
     let steepness: f64 = 0.25;
     let midpoint: f64 = 7.0;
     let min_val: f64 = 1.0;
 
     // 2. Définir le plafond selon la direction
-    let max_val: f64 = if x > 0. { 20.0 } else { 5.0 };
+    let max_val: f64 = if x > 0. { 3. } else { 1.5 };
 
-    // 3. LA CORRECTION : Utiliser la valeur absolue de la pente
+    // 3. Utiliser la valeur absolue de la pente
     let abs_x = x.abs();
     let sig_0 = 1.0 / (1.0 + (steepness * midpoint).exp());
     let sig_x = 1.0 / (1.0 + (-steepness * (abs_x - midpoint)).exp());
+
     min_val + (max_val - min_val) * (sig_x - sig_0) / (1.0 - sig_0)
 }
 
