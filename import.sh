@@ -23,23 +23,23 @@ MERGED_FILE="regions.osm.pbf"
 
 # 1. Téléchargement des données
 echo "Téléchargement des données OSM (Canada + USA nord-est)..."
-# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
-# wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
-# wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
-# wget -q "$NB_URL" -O "$NB_FILE"
-# wget -q "$MAINE_URL" -O "$MAINE_FILE"
-# wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
-# wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
+wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
+wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
+wget -q "$NB_URL" -O "$NB_FILE"
+wget -q "$MAINE_URL" -O "$MAINE_FILE"
+wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
+wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
 
 # Extraire le nord de New York (latitude > 43°N, env. frontière Québec)
 echo "Extraction du nord de New York..."
-# osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
+osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
 
 # Fusion de tous les fichiers avec osmium
 echo "Fusion des données avec osmium..."
-# osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
-# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
-# PBF_FILE="$MERGED_FILE"
+osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
+PBF_FILE="$MERGED_FILE"
 
 # 2. Préparation du schéma temporaire
 echo "Préparation du schéma temporaire 'import'..."
@@ -48,7 +48,8 @@ $PSQL_CMD -c "CREATE SCHEMA IF NOT EXISTS import;"
 # 4. Importation optimisée avec osm2pgsql
 # --slim : Utilise la DB pour les données temporaires (évite les fichiers binaires géants)
 echo "Lancement de osm2pgsql (Mode Slim)..."
-# osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
+osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
+
 # Nettoyage
 rm -f "$PBF_FILE"
 

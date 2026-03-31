@@ -596,7 +596,7 @@ impl EdgePointCache {
 
     pub async fn remove(&mut self, node_id: i64) {
         self.cache.remove(&node_id);
-        // On ne retire pas de 'order' car c'est coûteux (O(n)), 
+        // On ne retire pas de 'order' car c'est coûteux (O(n)),
         // le mécanisme de nettoyage s'en chargera ou il sera ignoré lors du remove.
     }
 }
@@ -974,8 +974,8 @@ impl Edge {
             let routes = vec![
                 (11329849232, 177522966, "Montréal to Quebec"),
                 (2352518821, 1870784004, "Mont-Tremblant to Sherbrooke"),
-                (11329849232, 60890409, "Montréal to Gatineau")
-               ];
+                (11329849232, 60890409, "Montréal to Gatineau"),
+            ];
 
             for (source, target, description) in routes {
                 println!("Calculating route: {}", description);
