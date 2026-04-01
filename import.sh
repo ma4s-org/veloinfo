@@ -58,9 +58,20 @@ $PSQL_CMD -c "CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EX
 
 # 5. Vérification des données SRTM
 echo "Vérification des données d'élévation SRTM..."
-SRTM_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'import' AND table_name = 'srtm_elevation_polygons');" | xargs)
+SRTM_IN_IMPORT=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'import' AND table_name = 'srtm_elevation_polygons');" | xargs)
+SRTM_IN_PUBLIC=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'srtm_elevation_polygons');" | xargs)
 
-if [ "$SRTM_EXISTS" != "t" ]; then
+if [ "$SRTM_IN_IMPORT" = "t" ]; then
+    echo "✓ Table srtm_elevation_polygons déjà présente dans le schéma import"
+elif [ "$SRTM_IN_PUBLIC" = "t" ]; then
+    echo "Table srtm_elevation_polygons trouvée dans public, copie vers import..."
+    $PSQL_CMD <<EOF
+CREATE TABLE import.srtm_elevation_polygons AS SELECT * FROM public.srtm_elevation_polygons;
+CREATE INDEX srtm_elevation_polygons_geom_idx ON import.srtm_elevation_polygons USING GIST (geom);
+ANALYZE import.srtm_elevation_polygons;
+EOF
+    echo "✓ Table copiée depuis public"
+else
     echo "Données SRTM absentes, importation..."
     /app/import_srtm.sh
 fi
