@@ -94,9 +94,9 @@ $PSQL_CMD <<EOF
 
     CREATE MATERIALIZED VIEW IF NOT EXISTS edge AS
     WITH segments AS (
-        SELECT 
-            aw.way_id, 
-            aw.tags, 
+        SELECT
+            aw.way_id,
+            aw.tags,
             aw.in_bicycle_route,
             aw.nodes[(segment).path[1]] as source,
             aw.nodes[(segment).path[1]+1] as target,
@@ -122,10 +122,10 @@ $PSQL_CMD <<EOF
         ST_Y(segments.pt1) as y1,
         ST_X(segments.pt2) as x2,
         ST_Y(segments.pt2) as y2,
-        segments.way_id, 
-        segments.tags, 
-        segments.geom, 
-        c.name as city_name, 
+        segments.way_id,
+        segments.tags,
+        segments.geom,
+        c.name as city_name,
         segments.in_bicycle_route,
         -- ST_Covers est plus permissif que ST_Contains pour les points sur les bords
         (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,

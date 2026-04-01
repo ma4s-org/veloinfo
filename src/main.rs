@@ -157,6 +157,7 @@ async fn main() {
         .route("/martin/{*path}", get(martin_proxy)) // Proxy pour le serveur de tuiles Martin
         .route("/pub/service-worker.js", get(service_worker_js))
         .route("/health-check", get(|| async { "ok" }))
+        .route("/version", get(version))
         
         // Services de fichiers statiques
         .nest_service("/.well-known/", ServeDir::new("well-known"))
@@ -226,4 +227,9 @@ async fn service_worker_js() -> impl axum::response::IntoResponse {
         ],
         content,
     )
+}
+
+/// Handler pour la version
+async fn version() -> &'static str {
+    "1.0"
 }

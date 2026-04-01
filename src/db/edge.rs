@@ -511,8 +511,8 @@ impl EdgePoint {
                 e.tags,
                 e.way_id,
                 e.in_bicycle_route,
-                e.tags->>'name' as name, 
-                st_length(e.geom) as length,
+                e.tags->>'name' as name,
+                st_length(ST_Transform(e.geom, 4326)::geography) as length,
                 rw.geom is not null as road_work,
                 cs.score,
                 case when csnow.city_name is not null then true else false end as snow,
@@ -803,17 +803,16 @@ impl Edge {
                 way_id,
                 ST_AsText(ST_Transform(point, 4326)) as geom,
                 node_id,
-                ST_X(st_transform(point, 4326)) as lng,
-                ST_Y(st_transform(point, 4326)) as lat
+                ST_X(ST_Transform(point, 4326)) as lng,
+                ST_Y(ST_Transform(point, 4326)) as lat
             FROM (
                 SELECT
                         way_id,
                         source as node_id,
-                        ST_PointN(geom, 1) as point,
-                        geom
+                        ST_PointN(geom, 1) as point
                 FROM edge e
                 WHERE
-                    ST_DWithin(ST_Transform(geom, 4326), ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
+                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 200)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
@@ -833,11 +832,10 @@ impl Edge {
                 SELECT
                         way_id,
                         target as node_id,
-                        ST_PointN(geom, ST_NumPoints(geom)) as point,
-                        geom
+                        ST_PointN(geom, ST_NumPoints(geom)) as point
                 FROM edge e
                 WHERE
-                    ST_DWithin(ST_Transform(geom, 4326), ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
+                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 200)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
@@ -852,7 +850,7 @@ impl Edge {
                     AND (tags->>'indoor' IS NULL OR (tags->>'indoor' != 'yes' AND tags->>'indoor' != 'room'))
                     AND (tags->>'access' IS NULL or tags->>'access'  in ('customers'))
             ) as subquery
-            ORDER BY ST_Transform(point, 4326) <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
+            ORDER BY point <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
             LIMIT 1"#,
         )
         .bind(lng)
@@ -861,7 +859,9 @@ impl Edge {
         .await
         {
             Ok(distance) => distance,
-            Err(e) => return Err(e),
+            Err(e) => {
+                println!("errrr :  {:?}", e);
+                return Err(e)},
         };
         Ok((&distance).into())
     }
