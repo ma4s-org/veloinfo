@@ -813,7 +813,7 @@ impl Edge {
                         geom
                 FROM edge e
                 WHERE
-                    ST_DWithin(geom, ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
+                    ST_DWithin(ST_Transform(geom, 4326), ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
@@ -837,7 +837,7 @@ impl Edge {
                         geom
                 FROM edge e
                 WHERE
-                    ST_DWithin(geom, ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
+                    ST_DWithin(ST_Transform(geom, 4326), ST_SetSRID(ST_MakePoint($1, $2), 4326), 0.002)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
@@ -852,7 +852,7 @@ impl Edge {
                     AND (tags->>'indoor' IS NULL OR (tags->>'indoor' != 'yes' AND tags->>'indoor' != 'room'))
                     AND (tags->>'access' IS NULL or tags->>'access'  in ('customers'))
             ) as subquery
-            ORDER BY point <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
+            ORDER BY ST_Transform(point, 4326) <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
             LIMIT 1"#,
         )
         .bind(lng)
