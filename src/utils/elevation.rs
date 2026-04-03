@@ -30,11 +30,11 @@ fn sigmoid_transition(x: f64) -> f64 {
     let midpoint: f64 = 7.0;
     let min_val: f64 = 1.0;
 
-    let pos_max: f64 = 4.0; // Plafond en montée
-    let neg_max: f64 = 1.5; // Plafond en descente
+    let pos_max: f64 = 3.; // Plafond en montée
+    let slowdown_factor: f64 = 1.5; // Votre diviseur
 
+    let neg_max: f64 = 1.5; // Plafond en descente
     let threshold: f64 = 20.0; // Point de déclenchement du relais linéaire
-    let slowdown_factor: f64 = 3.0; // Votre diviseur
 
     // --- 2. LE RELAIS LINÉAIRE (Calculé dynamiquement) ---
     if x > threshold {

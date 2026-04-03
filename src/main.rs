@@ -51,7 +51,8 @@ mod utils;
 // Variables statiques chargées une seule fois au démarrage depuis l'environnement
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").expect("IMAGE_DIR must be set");
-    static ref MATOMO_SERVER: String = env::var("MATOMO_SERVER").expect("MATOMO_SERVER must be set");
+    static ref MATOMO_SERVER: String =
+        env::var("MATOMO_SERVER").expect("MATOMO_SERVER must be set");
 }
 
 /// État partagé de l'application (accessible dans les handlers)
@@ -63,7 +64,10 @@ struct VeloinfoState {
 #[tokio::main]
 async fn main() {
     // Détection du mode développement
-    let dev = env::var("ENV").unwrap_or_else(|_| "prod".into()).as_str().contains("dev");
+    let dev = env::var("ENV")
+        .unwrap_or_else(|_| "prod".into())
+        .as_str()
+        .contains("dev");
 
     // Initialisation du logging
     tracing_subscriber::registry()
@@ -98,7 +102,7 @@ async fn main() {
             }
             // Rechargement du cache des segments (edges)
             Edge::clear_cache_and_reload(&conn).await;
-            
+
             // Tâche planifiée : tous les jours à 3h du matin (heure de Montréal)
             // On crée un fichier lock et on quitte l'application (elle sera redémarrée par Docker/Systemd)
             sched
@@ -125,40 +129,55 @@ async fn main() {
         .route("/", get(index))
         .route("/auth", get(auth))
         .route("/logout", get(logout))
-        
         // Panels d'information et de segments
-        .route("/info_panel/up/{lng1}/{lat1}/{lng2}/{lat2}", get(info_panel_up))
+        .route(
+            "/info_panel/up/{lng1}/{lat1}/{lng2}/{lat2}",
+            get(info_panel_up),
+        )
         .route("/segment_panel/id/{id}", get(select_score_id))
-        .route("/segment_panel_lng_lat/{lng}/{lat}", get(segment_panel_lng_lat))
+        .route(
+            "/segment_panel_lng_lat/{lng}/{lat}",
+            get(segment_panel_lng_lat),
+        )
         .route("/segment_panel/ways/{way_ids}", get(segment_panel_get))
-        .route("/segment_panel/edit/ways/{way_ids}", get(segment_panel_edit))
+        .route(
+            "/segment_panel/edit/ways/{way_ids}",
+            get(segment_panel_edit),
+        )
         .route("/segment_panel", post(segment_panel_post))
-        .route("/segment_panel_bigger/{start_lng}/{start_lat}/{end_lng}/{end_lat}", get(segment_panel_bigger_route))
-        
+        .route(
+            "/segment_panel_bigger/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
+            get(segment_panel_bigger_route),
+        )
         // Gestion de la neige
         .route("/city_snow_edit", post(post_city_snow))
         .route("/city_snow", get(city_snow))
         .route("/city_snow/{z}/{x}/{y}", get(city_snow_mvt))
-        
         // Pistes cyclables et tuiles vectorielles (MVT)
         .route("/bike_path", get(bike_path))
         .route("/bike_path/{z}/{x}/{y}", get(bike_path_mvt))
-        
         // Recherche et calcul d'itinéraires
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))
         .route("/search", post(search::post))
-        .route("/route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}", get(route))
-        .route("/recalculate_route/{route}/{start_lng}/{start_lat}/{end_lgt}/{end_lat}", get(recalculate_route))
-        
+        .route(
+            "/route/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
+            get(route),
+        )
+        .route(
+            "/recalculate_route/{route}/{start_lng}/{start_lat}/{end_lgt}/{end_lat}",
+            get(recalculate_route),
+        )
         // Divers (scores, photos, style mapbox)
-        .route("/cyclability_score/geom/{cyclability_score_id}", get(score_bounds_controler))
+        .route(
+            "/cyclability_score/geom/{cyclability_score_id}",
+            get(score_bounds_controler),
+        )
         .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
         .route("/martin/{*path}", get(martin_proxy)) // Proxy pour le serveur de tuiles Martin
         .route("/pub/service-worker.js", get(service_worker_js))
         .route("/health-check", get(|| async { "ok" }))
         .route("/version", get(version))
-        
         // Services de fichiers statiques
         .nest_service("/.well-known/", ServeDir::new("well-known"))
         .nest_service("/dist/", ServeDir::new("dist"))
@@ -166,7 +185,6 @@ async fn main() {
         .nest_service("/custom-elements/", ServeDir::new("custom-elements"))
         .nest_service("/images/", ServeDir::new(IMAGE_DIR.as_str()))
         .nest_service("/node_modules/", ServeDir::new("node_modules"))
-        
         // État et middleware
         .with_state(state)
         .layer(TraceLayer::new_for_http())
@@ -231,5 +249,5 @@ async fn service_worker_js() -> impl axum::response::IntoResponse {
 
 /// Handler pour la version
 async fn version() -> &'static str {
-    "1.0"
+    "1.1"
 }
