@@ -248,6 +248,8 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             }
         } else if edge.footway == Some(Footway::Sidewalk) {
             1. / 0.1
+        } else if edge.footway == Some(Footway::Crossing) {
+            1. / 0.02
         } else {
             return 1. / 0.2;
         }

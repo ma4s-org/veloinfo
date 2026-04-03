@@ -25,20 +25,29 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
 }
 
 fn sigmoid_transition(x: f64) -> f64 {
-    // 1. Gérer l'extrême positif avec une croissance très lente (1/10e)
-    if x > 20. {
-        return (x / 3.0) - 1.0;
-    };
-
+    // --- 1. VOS PARAMÈTRES RÉGLABLES ---
     let steepness: f64 = 0.25;
     let midpoint: f64 = 7.0;
     let min_val: f64 = 1.0;
 
-    // 2. Définir le plafond selon la direction
-    let max_val: f64 = if x > 0. { 3. } else { 1.5 };
+    let pos_max: f64 = 4.0; // Plafond en montée
+    let neg_max: f64 = 1.5; // Plafond en descente
 
-    // 3. Utiliser la valeur absolue de la pente
+    let threshold: f64 = 20.0; // Point de déclenchement du relais linéaire
+    let slowdown_factor: f64 = 3.0; // Votre diviseur
+
+    // --- 2. LE RELAIS LINÉAIRE (Calculé dynamiquement) ---
+    if x > threshold {
+        // La formule magique pour un raccordement sans aucun saut :
+        // offset = Plafond - (Seuil / Diviseur)
+        let offset = pos_max - (threshold / slowdown_factor);
+        return (x / slowdown_factor) + offset;
+    };
+
+    // --- 3. LA SIGMOÏDE ---
+    let max_val: f64 = if x > 0. { pos_max } else { neg_max };
     let abs_x = x.abs();
+
     let sig_0 = 1.0 / (1.0 + (steepness * midpoint).exp());
     let sig_x = 1.0 / (1.0 + (-steepness * (abs_x - midpoint)).exp());
 
