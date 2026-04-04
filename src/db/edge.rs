@@ -953,10 +953,42 @@ impl Edge {
     pub async fn clear_nodes_cache(node_ids: Vec<i64>, conn: &sqlx::Pool<Postgres>) {
         let conn = conn.clone();
         tokio::spawn(async move {
-            sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY last_cycleway_score"#)
-                .execute(&conn)
-                .await
-                .unwrap();
+            // 1. Delete les scores affectés par ces nodes
+            sqlx::query(
+                r#"
+                DELETE FROM last_cycleway_score
+                WHERE way_id = ANY(
+                    SELECT c.way_id
+                    FROM cycleway_way c
+                    WHERE c.nodes && $1  -- array overlap: nodes contient au moins un des node_ids
+                )
+                "#,
+            )
+            .bind(&node_ids)
+            .execute(&conn)
+            .await
+            .unwrap();
+
+            println!("clear_nodes_cache: {:?}", node_ids);
+            // 2. Réinsère les scores à jour
+            sqlx::query(
+                r#"
+                INSERT INTO last_cycleway_score
+                SELECT * FROM (
+                    SELECT c.*, cs.score, cs.created_at,
+                           ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
+                    FROM public.cyclability_score cs 
+                    JOIN cycleway_way c ON c.way_id = ANY(cs.way_ids)
+                    WHERE c.nodes && $1  -- array overlap
+                ) t WHERE t.rn = 1
+                "#,
+            )
+            .bind(&node_ids)
+            .execute(&conn)
+            .await
+            .unwrap();
+
+            // 3. Clear cache des nodes affectés
             for node_id in node_ids {
                 NEIGHBORS_CACHE.lock().await.remove(node_id).await;
             }

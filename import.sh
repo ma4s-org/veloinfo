@@ -23,22 +23,22 @@ MERGED_FILE="regions.osm.pbf"
 
 # 1. Téléchargement des données
 echo "Téléchargement des données OSM (Canada + USA nord-est)..."
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
-wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
-wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
-wget -q "$NB_URL" -O "$NB_FILE"
-wget -q "$MAINE_URL" -O "$MAINE_FILE"
-wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
-wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
+# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
+# wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
+# wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
+# wget -q "$NB_URL" -O "$NB_FILE"
+# wget -q "$MAINE_URL" -O "$MAINE_FILE"
+# wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
+# wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
 
 # Extraire le nord de New York (latitude > 43°N, env. frontière Québec)
 echo "Extraction du nord de New York..."
-osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
+# osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
 
 # Fusion de tous les fichiers avec osmium
 echo "Fusion des données avec osmium..."
-osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
+# osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
+# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
 PBF_FILE="$MERGED_FILE"
 
 # 2. Préparation du schéma temporaire
@@ -48,7 +48,7 @@ $PSQL_CMD -c "CREATE SCHEMA IF NOT EXISTS import;"
 # 4. Importation optimisée avec osm2pgsql
 # --slim : Utilise la DB pour les données temporaires (évite les fichiers binaires géants)
 echo "Lancement de osm2pgsql (Mode Slim)..."
-osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
+# osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
 
 # Nettoyage
 rm -f "$PBF_FILE"
@@ -76,18 +76,21 @@ else
     /app/import_srtm.sh
 fi
 
-# 4. Création des vues matérialisées dans le schéma 'import'
-echo "Création des vues matérialisées dans le schéma 'import'..."
+# 4. Création des tables (anciennes vues matérialisées) dans le schéma 'import'
+echo "Création des tables dans le schéma 'import'..."
 $PSQL_CMD <<EOF
     SET search_path = import, public;
-
-    CREATE MATERIALIZED VIEW IF NOT EXISTS last_cycleway_score AS
+   
+    -- Refresh complet: drop et recrée (plus propre pour un import quotidien)
+    DROP TABLE IF EXISTS last_cycleway_score CASCADE;
+    CREATE TABLE last_cycleway_score AS
         SELECT * FROM (
-            SELECT c.*, cs.score,
-            ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
+            SELECT c.*, cs.score, cs.created_at,
+                   ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
             FROM public.cyclability_score cs 
             JOIN cycleway_way c ON c.way_id = ANY(cs.way_ids)
         ) t WHERE t.rn = 1;
+    
     CREATE UNIQUE INDEX IF NOT EXISTS last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
 
     CREATE SEQUENCE IF NOT EXISTS edge_id;
@@ -171,18 +174,34 @@ BEGIN;
 DO \$\$ 
 DECLARE 
     r RECORD;
+    obj_type TEXT;
 BEGIN
     FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'import') LOOP
-        EXECUTE 'DROP TABLE IF EXISTS public.' || r.tablename || ' CASCADE';
-        EXECUTE 'ALTER TABLE import.' || r.tablename || ' SET SCHEMA public';
+        -- Vérifier le type d'objet dans public et drop adéquatement
+        SELECT CASE 
+            WHEN EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = r.tablename) THEN 'TABLE'
+            WHEN EXISTS (SELECT 1 FROM pg_views WHERE schemaname = 'public' AND viewname = r.tablename) THEN 'VIEW'
+            WHEN EXISTS (SELECT 1 FROM pg_matviews WHERE schemaname = 'public' AND matviewname = r.tablename) THEN 'MATERIALIZED VIEW'
+            ELSE NULL
+        END INTO obj_type;
+        
+        IF obj_type = 'TABLE' THEN
+            EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+        ELSIF obj_type = 'VIEW' THEN
+            EXECUTE 'DROP VIEW IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+        ELSIF obj_type = 'MATERIALIZED VIEW' THEN
+            EXECUTE 'DROP MATERIALIZED VIEW IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+        END IF;
+        
+        EXECUTE 'ALTER TABLE import.' || quote_ident(r.tablename) || ' SET SCHEMA public';
     END LOOP;
     FOR r IN (SELECT matviewname FROM pg_matviews WHERE schemaname = 'import') LOOP
-        EXECUTE 'DROP MATERIALIZED VIEW IF EXISTS public.' || r.matviewname || ' CASCADE';
-        EXECUTE 'ALTER MATERIALIZED VIEW import.' || r.matviewname || ' SET SCHEMA public';
+        EXECUTE 'DROP MATERIALIZED VIEW IF EXISTS public.' || quote_ident(r.matviewname) || ' CASCADE';
+        EXECUTE 'ALTER MATERIALIZED VIEW import.' || quote_ident(r.matviewname) || ' SET SCHEMA public';
     END LOOP;
     FOR r IN (SELECT relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'import' AND c.relkind = 'S') LOOP
-        EXECUTE 'DROP SEQUENCE IF EXISTS public.' || r.relname || ' CASCADE';
-        EXECUTE 'ALTER SEQUENCE import.' || r.relname || ' SET SCHEMA public';
+        EXECUTE 'DROP SEQUENCE IF EXISTS public.' || quote_ident(r.relname) || ' CASCADE';
+        EXECUTE 'ALTER SEQUENCE import.' || quote_ident(r.relname) || ' SET SCHEMA public';
     END LOOP;
 END \$\$;
 COMMIT;
