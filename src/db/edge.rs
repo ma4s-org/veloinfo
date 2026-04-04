@@ -951,15 +951,15 @@ impl Edge {
     }
 
     pub async fn clear_nodes_cache(node_ids: Vec<i64>, conn: &sqlx::Pool<Postgres>) {
-        for node_id in node_ids {
-            NEIGHBORS_CACHE.lock().await.remove(node_id).await;
-        }
         let conn = conn.clone();
         tokio::spawn(async move {
             sqlx::query(r#"REFRESH MATERIALIZED VIEW CONCURRENTLY last_cycleway_score"#)
                 .execute(&conn)
                 .await
                 .unwrap();
+            for node_id in node_ids {
+                NEIGHBORS_CACHE.lock().await.remove(node_id).await;
+            }
         });
     }
 
