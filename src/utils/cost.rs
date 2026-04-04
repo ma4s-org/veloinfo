@@ -247,11 +247,11 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
                 1. / 0.2
             }
         } else if edge.footway == Some(Footway::Sidewalk) {
-            1. / 0.1
+            1. / 0.09
         } else if edge.footway == Some(Footway::Crossing) {
             1. / 0.02
         } else {
-            return 1. / 0.2;
+            return 1. / 0.1;
         }
     } else if edge.cycleway == Some(Cycleway::SharedLane)
         || edge.cycleway == Some(Cycleway::ShareBusway)
@@ -292,7 +292,9 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             1. / 0.7
         }
-    } else if edge.highway == Some(Highway::Residential) {
+    } else if edge.highway == Some(Highway::Residential)
+        || edge.highway == Some(Highway::LivingStreet)
+    {
         if edge.surface == Some(Surface::Sett) || edge.surface == Some(Surface::Cobblestone) {
             1. / 0.2
         } else if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
@@ -317,7 +319,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         if edge.surface == Some(Surface::Chipseal) {
             1. / 0.05
         } else {
-            1. / 0.3
+            1. / 0.5
         }
     } else if edge.highway == Some(Highway::Secondary) {
         if edge.surface == Some(Surface::Sett)
