@@ -23,22 +23,22 @@ MERGED_FILE="regions.osm.pbf"
 
 # 1. Téléchargement des données
 echo "Téléchargement des données OSM (Canada + USA nord-est)..."
-# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
-# wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
-# wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
-# wget -q "$NB_URL" -O "$NB_FILE"
-# wget -q "$MAINE_URL" -O "$MAINE_FILE"
-# wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
-# wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE" "$MERGED_FILE"
+wget -q "$QUEBEC_URL" -O "$QUEBEC_FILE"
+wget -q "$ONTARIO_URL" -O "$ONTARIO_FILE"
+wget -q "$NB_URL" -O "$NB_FILE"
+wget -q "$MAINE_URL" -O "$MAINE_FILE"
+wget -q "$VERMONT_URL" -O "$VERMONT_FILE"
+wget -q "$NEWYORK_URL" -O "$NEWYORK_FILE"
 
 # Extraire le nord de New York (latitude > 43°N, env. frontière Québec)
 echo "Extraction du nord de New York..."
-# osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
+osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NEWYORK_NORTH_FILE"
 
 # Fusion de tous les fichiers avec osmium
 echo "Fusion des données avec osmium..."
-# osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
-# rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
+osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_NORTH_FILE" -o "$MERGED_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NEWYORK_NORTH_FILE"
 PBF_FILE="$MERGED_FILE"
 
 # 2. Préparation du schéma temporaire
@@ -48,7 +48,7 @@ $PSQL_CMD -c "CREATE SCHEMA IF NOT EXISTS import;"
 # 4. Importation optimisée avec osm2pgsql
 # --slim : Utilise la DB pour les données temporaires (évite les fichiers binaires géants)
 echo "Lancement de osm2pgsql (Mode Slim)..."
-# osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
+osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$PBF_FILE"
 
 # Nettoyage
 rm -f "$PBF_FILE"
@@ -82,8 +82,7 @@ $PSQL_CMD <<EOF
     SET search_path = import, public;
    
     -- Refresh complet: drop et recrée (plus propre pour un import quotidien)
-    DROP TABLE IF EXISTS last_cycleway_score CASCADE;
-    CREATE TABLE last_cycleway_score AS
+    CREATE TABLE IF NOT EXISTS last_cycleway_score AS
         SELECT * FROM (
             SELECT c.*, cs.score, cs.created_at,
                    ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
@@ -134,8 +133,8 @@ $PSQL_CMD <<EOF
         (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
         (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
     FROM segments
-
     LEFT JOIN city c ON ST_Within(segments.geom, c.geom);    
+
     CREATE INDEX IF NOT EXISTS edge_way_id_idx ON edge(way_id);
     CREATE INDEX IF NOT EXISTS edge_geom_idx ON edge using gist(geom);
     CREATE UNIQUE INDEX IF NOT EXISTS edge_id_idx ON edge(id);

@@ -33,7 +33,7 @@ pub async fn post_city_snow(
                 where not exists (
                     select 1 from city_snow where city_name = $1
                 )
-        "#,
+            "#,
         )
         .bind(&city_name)
         .execute(conn)
@@ -66,7 +66,7 @@ pub async fn post_city_snow(
                     acc.push(e.target);
                     acc
                 });
-                Edge::clear_nodes_cache(node_ids, &conn).await;
+                Edge::clear_nodes_cache(node_ids).await;
             }
             Err(e) => {
                 eprintln!("Error clearing edge cache for city {}: {}", city_name, e);

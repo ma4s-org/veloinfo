@@ -950,7 +950,7 @@ impl Edge {
         Ok(edges)
     }
 
-    pub async fn clear_nodes_cache(node_ids: Vec<i64>, conn: &sqlx::Pool<Postgres>) {
+    pub async fn change_scores(node_ids: Vec<i64>, conn: &sqlx::Pool<Postgres>) {
         let conn = conn.clone();
         tokio::spawn(async move {
             // 1. Delete les scores affectés par ces nodes
@@ -989,10 +989,14 @@ impl Edge {
             .unwrap();
 
             // 3. Clear cache des nodes affectés
-            for node_id in node_ids {
-                NEIGHBORS_CACHE.lock().await.remove(node_id).await;
-            }
+            Edge::clear_nodes_cache(node_ids).await;
         });
+    }
+
+    pub async fn clear_nodes_cache(node_ids: Vec<i64>) {
+        for node_id in node_ids {
+            NEIGHBORS_CACHE.lock().await.remove(node_id).await;
+        }
     }
 
     pub async fn clear_all_cache() {
