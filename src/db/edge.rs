@@ -763,9 +763,66 @@ impl Edge {
             }
             // Le chemin a été collecté dans l'ordre meeting -> end, donc pas besoin de reverse.
 
-            // Combiner les deux chemins, en retirant le meeting_node dupliqué
+            // =====================================================================
+            // DÉTECTION ET CORRECTION DU BACKTRACKING
+            // =====================================================================
+            // Problème: Lors de la jonction des deux recherches bidirectionnelles
+            // (forward + backward), path_bwd peut retourner vers un node déjà
+            // visité par path_fwd, créant un détour.
+            //
+            // Pattern typique au meeting point:
+            //   PATH FWD: [..., X, meeting_node]
+            //   PATH BWD: [meeting_node, X, ...]  ← retourne vers X !
+            //   Combiné:  [..., X, meeting_node, X, ...]  ← backtrack!
+            //
+            // Exemple réel (Lavigueur/Sutherland):
+            //   FWD: [..., 165090629, 2305853021]  (Lavigueur)
+            //   BWD: [2305853021, 165090629, ...]  (Sutherland - retourne à 165090629!)
+            //   Résultat: le chemin fait un aller-retour sur Lavigueur avant de
+            //   prendre Sutherland.
+            //
+            // Solution: Détecter le premier node qui apparaît 2 fois et couper le
+            // segment entre les 2 occurrences. On garde la 2ème occurrence car c'est
+            // celle qui mène vers la destination.
+            //
+            // Optimisation: Le backtracking arrive presque toujours près du meeting
+            // point. On scanne seulement ±5 edges autour pour éviter de parcourir
+            // des dizaines de milliers d'edges (Québec-Montréal).
+            // =====================================================================
+
+            let meeting_idx = path_fwd.len() - 1; // Index du meeting_node (AVANT le move!)
+
+            // Combiner les deux chemins: path_fwd + path_bwd[1..] (skip meeting_node dupliqué)
             let mut path = path_fwd;
             path.extend(path_bwd.into_iter().skip(1));
+
+            // Zone de scan: ±5 edges autour du meeting point
+            let scan_start = meeting_idx.saturating_sub(5);
+            let scan_end = (meeting_idx + 6).min(path.len());
+
+            // Détecter le premier node dupliqué dans la zone de scan
+            let mut first_occurrence: std::collections::HashMap<i64, usize> =
+                std::collections::HashMap::new();
+            let mut backtrack_found = None;
+            for (i, edge) in path[scan_start..scan_end].iter().enumerate() {
+                let i = i + scan_start; // Index dans le path complet
+                let node_id = edge.get_node_id();
+                if let Some(&first_idx) = first_occurrence.get(&node_id) {
+                    // Backtrack détecté: node_id apparaît aux indices first_idx et i
+                    backtrack_found = Some((first_idx, i));
+                    break;
+                }
+                first_occurrence.insert(node_id, i);
+            }
+
+            let path = if let Some((start, end)) = backtrack_found {
+                // Couper le backtrack: garder [0..start] et [end..]
+                let mut new_path = path[0..start].to_vec();
+                new_path.extend_from_slice(&path[end..]);
+                new_path
+            } else {
+                path
+            };
 
             let promises = path
                 .iter()
@@ -969,7 +1026,6 @@ impl Edge {
             .await
             .unwrap();
 
-            println!("clear_nodes_cache: {:?}", node_ids);
             // 2. Réinsère les scores à jour
             sqlx::query(
                 r#"
