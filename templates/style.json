@@ -393,8 +393,49 @@
         ]
       },
       "filter": [
-        "has",
-        "waterway"
+        "==",
+        "waterway",
+        "river"
+      ]
+    },
+    {
+      "id": "Waterway_other",
+      "type": "line",
+      "source": "veloinfo_all_way",
+      "source-layer": "all_way",
+      "minzoom": 13,
+      "layout": {
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-color": "hsl(187,37%,87%)",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.5,
+          14,
+          1,
+          16,
+          2
+        ]
+      },
+      "filter": [
+        "all",
+        [
+          "has",
+          "waterway"
+        ],
+        [
+          "!=",
+          "waterway",
+          "river"
+        ]
       ]
     },
     {
