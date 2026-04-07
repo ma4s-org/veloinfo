@@ -340,13 +340,13 @@
             "zoom"
           ],
           8,
-          0.5,
-          9,
           1,
+          9,
+          2,
           15,
-          1.5,
+          3,
           16,
-          2.5
+          5
         ]
       },
       "filter": [
@@ -360,6 +360,44 @@
           "==",
           "natural",
           "water"
+        ]
+      ]
+    },
+    {
+      "id": "River_way",
+      "type": "line",
+      "source": "veloinfo_all_way",
+      "source-layer": "all_way",
+      "minzoom": 7,
+      "layout": {
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-color": "hsl(187,37%,87%)",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          1,
+          9,
+          2,
+          15,
+          3,
+          16,
+          5
+        ]
+      },
+      "filter": [
+        "any",
+        [
+          "==",
+          "waterway",
+          "river"
         ]
       ]
     },
@@ -382,13 +420,13 @@
             "zoom"
           ],
           8,
-          0.5,
-          9,
           1,
+          9,
+          2,
           15,
-          1.5,
+          3,
           16,
-          2.5
+          5
         ]
       },
       "filter": [
@@ -3165,6 +3203,72 @@
       "filter": [
         "has",
         "name"
+      ]
+    },
+    {
+      "id": "River_name labels",
+      "type": "symbol",
+      "source": "veloinfo_all_way",
+      "source-layer": "all_way",
+      "minzoom": 12,
+      "maxzoom": 22,
+      "layout": {
+        "text-font": [
+          "Metropolis Semi Bold Italic",
+          "Noto Sans Bold"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          11,
+          14,
+          13,
+          18,
+          16
+        ],
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name:fr"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "visibility": "visible",
+        "symbol-spacing": 350,
+        "symbol-placement": "line",
+        "text-line-height": 1.2,
+        "text-pitch-alignment": "auto",
+        "text-rotation-alignment": "auto",
+        "text-allow-overlap": false
+      },
+      "paint": {
+        "text-color": "hsl(190,9%,63%)",
+        "text-opacity": 0.8,
+        "text-halo-blur": 0,
+        "text-halo-color": "hsl(0,0%,100%)",
+        "text-halo-width": 1
+      },
+      "filter": [
+        "all",
+        [
+          "==",
+          "waterway",
+          "river"
+        ],
+        [
+          "has",
+          "name"
+        ]
       ]
     },
     {

@@ -667,7 +667,7 @@ function osm2pgsql.process_way(way)
         })
     end
 
-    if way.tags.highway and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
+    if (way.tags.highway and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed") or way.tags.waterway == "river" then
         all_way:insert({
             name = way.tags.name,
             geom = way:as_linestring(),
