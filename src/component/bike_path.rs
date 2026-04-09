@@ -46,13 +46,13 @@ pub async fn bike_path_mvt(
                         aw.tags->>'cycleway:both' = 'share_busway' OR
                         aw.tags->>'cycleway:right' = 'lane' OR
                         aw.tags->>'cycleway:left' = 'lane' OR
-                        aw.tags->>'cycleway:both' = 'lane'
+                        aw.tags->>'cycleway:both' = 'lane' OR
+                        aw.tags->>'cycleway' = 'lane'
                     THEN 'designated'
                     
                     -- 3. Voies partagées (cas plus généraux)
                     WHEN 
                         aw.tags->>'cycleway' = 'shared_lane' OR
-                        (aw.tags->>'cycleway' = 'lane' AND aw.tags->>'cycleway:left' IS NULL AND aw.tags->>'cycleway:right' IS NULL AND aw.tags->>'cycleway:both' IS NULL) OR
                         aw.tags->>'cycleway:left' = 'shared_lane' OR
                         aw.tags->>'cycleway:left' = 'opposite_lane' OR
                         aw.tags->>'cycleway:right' = 'shared_lane' OR

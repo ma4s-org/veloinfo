@@ -17,10 +17,6 @@ local cycleway = osm2pgsql.define_way_table("cycleway_way", {
         type = 'int8',
         not_null = true
     }, {
-        column = 'kind',
-        type = 'text',
-        not_null = true
-    }, {
         column = 'tags',
         type = 'jsonb',
         not_null = true
@@ -45,10 +41,6 @@ local cycleway_far = osm2pgsql.define_way_table("cycleway_way_far", {
     }, {
         column = 'target',
         type = 'int8',
-        not_null = true
-    }, {
-        column = 'kind',
-        type = 'text',
         not_null = true
     }, {
         column = 'tags',
@@ -561,6 +553,7 @@ function process_conditional_date_tag(value_str)
 end
 
 function osm2pgsql.process_way(way)
+    -- Traitement des conditionals
     local temp_tags = {}
     for k, v in pairs(way.tags) do
         if k:match(':conditional$') then
@@ -582,45 +575,19 @@ function osm2pgsql.process_way(way)
     end
 
     if (way.tags.highway == 'cycleway' or way.tags.cyclestreet == "yes"  
-        or way.tags.cycleway == "track" or way.tags["cycleway:left"] == "track" or 
-        way.tags["cycleway:right"] == "track" or way.tags["cycleway:both"] =="track") 
+        or way.tags.cycleway or way.tags["cycleway:left"] or 
+        way.tags["cycleway:right"] or way.tags["cycleway:both"] ) 
         and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         cycleway:insert({
             name = way.tags.name,
             geom = way:as_linestring(),
             source = way.nodes[1],
             target = way.nodes[#way.nodes],
-            kind = (way.tags.cycleway == 'crossing') and 'cycleway_crossing' or 'cycleway',
-            tags = way.tags,
-            nodes = "{" .. table.concat(way.nodes, ",") .. "}"
-        })
-    elseif (way.tags["cycleway:left"] == "share_busway" or way.tags["cycleway:right"] == "share_busway" or
-        way.tags["cycleway:both"] == "share_busway" or way.tags["cycleway:right"] == "lane" or way.tags["cycleway:left"] ==
-        "lane" or way.tags["cycleway:both"] == "lane") and way.tags.service ~= "parking_aisle" then
-        cycleway:insert({
-            name = way.tags.name,
-            geom = way:as_linestring(),
-            source = way.nodes[1],
-            target = way.nodes[#way.nodes],
-            kind = (way.tags.cycleway == 'crossing') and 'designated_crossing' or 'designated',
-            tags = way.tags,
-            nodes = " {" .. table.concat(way.nodes, ",") .. "}"
-        })
-    elseif (way.tags.cycleway == "shared_lane" or way.tags.cycleway == "lane" or way.tags["cycleway:left"] ==
-        "shared_lane" or way.tags["cycleway:left"] == "opposite_lane" or way.tags["cycleway:right"] == "shared_lane" or
-        way.tags["cycleway:right"] == "opposite_lane" or way.tags["cycleway:both"] == "shared_lane" or
-        (way.tags.highway == "footway" and way.tags.bicycle == "yes")) and way.tags.service ~= "parking_aisle" then
-        cycleway:insert({
-            name = way.tags.name,
-            geom = way:as_linestring(),
-            source = way.nodes[1],
-            target = way.nodes[#way.nodes],
-            kind = (way.tags.cycleway == 'crossing') and 'shared_lane_crossing' or 'shared_lane',
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}"
         })
     end
-
+    
     if (way.tags.highway == 'cycleway') and way.tags.footway ~=
         "sidewalk" and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed" then
         cycleway_far:insert({
