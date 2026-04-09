@@ -303,7 +303,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             1. / 0.6
         }
     } else if edge.highway == Some(Highway::Unclassified) {
-        1. / 0.3
+        1. / 0.6
     } else if edge.highway == Some(Highway::Tertiary) {
         if edge.surface == Some(Surface::Sett)
             || edge.surface == Some(Surface::Cobblestone)
