@@ -100,6 +100,7 @@ pub struct EdgePoint {
     pub cyclestreet: bool,
     pub footway: Option<Footway>,
     pub tunnel: Option<Tunnel>,
+    pub bridge: Option<bool>,
     pub oneway: Option<Oneway>,
     pub oneway_bicycle: Option<Oneway>,
     pub cycleway_left_oneway: Option<Oneway>,
@@ -141,6 +142,7 @@ impl Default for EdgePoint {
             cyclestreet: false,
             footway: None,
             tunnel: None,
+            bridge: None,
             oneway: None,
             oneway_bicycle: None,
             cycleway_left_oneway: None,
@@ -168,7 +170,7 @@ pub enum Oneway {
     No,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Cycleway {
     Track,
     Lane,
@@ -390,6 +392,16 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             }
         };
 
+        let parse_bridge = |v: Option<&String>| -> Option<bool> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "yes" => Some(true),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
         let normalize = |s: &str| -> String {
             s.replace(' ', "")
                 .replace('(', "")
@@ -460,6 +472,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             cyclestreet: get("cyclestreet") == Some(&"yes".to_string()),
             footway: parse_footway(get("footway")),
             tunnel: parse_tunnel(get("tunnel")),
+            bridge: parse_bridge(get("bridge")),
             oneway: parse_oneway(get("oneway")),
             oneway_bicycle: parse_oneway(get("oneway:bicycle")),
             cycleway_left_oneway: parse_oneway(get("cycleway:left:oneway")),
