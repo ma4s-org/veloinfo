@@ -135,11 +135,13 @@ pub async fn segment_panel_post(
             );
         }
     };
-    if let Some(photo) = photo {
+    if let Some(photo) = photo.as_ref() {
         let img = (|| -> Result<DynamicImage, Box<dyn std::error::Error>> {
             // Try to read EXIF orientation first
             let exif_reader = Reader::new();
-            let exif = exif_reader.read_from_container(&mut std::io::Cursor::new(&photo)).ok();
+            let exif = exif_reader
+                .read_from_container(&mut std::io::Cursor::new(&photo))
+                .ok();
 
             let mut img = match image::load_from_memory(&photo) {
                 Ok(img) => img,
@@ -191,7 +193,8 @@ pub async fn segment_panel_post(
                     eprintln!("Error while saving image: {}", e);
                 } else {
                     let img = img.resize(300, 300, image::imageops::FilterType::Lanczos3);
-                    let thumb_path = IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg";
+                    let thumb_path =
+                        IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg";
                     if let Err(e) = img.save(&thumb_path) {
                         eprintln!("Error while saving thumbnail: {}", e);
                     }
@@ -202,11 +205,21 @@ pub async fn segment_panel_post(
     }
 
     // Update photo paths after successful save
-    let photo_path = Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg");
-    let photo_path_thumbnail = Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg");
+    let photo_path = match photo {
+        Some(_) => Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg"),
+        None => None,
+    };
+
+    let photo_path_thumbnail = match photo {
+        Some(_) => Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg"),
+        None => None,
+    };
 
     // Update the record with photo paths
-    if let Err(e) = CyclabilityScore::update_photo_paths(id, &photo_path, &photo_path_thumbnail, &state.conn).await {
+    if let Err(e) =
+        CyclabilityScore::update_photo_paths(id, &photo_path, &photo_path_thumbnail, &state.conn)
+            .await
+    {
         eprintln!("Error updating photo paths: {}", e);
     }
 
