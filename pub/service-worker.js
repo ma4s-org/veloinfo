@@ -48,42 +48,62 @@ self.addEventListener('fetch', function(event) {
             const cachedResponse = await cache.match(event.request);
             const now = Date.now();
 
-            // Étape 1 : Vérifier si le cache existe et n'a pas expiré (12 heures)
+            // Étape 1 : Si cache existe, le retourner IMMÉDIATEMENT
             if (cachedResponse) {
                 const cachedDateStr = cachedResponse.headers.get('sw-cache-date');
                 const cachedDate = cachedDateStr ? parseInt(cachedDateStr) : null;
-                // Si le cache a un timestamp valide et a moins de 12 heures, le retourner
-                if (cachedDate && !isNaN(cachedDate) && (now - cachedDate < CACHE_DURATION)) {
+                
+                // Vérifier si le cache est expiré (> 12 heures)
+                const isExpired = !cachedDate || isNaN(cachedDate) || (now - cachedDate >= CACHE_DURATION);
+                
+                if (isExpired) {
+                    // Cache expiré : retourner cache MAINTENANT + rafraîchir en arrière-plan
+                    refreshCacheInBackground(cache, event.request, now);
                     return cachedResponse;
                 }
+                
+                // Cache valide (< 12h) : retourner cache
+                return cachedResponse;
             }
 
-            // Étape 2 : Tentative de récupération depuis le réseau
+            // Étape 2 : Pas de cache → requête réseau
             try {
                 const networkResponse = await fetch(event.request);
 
                 // Si la réponse est valide, la mettre en cache
                 if (networkResponse && networkResponse.ok) {
-                    // Mise en cache asynchrone (ne bloque pas la réponse)
-                    updateCache(cache, event.request, networkResponse.clone(), now)
-                        .catch(err => console.warn("Échec mise en cache:", err));
+                    await updateCache(cache, event.request, networkResponse.clone(), now);
                     return networkResponse;
                 }
 
                 return networkResponse;
             } catch (err) {
-                // Étape 3 : Fallback en cas d'erreur réseau
-                // Retourne le cache (même expiré) plutôt qu'une erreur qui avorte la requête
                 console.error("Erreur Fetch SW:", err);
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-                // Ne retourner une erreur que si vraiment aucun cache n'existe
                 return Response.error();
             }
         })()
     );
 });
+
+/**
+ * Rafraîchit le cache en arrière-plan (ne bloque pas la réponse)
+ * @param {Cache} cache - Instance du cache
+ * @param {Request} request - Requête originale
+ * @param {number} timestamp - Timestamp actuel (Date.now())
+ */
+async function refreshCacheInBackground(cache, request, timestamp) {
+    try {
+        const networkResponse = await fetch(request);
+        
+        if (networkResponse && networkResponse.ok) {
+            await updateCache(cache, request, networkResponse.clone(), timestamp);
+            console.log("Cache rafraîchi en arrière-plan:", request.url);
+        }
+    } catch (err) {
+        console.warn("Échec rafraîchissement cache:", err);
+    }
+}
+
 /**
  * Met en cache une réponse avec timestamp pour suivi d'expiration
  * @param {Cache} cache - Instance du cache
