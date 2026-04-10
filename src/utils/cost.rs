@@ -174,7 +174,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         1. / 0.1
     } else if edge.highway == Some(Highway::Cycleway) {
         if edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel) {
-            1. / 0.5
+            1. / 0.6
         } else if edge.cycleway == Some(Cycleway::Crossing)
             || edge.smoothness == Some(Smoothness::Bad)
         {
