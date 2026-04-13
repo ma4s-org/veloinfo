@@ -301,7 +301,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         if edge.in_bicycle_route {
             2.
         } else {
-            3.
+            3.5
         }
     } else if edge.highway == Some(Highway::Trunk) {
         9.0

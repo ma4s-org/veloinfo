@@ -79,91 +79,113 @@ fi
 # 4. Création des tables (anciennes vues matérialisées) dans le schéma 'import'
 echo "Création des tables dans le schéma 'import'..."
 $PSQL_CMD <<EOF
-    SET search_path = import, public;
-   
-    -- Refresh complet: drop et recrée (plus propre pour un import quotidien)
-    CREATE TABLE IF NOT EXISTS last_cycleway_score AS
-        SELECT * FROM (
-            SELECT c.*, cs.score, cs.created_at,
-                   ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
-            FROM public.cyclability_score cs 
-            JOIN cycleway_way c ON c.way_id = ANY(cs.way_ids)
-        ) t WHERE t.rn = 1;
-    
-    CREATE UNIQUE INDEX IF NOT EXISTS last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
+SET search_path = import, public;
 
-    CREATE SEQUENCE IF NOT EXISTS edge_id;
+-- Refresh complet: drop et recrée (plus propre pour un import quotidien)
+CREATE TABLE IF NOT EXISTS last_cycleway_score AS
+    SELECT * FROM (
+        SELECT c.*, cs.score, cs.created_at,
+               ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
+        FROM public.cyclability_score cs 
+        JOIN cycleway_way c ON c.way_id = ANY(cs.way_ids)
+    ) t WHERE t.rn = 1;
 
-    CREATE MATERIALIZED VIEW IF NOT EXISTS edge AS
-    WITH segments AS (
-        SELECT
-            aw.way_id,
-            aw.tags,
-            aw.in_bicycle_route,
-            aw.nodes[(segment).path[1]] as source,
-            aw.nodes[(segment).path[1]+1] as target,
-            (segment).geom as geom,
-            -- On recrée la contrainte 2D exacte de ta requête originale pour les requêtes SRTM
-            ST_SetSRID(ST_MakePoint(
-                ST_X(ST_Transform(ST_PointN((segment).geom, 1), 4326)),
-                ST_Y(ST_Transform(ST_PointN((segment).geom, 1), 4326))
-            ), 4326) as pt1,
-            ST_SetSRID(ST_MakePoint(
-                ST_X(ST_Transform(ST_PointN((segment).geom, 2), 4326)),
-                ST_Y(ST_Transform(ST_PointN((segment).geom, 2), 4326))
-            ), 4326) as pt2
-        FROM all_way aw
-        CROSS JOIN LATERAL ST_DumpSegments(aw.geom) as segment
-        WHERE aw.nodes[(segment).path[1]+1] IS NOT NULL
-    )
+CREATE UNIQUE INDEX IF NOT EXISTS last_cycleway_score_way_id_idx ON last_cycleway_score(way_id);
+
+CREATE SEQUENCE IF NOT EXISTS edge_id;
+EOF
+
+# Optimisation: LEFT JOIN au lieu de sous-requêtes corrélées (10-100x plus rapide)
+# Gère automatiquement le cas où SRTM est vide (élévations = NULL)
+echo "Création de la vue edge..."
+$PSQL_CMD <<EOF
+SET search_path = import, public;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS edge AS
+WITH segments AS (
     SELECT
-        nextval('edge_id') as id,
-        segments.source,
-        segments.target,
-        ST_X(segments.pt1) as x1,
-        ST_Y(segments.pt1) as y1,
-        ST_X(segments.pt2) as x2,
-        ST_Y(segments.pt2) as y2,
-        segments.way_id,
-        segments.tags,
-        segments.geom,
-        c.name as city_name,
-        segments.in_bicycle_route,
-        -- ST_Covers est plus permissif que ST_Contains pour les points sur les bords
-        (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt1) LIMIT 1) as elevation_start,
-        (SELECT elevation FROM import.srtm_elevation_polygons srtm WHERE ST_Covers(srtm.geom, segments.pt2) LIMIT 1) as elevation_end
-    FROM segments
-    LEFT JOIN city c ON ST_Within(segments.geom, c.geom);    
+        aw.way_id,
+        aw.tags,
+        aw.in_bicycle_route,
+        aw.nodes[(segment).path[1]] as source,
+        aw.nodes[(segment).path[1]+1] as target,
+        (segment).geom as geom,
+        ST_SetSRID(ST_MakePoint(
+            ST_X(ST_Transform(ST_PointN((segment).geom, 1), 4326)),
+            ST_Y(ST_Transform(ST_PointN((segment).geom, 1), 4326))
+        ), 4326) as pt1,
+        ST_SetSRID(ST_MakePoint(
+            ST_X(ST_Transform(ST_PointN((segment).geom, 2), 4326)),
+            ST_Y(ST_Transform(ST_PointN((segment).geom, 2), 4326))
+        ), 4326) as pt2
+    FROM all_way aw
+    CROSS JOIN LATERAL ST_DumpSegments(aw.geom) as segment
+    WHERE aw.nodes[(segment).path[1]+1] IS NOT NULL
+)
+SELECT
+    nextval('edge_id') as id,
+    segments.source,
+    segments.target,
+    ST_X(segments.pt1) as x1,
+    ST_Y(segments.pt1) as y1,
+    ST_X(segments.pt2) as x2,
+    ST_Y(segments.pt2) as y2,
+    segments.way_id,
+    segments.tags,
+    segments.geom,
+    c.name as city_name,
+    segments.in_bicycle_route,
+    srtm1.elevation as elevation_start,
+    srtm2.elevation as elevation_end
+FROM segments
+LEFT JOIN city c ON ST_Within(segments.geom, c.geom)
+LEFT JOIN import.srtm_elevation_polygons srtm1 ON ST_Covers(srtm1.geom, segments.pt1)
+LEFT JOIN import.srtm_elevation_polygons srtm2 ON ST_Covers(srtm2.geom, segments.pt2);
 
-    CREATE INDEX IF NOT EXISTS edge_way_id_idx ON edge(way_id);
-    CREATE INDEX IF NOT EXISTS edge_geom_idx ON edge using gist(geom);
-    CREATE UNIQUE INDEX IF NOT EXISTS edge_id_idx ON edge(id);
-    CREATE INDEX IF NOT EXISTS edge_source_idx ON edge (source);
-    CREATE INDEX IF NOT EXISTS edge_target_idx ON edge (target);
-    CREATE INDEX IF NOT EXISTS edge_city_name_idx ON edge (city_name);
+CREATE INDEX IF NOT EXISTS edge_way_id_idx ON edge(way_id);
+CREATE INDEX IF NOT EXISTS edge_geom_idx ON edge using gist(geom);
+CREATE UNIQUE INDEX IF NOT EXISTS edge_id_idx ON edge(id);
+CREATE INDEX IF NOT EXISTS edge_source_idx ON edge (source);
+CREATE INDEX IF NOT EXISTS edge_target_idx ON edge (target);
+CREATE INDEX IF NOT EXISTS edge_city_name_idx ON edge (city_name);
+ANALYZE edge;
+EOF
 
-    CREATE MATERIALIZED VIEW IF NOT EXISTS address_range AS
-        SELECT a.geom, a.odd_even, an1.city, an1.street, an1.housenumber as start, an2.housenumber as end,
-               (to_tsvector('simple', unaccent(coalesce(an1.street, '') || ' ' || coalesce(an1.city, '')))) as tsvector
-        FROM address a
-        JOIN address_node an1 ON a.housenumber1 = an1.node_id
-        JOIN address_node an2 ON a.housenumber2 = an2.node_id
-        UNION
-        SELECT geom, CASE WHEN MOD(housenumber, 2) = 0 THEN 'even' ELSE 'odd' END as odd_even,
-               city, street, housenumber as start, housenumber as end,
-               (to_tsvector('simple', unaccent(coalesce(street, '') || ' ' || coalesce(city, '')))) as tsvector
-        FROM address_node an;
+EDGE_COUNT=$($PSQL_CMD -t -c "SELECT COUNT(*) FROM import.edge;" | xargs)
+ELEV_WITH_DATA=$($PSQL_CMD -t -c "SELECT COUNT(*) FROM import.edge WHERE elevation_start IS NOT NULL OR elevation_end IS NOT NULL;" | xargs)
+echo "✓ edge créé: $EDGE_COUNT segments, $ELEV_WITH_DATA avec élévation"
 
-    CREATE INDEX IF NOT EXISTS textsearch_idx ON address_range USING GIN (tsvector);
-    CREATE INDEX IF NOT EXISTS address_range_geom_idx ON address_range using gist(geom);
+echo "Création de la vue address_range..."
+$PSQL_CMD <<EOF
+SET search_path = import, public;
 
-    CREATE MATERIALIZED VIEW IF NOT EXISTS name_query AS
-        SELECT name, geom, tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM name
-        UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM building WHERE name IS NOT NULL
-        UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(name)) as tsvector FROM landcover WHERE name IS NOT NULL;
+CREATE MATERIALIZED VIEW IF NOT EXISTS address_range AS
+    SELECT a.geom, a.odd_even, an1.city, an1.street, an1.housenumber as start, an2.housenumber as end,
+           (to_tsvector('simple', unaccent(coalesce(an1.street, '') || ' ' || coalesce(an1.city, '')))) as tsvector
+    FROM address a
+    JOIN address_node an1 ON a.housenumber1 = an1.node_id
+    JOIN address_node an2 ON a.housenumber2 = an2.node_id
+    UNION
+    SELECT geom, CASE WHEN MOD(housenumber, 2) = 0 THEN 'even' ELSE 'odd' END as odd_even,
+           city, street, housenumber as start, housenumber as end,
+           (to_tsvector('simple', unaccent(coalesce(street, '') || ' ' || coalesce(city, '')))) as tsvector
+    FROM address_node an;
 
-    CREATE INDEX IF NOT EXISTS name_query_textsearch_idx ON name_query USING GIN (tsvector);
-    CREATE INDEX IF NOT EXISTS name_query_geom_idx ON name_query using gist(geom);
+CREATE INDEX IF NOT EXISTS textsearch_idx ON address_range USING GIN (tsvector);
+CREATE INDEX IF NOT EXISTS address_range_geom_idx ON address_range using gist(geom);
+EOF
+
+echo "Création de la vue name_query..."
+$PSQL_CMD <<EOF
+SET search_path = import, public;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS name_query AS
+    SELECT name, geom, tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM name
+    UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(coalesce(name, ''))) as tsvector FROM building WHERE name IS NOT NULL
+    UNION SELECT name, ST_Centroid(geom), tags, to_tsvector('simple', unaccent(name)) as tsvector FROM landcover WHERE name IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS name_query_textsearch_idx ON name_query USING GIN (tsvector);
+CREATE INDEX IF NOT EXISTS name_query_geom_idx ON name_query using gist(geom);
 EOF
 
 # 6. Échange atomique des schémas
@@ -231,3 +253,4 @@ EOF
 fi
 
 echo "Importation terminée avec succès !"
+
