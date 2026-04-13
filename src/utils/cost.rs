@@ -245,7 +245,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
                 if edge.bridge == Some(true) {
                     1.6
                 } else {
-                    3.5
+                    5.
                 }
             }
         } else if edge.footway == Some(Footway::Sidewalk) {
@@ -266,12 +266,12 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
             1.6
         }
     } else if edge.highway == Some(Highway::Unclassified) {
-        1.6
+        1.8
     } else if edge.highway == Some(Highway::Service) {
         if edge.surface == Some(Surface::Chipseal) {
             20.0
         } else {
-            1.6
+            1.8
         }
     } else if edge.highway == Some(Highway::Tertiary) {
         if edge.surface == Some(Surface::Sett)
