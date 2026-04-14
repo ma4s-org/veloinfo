@@ -29,7 +29,10 @@ pub async fn bike_path_mvt(
                 COALESCE(cscore.score, 1) as score,
                 cs.city_name IS NOT NULL as snow,
                 CASE
-                    -- 1. Pistes dédiées (tracks, etc.)
+                    -- 1. Ferry
+                    WHEN aw.tags->>'route' = 'ferry' THEN 'ferry'
+                    
+                    -- 2. Pistes dédiées (tracks, etc.)
                     WHEN 
                         aw.tags->>'highway' = 'cycleway' OR
                         aw.tags->>'cyclestreet' = 'yes' OR
@@ -39,7 +42,7 @@ pub async fn bike_path_mvt(
                         aw.tags->>'cycleway:both' = 'track'
                     THEN CASE WHEN aw.tags->>'cycleway' = 'crossing' THEN 'cycleway_crossing' ELSE 'cycleway' END
                     
-                    -- 2. Voies désignées (partagées avec bus ou marquées sur le côté)
+                    -- 3. Voies désignées (partagées avec bus ou marquées sur le côté)
                     WHEN 
                         aw.tags->>'cycleway:left' = 'share_busway' OR
                         aw.tags->>'cycleway:right' = 'share_busway' OR
@@ -50,7 +53,7 @@ pub async fn bike_path_mvt(
                         aw.tags->>'cycleway' = 'lane'
                     THEN 'designated'
                     
-                    -- 3. Voies partagées (cas plus généraux)
+                    -- 4. Voies partagées (cas plus généraux)
                     WHEN 
                         aw.tags->>'cycleway' = 'shared_lane' OR
                         aw.tags->>'cycleway:left' = 'shared_lane' OR

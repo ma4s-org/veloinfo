@@ -29,6 +29,7 @@ pub struct Point {
     pub way_id: i64,
     pub node_id: i64,
     pub length: f64,
+    pub ferry: bool,
 }
 
 impl std::fmt::Display for Point {
@@ -82,6 +83,7 @@ pub struct EdgePoint {
     pub source: i64,
     pub target: i64,
     pub in_bicycle_route: bool,
+    pub route: Option<Route>,
     pub road_work: bool,
     pub snow: bool,
     pub winter_service_no: bool,
@@ -135,6 +137,7 @@ impl Default for EdgePoint {
             cycleway_right: None,
             cycleway_both: None,
             highway: None,
+            route: None,
             bicycle: None,
             surface: None,
             smoothness: None,
@@ -178,6 +181,11 @@ pub enum Cycleway {
     SharedLane,
     ShareBusway,
     Snow,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum Route {
+    Ferry,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -316,6 +324,16 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
                     "proposed" => Some(Highway::Proposed),
                     "construction" => Some(Highway::Construction),
                     "living_street" => Some(Highway::LivingStreet),
+                    _ => None,
+                },
+                None => None,
+            }
+        };
+
+        let parse_route = |v: Option<&String>| -> Option<Route> {
+            match v {
+                Some(s) => match s.as_str() {
+                    "ferry" => Some(Route::Ferry),
                     _ => None,
                 },
                 None => None,
@@ -467,6 +485,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             },
             cycleway_both: parse_cycleway(get("cycleway:both")),
             highway: parse_highway(get("highway")),
+            route: parse_route(get("route")),
             bicycle: parse_bicycle(get("bicycle")),
             surface: parse_surface(get("surface")).or_else(|| parse_surface(get("suface"))),
             smoothness: parse_smoothness(get("smoothness")),
@@ -510,42 +529,41 @@ impl EdgePoint {
         }
     }
 
-    pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> ARc<Vec<ARc<EdgePoint>>> {
+    pub async fn get_neighbors(
+        &self,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> ARc<Vec<ARc<EdgePoint>>> {
         let node_id = self.get_node_id();
         if let Some(neighbors) = NEIGHBORS_CACHE.lock().await.get(node_id).await {
             return neighbors;
         }
 
-        match sqlx::query_as(
-            r#"SELECT
-                e.id,
-                e.source,
-                e.target,
-                x1 as lon1,
-                y1 as lat1,
-                x2 as lon2,
-                y2 as lat2,
-                e.tags,
-                e.way_id,
-                e.in_bicycle_route,
-                e.tags->>'name' as name,
-                st_length(ST_Transform(e.geom, 4326)::geography) as length,
-                rw.geom is not null as road_work,
-                cs.score,
-                case when csnow.city_name is not null then true else false end as snow,
-                e.elevation_start,
-                e.elevation_end
-            FROM edge e
-                left join road_work rw on ST_Intersects(e.geom, rw.geom)
-                left join last_cycleway_score cs on cs.way_id = e.way_id
-                left join city_snow csnow on csnow.city_name = e.city_name
-            WHERE (e.source = $1 or e.target = $1)
-            "#,
-        )
-        .bind(node_id)
-        .fetch_all(conn)
-        .await
-        {
+        let query = r#"SELECT
+            e.id,
+            e.source,
+            e.target,
+            x1 as lon1,
+            y1 as lat1,
+            x2 as lon2,
+            y2 as lat2,
+            e.tags,
+            e.way_id,
+            e.in_bicycle_route,
+            e.tags->>'name' as name,
+            st_length(ST_Transform(e.geom, 4326)::geography) as length,
+            rw.geom is not null as road_work,
+            cs.score,
+            case when csnow.city_name is not null then true else false end as snow,
+            e.elevation_start,
+            e.elevation_end
+        FROM edge e
+            left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            left join last_cycleway_score cs on cs.way_id = e.way_id
+            left join city_snow csnow on csnow.city_name = e.city_name
+        WHERE (e.source = $1 or e.target = $1)
+        "#;
+
+        match sqlx::query_as(&query).bind(node_id).fetch_all(conn).await {
             Ok(results) => {
                 let result: Vec<ARc<EdgePoint>> = results
                     .into_iter()
@@ -558,8 +576,14 @@ impl EdgePoint {
                         ARc::new((ARc::new(edge), direction).into())
                     })
                     .collect();
+                
+                // Le cache fonctionne normalement pour tous les cas.
+                // La pénalité pour les traversiers est appliquée dans get_cost(),
+                // pas dans le filtrage SQL.
                 let mut cache = NEIGHBORS_CACHE.lock().await;
-                cache.insert(node_id, ARc::new(result)).await
+                cache.insert(node_id, ARc::new(result.clone())).await;
+                
+                ARc::new(result)
             }
             Err(e) => {
                 eprintln!("Error while getting neighbors: {}", e);
@@ -629,6 +653,7 @@ impl Edge {
         h: Box<dyn H>,
         conn: &sqlx::Pool<Postgres>,
         mut socket: Option<&mut WebSocket>,
+        allow_ferry: bool,
     ) -> Vec<Point> {
         let start_node = Edge::get(start_node_id, conn).await.unwrap();
         let end_node = Edge::get(end_node_id, conn).await.unwrap();
@@ -699,7 +724,7 @@ impl Edge {
 
                 for neighbor in current_fwd.get_neighbors(conn).await.iter() {
                     let tentative_g_score =
-                        g_score_fwd[&current_fwd] + neighbor.length * h.get_cost(&neighbor);
+                        g_score_fwd[&current_fwd] + neighbor.length * h.get_cost(&neighbor, allow_ferry);
                     if tentative_g_score < *g_score_fwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_fwd.insert(neighbor.clone(), current_fwd.clone());
                         g_score_fwd.insert(neighbor.clone(), tentative_g_score);
@@ -738,7 +763,7 @@ impl Edge {
 
                 for neighbor in current_bwd.get_neighbors(conn).await.iter() {
                     let tentative_g_score = g_score_bwd[&current_bwd]
-                        + neighbor.length * h.get_cost(&neighbor.reverse());
+                        + neighbor.length * h.get_cost(&neighbor.reverse(), allow_ferry);
                     if tentative_g_score < *g_score_bwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_bwd.insert(neighbor.clone(), current_bwd.clone());
                         g_score_bwd.insert(neighbor.clone(), tentative_g_score);
@@ -849,6 +874,10 @@ impl Edge {
                             way_id: edge.way_id,
                             node_id: edge.source,
                             length: edge.length,
+                            ferry: match edge.route {
+                                Some(Route::Ferry) => true,
+                                _ => false,
+                            },
                         },
                         SourceOrTarget::Target => Point {
                             lng: edge.lon2,
@@ -856,6 +885,10 @@ impl Edge {
                             way_id: edge.way_id,
                             node_id: edge.target,
                             length: edge.length,
+                            ferry: match edge.route {
+                                Some(Route::Ferry) => true,
+                                _ => false,
+                            },
                         },
                     }
                 })
@@ -886,7 +919,7 @@ impl Edge {
                         ST_PointN(geom, 1) as point
                 FROM edge e
                 WHERE
-                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 200)
+                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 2000)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
@@ -909,7 +942,7 @@ impl Edge {
                         ST_PointN(geom, ST_NumPoints(geom)) as point
                 FROM edge e
                 WHERE
-                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 200)
+                    ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 2000)
                     AND tags->>'highway' is not null
                     AND (tags->>'highway' != 'footway' or
                             (tags->>'highway' = 'footway' AND tags->>'bicycle' IN ('yes', 'designated', 'dismount')))
@@ -1088,7 +1121,7 @@ impl Edge {
 
             for (source, target, description) in routes {
                 println!("Calculating route: {}", description);
-                Edge::a_star_bidirectional(source, target, get_h_moyen(), &conn, None).await;
+                Edge::a_star_bidirectional(source, target, get_h_moyen(), &conn, None, true).await;
             }
 
             println!("Cache prefill complete");
@@ -1110,7 +1143,8 @@ mod tests {
             .await
             .unwrap();
         let points =
-            Edge::a_star_bidirectional(321801851, 1764306722, get_h_moyen(), &conn, None).await;
+            Edge::a_star_bidirectional(321801851, 1764306722, get_h_moyen(), &conn, None, true)
+                .await;
         assert_eq!(321801851, points.first().unwrap().node_id);
         assert_eq!(1764306722, points.last().unwrap().node_id);
     }

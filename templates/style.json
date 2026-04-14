@@ -2270,6 +2270,47 @@
       ]
     },
     {
+      "id": "Ferry",
+      "type": "line",
+      "source": "veloinfo_all_way",
+      "source-layer": "all_way",
+      "minzoom": 10,
+      "layout": {
+        "visibility": "visible",
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "hsl(187,37%,66%)",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          1,
+          12,
+          2,
+          14,
+          3,
+          16,
+          4
+        ],
+        "line-dasharray": [
+          1,
+          1
+        ]
+      },
+      "filter": [
+        "==",
+        "route",
+        "ferry"
+      ]
+    },
+    {
       "id": "Building",
       "type": "fill",
       "source": "building",

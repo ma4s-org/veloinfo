@@ -432,6 +432,7 @@ pub async fn segment_panel_bigger_route(
         get_h_bigger_selection(),
         &state.conn,
         None,
+        true,
     )
     .await;
 

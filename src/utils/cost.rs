@@ -1,12 +1,12 @@
 use crate::db::edge::{
-    Access, Bicycle, Cycleway, EdgePoint, Footway, Highway, Oneway, Smoothness, SourceOrTarget,
-    Surface, Tunnel,
+    Access, Bicycle, Cycleway, EdgePoint, Footway, Highway, Oneway, Route, Smoothness,
+    SourceOrTarget, Surface, Tunnel,
 };
 use crate::db::utils::distance_meters;
 use crate::utils::elevation;
 
 pub trait H: Send {
-    fn get_cost(&self, edge: &EdgePoint) -> f64;
+    fn get_cost(&self, edge: &EdgePoint, allow_ferry: bool) -> f64;
     fn get_max_point(&self) -> i64;
 
     fn h(&self, start_point: &EdgePoint, goal: &EdgePoint) -> f64 {
@@ -45,15 +45,15 @@ impl H for HMoyen {
         i64::MAX
     }
 
-    fn get_cost(&self, edge: &EdgePoint) -> f64 {
-        get_cost(FastOrSafe::Safe, edge)
+    fn get_cost(&self, edge: &EdgePoint, allow_ferry: bool) -> f64 {
+        get_cost(FastOrSafe::Safe, edge, allow_ferry)
     }
 }
 
 pub struct HBiggerSelection {}
 
 impl H for HBiggerSelection {
-    fn get_cost(&self, edge: &EdgePoint) -> f64 {
+    fn get_cost(&self, edge: &EdgePoint, _allow_ferry: bool) -> f64 {
         let cost = if edge.highway == Some(Highway::Cycleway) {
             1.0
         } else if edge.cyclestreet {
@@ -87,8 +87,8 @@ impl H for HBiggerSelection {
 pub struct HRapid {}
 
 impl H for HRapid {
-    fn get_cost(&self, edge: &EdgePoint) -> f64 {
-        get_cost(FastOrSafe::Fast, edge)
+    fn get_cost(&self, edge: &EdgePoint, allow_ferry: bool) -> f64 {
+        get_cost(FastOrSafe::Fast, edge, allow_ferry)
     }
 
     fn get_max_point(&self) -> i64 {
@@ -213,7 +213,7 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
     Some(base * coefficient)
 }
 
-fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
+fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f64 {
     // if the target is the source we are reverse of the edge
     if SourceOrTarget::Source == edge.direction
         && (edge.oneway == Some(Oneway::Yes)
@@ -244,6 +244,11 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     if (edge.access == Some(Access::Private) || edge.access == Some(Access::No) || edge.informal)
         && edge.bicycle != Some(Bicycle::Yes)
     {
+        return 10000.0;
+    }
+
+    // Pénaliser fortement les traversiers si allow_ferry=false
+    if !allow_ferry && edge.route == Some(Route::Ferry) {
         return 10000.0;
     }
 
@@ -295,6 +300,8 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         }
     } else if let Some(local_cost) = get_local_road_cost(edge) {
         local_cost
+    } else if edge.route == Some(Route::Ferry) {
+        10.
     } else if edge.highway == Some(Highway::Primary) {
         if edge.in_bicycle_route {
             2.

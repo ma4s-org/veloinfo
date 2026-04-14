@@ -78,6 +78,9 @@ local all_way = osm2pgsql.define_table({
     }, {
         column = 'nodes',
         sql_type = 'int8[] NOT NULL'
+    },{
+        column = 'route',
+        type='text'
     },
     {
         column = 'in_bicycle_route',
@@ -634,12 +637,17 @@ function osm2pgsql.process_way(way)
         })
     end
 
-    if (way.tags.highway and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed") or way.tags.waterway then
+    -- all_way: toutes les routes, voies cyclables, ferry, etc.
+    if (way.tags.highway and way.tags.highway ~= "" and way.tags.service ~= "parking_aisle" and way.tags.highway ~= "proposed")
+        or (way.tags.waterway and way.tags.waterway ~= "")
+        or way.tags.route == "ferry"
+        or way.tags.man_made == "pier" then
         all_way:insert({
             name = way.tags.name,
             geom = way:as_linestring(),
             source = way.nodes[1],
             target = way.nodes[#way.nodes],
+            route = way.tags.route,
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}",
             in_bicycle_route = bicycle_route_ways[way.id] or false

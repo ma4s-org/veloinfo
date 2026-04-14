@@ -7,7 +7,16 @@ class RoutePanel extends HTMLElement {
     }
 
     connectedCallback() {
-        const coordinates = JSON.parse(this.getAttribute('coordinates'));
+        const coordinatesAttr = this.getAttribute('coordinates');
+        let coordinates;
+        try {
+            coordinates = coordinatesAttr ? JSON.parse(coordinatesAttr) : null;
+        } catch (e) {
+            console.error('RoutePanel: invalid coordinates JSON:', coordinatesAttr, e);
+            return;
+        }
+        const ferry = this.getAttribute("ferry");
+        const hasFerry = ferry === "true";
         if (!coordinates || !coordinates[0]) {
             console.error("RoutePanel: coordinates not found");
             return;
@@ -148,6 +157,9 @@ class RoutePanel extends HTMLElement {
 
         // Construire le bouton rapide seulement s'il existe une route rapide
         const errorText = this.getAttribute('error') ? this.getAttribute('error') : '';
+        const avoidFerryBtn = hasFerry ? html`
+            <md-outlined-button id="avoid-ferry-btn" style="position: absolute; right: -1em; transform: scale(0.75); transform-origin: left center; --md-sys-color-primary: #666666;">éviter traversier</md-outlined-button>
+        ` : '';
         const fastRouteButton = fastCoordinates ? html`
             <md-filled-button id="fast-route-btn"style="--md-sys-color-primary: #ffcbfcff">
                 <div style="font-weight: bold;">
@@ -178,6 +190,7 @@ class RoutePanel extends HTMLElement {
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 0.5em; padding-bottom: 1em; position: relative;">
                     <md-outlined-button id="change-start-btn" style="position: absolute; left: 1em; transform: scale(0.75); transform-origin: left center; --md-sys-color-primary: #666666;">changer départ</md-outlined-button>
                     <md-filled-button id="cancel-btn">annuler</md-filled-button>
+                    ${avoidFerryBtn}
                 </div>
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 1em; padding-bottom: 1em;">
                 </div>
@@ -204,6 +217,29 @@ class RoutePanel extends HTMLElement {
             let innerHTML = '<vi-change-start></vi-change-start>'
             document.getElementById("info").innerHTML = innerHTML;
         });
+        if (this.querySelector('#avoid-ferry-btn')) {
+            this.querySelector('#avoid-ferry-btn').addEventListener('click', async () => {
+                // Remplacer par vi-route-searching avec les coordonnées de départ et d'arrivée
+                const safeCoordinates = coordinates[0];
+                const start = { lng: safeCoordinates[0][0], lat: safeCoordinates[0][1] };
+                const end = { lng: safeCoordinates[safeCoordinates.length - 1][0], lat: safeCoordinates[safeCoordinates.length - 1][1] };
+                
+                // Attendre que le custom element soit défini
+                if (!customElements.get('vi-route-searching')) {
+                    await customElements.whenDefined('vi-route-searching');
+                }
+                
+                const newPanel = document.createElement('vi-route-searching');
+                newPanel.setAttribute('start-lng', start.lng);
+                newPanel.setAttribute('start-lat', start.lat);
+                newPanel.setAttribute('end-lng', end.lng);
+                newPanel.setAttribute('end-lat', end.lat);
+                newPanel.setAttribute('allow-ferry', 'false');
+                const infoContainer = document.getElementById('info');
+                infoContainer.textContent = '';
+                infoContainer.appendChild(newPanel);
+            });
+        }
         this.querySelector('#cancel-btn').addEventListener('click', () => {
             viMain.clear();
         });
