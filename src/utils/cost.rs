@@ -318,7 +318,10 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     }
 
     cost = match fast_or_safe {
-        FastOrSafe::Fast => 1.0 + cost.log(60.0),
+        FastOrSafe::Fast => {
+            cost = cost * elevation::get_edge_slope_cost(edge);
+            1.0 + cost.log(20.0)
+        }
         FastOrSafe::Safe => {
             let slope_cost = elevation::get_edge_slope_cost(edge);
             cost * slope_cost
