@@ -214,6 +214,7 @@ pub enum Bicycle {
 pub enum Surface {
     Sett,
     Cobblestone,
+    UnhewnCobblestone,
     Gravel,
     FineGravel,
     Chipseal,
@@ -340,6 +341,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
                 Some(s) => match s.as_str() {
                     "sett" => Some(Surface::Sett),
                     "cobblestone" => Some(Surface::Cobblestone),
+                    "unhewn_cobblestone" => Some(Surface::UnhewnCobblestone),
                     "gravel" => Some(Surface::Gravel),
                     "fine_gravel" => Some(Surface::FineGravel),
                     "chipseal" => Some(Surface::Chipseal),

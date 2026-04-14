@@ -258,7 +258,10 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     } else if edge.highway == Some(Highway::Residential)
         || edge.highway == Some(Highway::LivingStreet)
     {
-        if edge.surface == Some(Surface::Sett) || edge.surface == Some(Surface::Cobblestone) {
+        if edge.surface == Some(Surface::Sett)
+            || edge.surface == Some(Surface::Cobblestone)
+            || edge.surface == Some(Surface::UnhewnCobblestone)
+        {
             5.5
         } else if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             1.4
