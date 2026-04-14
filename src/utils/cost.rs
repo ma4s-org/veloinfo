@@ -135,6 +135,84 @@ fn has_cycleway_of_type(edge: &EdgePoint, cycleway_type: &Cycleway) -> bool {
     false
 }
 
+fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
+    // Déterminer le type de cycleway et son coefficient
+    let coefficient = if edge.highway == Some(Highway::Cycleway) {
+        1.0
+    } else if has_cycleway_of_type(edge, &Cycleway::Track) {
+        1.0
+    } else if has_cycleway_of_type(edge, &Cycleway::Lane) {
+        1.2
+    } else if has_cycleway_of_type(edge, &Cycleway::SharedLane) {
+        1.3
+    } else if has_cycleway_of_type(edge, &Cycleway::ShareBusway) {
+        1.4
+    } else {
+        return None;
+    };
+
+    let mut base = 1.0;
+
+    // Conditions exclusives (une seule s'applique)
+    if edge.highway == Some(Highway::Cycleway)
+        && (edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel))
+    {
+        base += 1.0;
+    } else if edge.cycleway == Some(Cycleway::Crossing) {
+        base += 1.0;
+    } else if edge.smoothness == Some(Smoothness::Bad) {
+        base += 1.0;
+    } else if edge.surface == Some(Surface::Sett) {
+        base += 1.0;
+    }
+
+    Some(base * coefficient)
+}
+
+fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
+    // Vérifier si c'est un local road et obtenir le coefficient
+    let coefficient = if edge.cyclestreet {
+        0.9
+    } else {
+        match edge.highway {
+            Some(Highway::Residential) | Some(Highway::LivingStreet) => 1.0,
+            Some(Highway::Unclassified) => 1.05,
+            Some(Highway::Service) => 1.05,
+            Some(Highway::Tertiary) => 1.1,
+            Some(Highway::Secondary) | Some(Highway::SecondaryLink) => 1.3,
+            _ => return None,
+        }
+    };
+
+    let mut base = 1.8;
+
+    // Conditions positives : exclusives (une seule s'applique)
+    if edge.surface == Some(Surface::Sett)
+        || edge.surface == Some(Surface::Cobblestone)
+        || edge.surface == Some(Surface::UnhewnCobblestone)
+    {
+        base += 3.7;
+    } else if edge.surface == Some(Surface::Chipseal) {
+        base += 0.5;
+    }
+
+    // Conditions cumulables
+    if edge.tunnel == Some(Tunnel::Yes) {
+        base += 0.5;
+    }
+    if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
+        base -= 0.4;
+    }
+    if edge.bicycle == Some(Bicycle::Dismount) {
+        base += 2.0;
+    }
+    if edge.in_bicycle_route {
+        base -= 0.2;
+    }
+
+    Some(base * coefficient)
+}
+
 fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
     // if the target is the source we are reverse of the edge
     if SourceOrTarget::Source == edge.direction
@@ -189,48 +267,8 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         10.0
     } else if edge.routing_bicycle_use_sidepath {
         10.0
-    } else if edge.highway == Some(Highway::Cycleway) {
-        if edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel) {
-            2.0
-        } else if edge.cycleway == Some(Cycleway::Crossing)
-            || edge.smoothness == Some(Smoothness::Bad)
-            || edge.surface == Some(Surface::Sett)
-        {
-            1.2
-        } else {
-            1.0
-        }
-    } else if has_cycleway_of_type(edge, &Cycleway::Track) {
-        if edge.cycleway == Some(Cycleway::Crossing)
-            || edge.smoothness == Some(Smoothness::Bad)
-            || edge.surface == Some(Surface::Sett)
-        {
-            2.0
-        } else {
-            1.0
-        }
-    } else if has_cycleway_of_type(edge, &Cycleway::Lane) {
-        if edge.cycleway == Some(Cycleway::Crossing)
-            || edge.smoothness == Some(Smoothness::Bad)
-            || edge.surface == Some(Surface::Sett)
-        {
-            2.0
-        } else {
-            1.2
-        }
-    } else if has_cycleway_of_type(edge, &Cycleway::SharedLane)
-        || has_cycleway_of_type(edge, &Cycleway::ShareBusway)
-    {
-        if edge.cycleway == Some(Cycleway::Crossing)
-            || edge.smoothness == Some(Smoothness::Bad)
-            || edge.surface == Some(Surface::Sett)
-        {
-            5.0
-        } else {
-            1.3
-        }
-    } else if edge.cyclestreet {
-        1.3
+    } else if let Some(cycleway_cost) = get_cycleway_cost(edge) {
+        cycleway_cost
     } else if edge.highway == Some(Highway::Footway) || edge.highway == Some(Highway::Pedestrian) {
         if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
             if edge.footway == Some(Footway::Sidewalk) {
@@ -255,51 +293,8 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint) -> f64 {
         } else {
             15.0
         }
-    } else if edge.highway == Some(Highway::Residential)
-        || edge.highway == Some(Highway::LivingStreet)
-    {
-        if edge.surface == Some(Surface::Sett)
-            || edge.surface == Some(Surface::Cobblestone)
-            || edge.surface == Some(Surface::UnhewnCobblestone)
-        {
-            5.5
-        } else if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
-            1.4
-        } else {
-            1.6
-        }
-    } else if edge.highway == Some(Highway::Unclassified) {
-        1.8
-    } else if edge.highway == Some(Highway::Service) {
-        if edge.surface == Some(Surface::Chipseal) {
-            20.0
-        } else {
-            1.8
-        }
-    } else if edge.highway == Some(Highway::Tertiary) {
-        if edge.surface == Some(Surface::Sett)
-            || edge.surface == Some(Surface::Cobblestone)
-            || edge.tunnel == Some(Tunnel::Yes)
-        {
-            15.0
-        } else if edge.in_bicycle_route {
-            1.6
-        } else {
-            2.
-        }
-    } else if edge.highway == Some(Highway::Secondary)
-        || edge.highway == Some(Highway::SecondaryLink)
-    {
-        if edge.surface == Some(Surface::Sett)
-            || edge.surface == Some(Surface::Cobblestone)
-            || edge.tunnel == Some(Tunnel::Yes)
-        {
-            11.0
-        } else if edge.in_bicycle_route {
-            1.8
-        } else {
-            2.6
-        }
+    } else if let Some(local_cost) = get_local_road_cost(edge) {
+        local_cost
     } else if edge.highway == Some(Highway::Primary) {
         if edge.in_bicycle_route {
             2.
