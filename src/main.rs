@@ -16,6 +16,7 @@ use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
 use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::score_bounds_controler;
+use crate::utils::mtl;
 use crate::utils::proxy::martin_proxy;
 use askama::Template;
 use askama_web::WebTemplate;
@@ -103,12 +104,12 @@ async fn main() {
             // Rechargement du cache des segments (edges)
             Edge::clear_cache_and_reload(&conn).await;
 
-            // Tâche planifiée : tous les jours à 3h du matin (heure de Montréal)
+            // Tâche planifiée : tous les semaines à minuit (heure de Montréal)
             // On crée un fichier lock et on quitte l'application (elle sera redémarrée par Docker/Systemd)
             sched
                 .add(
                     Job::new_tz(
-                        "0 0 0 * * *",
+                        "0 0 * * 0",
                         chrono_tz::America::Montreal,
                         move |_uuid, _l| {
                             std::fs::File::create("lock/import").unwrap();
@@ -122,6 +123,27 @@ async fn main() {
             sched.start().await.unwrap();
         });
     }
+
+    // on lance la récupération des données des traveaux
+    // tous les jours
+    let sched = JobScheduler::new().await.unwrap();
+    sched
+        .add(
+            Job::new_tz(
+                "0 0 0 * * *",
+                chrono_tz::America::Montreal,
+                move |_uuid, _lock| {
+                    let conn_clone = conn.clone();
+                    tokio::spawn(async move {
+                        mtl::fetch_montreal_data(&conn_clone).await;
+                        Edge::clear_cache_and_reload(&conn_clone).await;
+                    });
+                },
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Définition du routeur Axum
     let mut app = Router::new()

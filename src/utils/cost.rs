@@ -154,9 +154,7 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
     let mut base = 1.0;
 
     // Conditions exclusives (une seule s'applique)
-    if edge.highway == Some(Highway::Cycleway)
-        && (edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel))
-    {
+    if edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel) {
         base += 1.0;
     } else if edge.cycleway == Some(Cycleway::Crossing) {
         base += 1.0;
@@ -361,7 +359,7 @@ mod tests {
             direction: SourceOrTarget::Source,
             ..EdgePoint::default()
         };
-        let cost = get_cost(FastOrSafe::Safe, &edge);
+        let cost = get_cost(FastOrSafe::Safe, &edge, true);
         assert_eq!(cost, 20.0);
     }
 
@@ -373,7 +371,7 @@ mod tests {
             surface: Some(crate::db::edge::Surface::Gravel),
             ..EdgePoint::default()
         };
-        let cost = get_cost(FastOrSafe::Safe, &edge);
+        let cost = get_cost(FastOrSafe::Safe, &edge, true);
         assert_eq!(cost, 1.1);
     }
 }

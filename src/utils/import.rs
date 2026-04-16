@@ -1,16 +1,10 @@
-use crate::{db::edge::Edge, utils::mtl, VeloinfoState};
+use crate::{db::edge::Edge, VeloinfoState};
 use axum::extract::State;
 use sqlx::PgPool;
 use tokio::process::Command;
 
 pub async fn import(conn: &PgPool) {
     println!("Importing data");
-    let conn_clone = conn.clone();
-    let handle = tokio::spawn(async move {
-        println!("fetching montreal data");
-        mtl::fetch_montreal_data(&conn_clone).await;
-        println!("fetching montreal data done");
-    });
     match Command::new("./import.sh").output().await {
         Ok(output) => {
             if !output.status.success() {
@@ -25,9 +19,6 @@ pub async fn import(conn: &PgPool) {
             println!("Error2 importing: {:?}", e);
         }
     }
-    if let Err(e) = handle.await {
-        println!("Erreur dans fetch_montreal_data: {:?}", e);
-    };
     println!("clearing cache");
     Edge::clear_cache_and_reload(&conn).await;
 }
