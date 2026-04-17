@@ -1,8 +1,11 @@
-#!/bin/bash
-# Script to import SRTM elevation data
-# This script loads SRTM GeoTIFF data into PostGIS
-
+#!/usr/bin/bash
 set -e
+set -o pipefail
+
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
+PSQL_CMD="psql -h db -U postgres -d carte -v ON_ERROR_STOP=1"
 
 SRTM_FILE="/tmp/srtm_22_03/srtm_22_03.tif"
 SRTM_URL="https://srtm.csi.cgiar.org/wp-content/uploads/files/srtm_5x5/TIFF/srtm_22_03.zip"
@@ -28,43 +31,8 @@ else
     echo "✓ SRTM file already exists"
 fi
 
-# Parse DATABASE_URL (format: postgresql://user:password@host:port/dbname)
-if [ -z "$DATABASE_URL" ]; then
-    echo "Error: DATABASE_URL environment variable is not set"
-    exit 1
-fi
-
-# Remove protocol
-local_url="${DATABASE_URL##*://}"
-
-# Extract user (with or without password)
-user_part="${local_url%%@*}"
-
-if [[ "$user_part" == *":"* ]]; then
-    # Has password
-    DB_USER="${user_part%%:*}"
-    DB_PASSWORD="${user_part##*:}"
-else
-    # No password
-    DB_USER="$user_part"
-    DB_PASSWORD=""
-fi
-
-# Extract host and port and database
-remainder="${local_url##*@}"
-DB_HOST="${remainder%%:*}"
-DB_PORT="${remainder##*:}"
-DB_PORT="${DB_PORT%%/*}"
-DB_NAME="${remainder##*/}"
-
 echo "SRTM Elevation Data Import Script"
 echo "===================================="
-echo ""
-echo "Configuration:"
-echo "  Host: $DB_HOST"
-echo "  Port: $DB_PORT"
-echo "  Database: $DB_NAME"
-echo "  User: $DB_USER"
 echo ""
 
 echo "✓ raster2pgsql is installed"
@@ -72,21 +40,13 @@ echo ""
 
 # Create public schema if it doesn't exist (no import schema needed)
 echo "Ensuring public schema is ready..."
-if [ -z "$DB_PASSWORD" ]; then
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS public;"
-else
-    PGPASSWORD="***" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS public;"
-fi
+$PSQL_CMD -c "CREATE SCHEMA IF NOT EXISTS public;"
 echo "✓ Public schema ready"
 echo ""
 
 # Enable PostGIS Raster extension
 echo "Enabling PostGIS Raster extension..."
-if [ -z "$DB_PASSWORD" ]; then
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS postgis_raster;" 2>/dev/null || echo "Note: PostGIS Raster extension may already be enabled or requires superuser privileges"
-else
-    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS postgis_raster;" 2>/dev/null || echo "Note: PostGIS Raster extension may already be enabled or requires superuser privileges"
-fi
+$PSQL_CMD -c "CREATE EXTENSION IF NOT EXISTS postgis_raster;" 2>/dev/null || echo "Note: PostGIS Raster extension may already be enabled or requires superuser privileges"
 echo "✓ PostGIS Raster extension ready"
 echo ""
 
@@ -100,24 +60,13 @@ echo ""
 
 # Load into database
 echo "Loading SRTM data into PostgreSQL..."
-if [ -z "$DB_PASSWORD" ]; then
-    if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SQL_FILE" 2>&1 | grep -v "perl: warning"; then
-        echo "Error loading SRTM data!"
-        exit 1
-    fi
-else
-    if ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SQL_FILE" 2>&1 | grep -v "perl: warning"; then
-        echo "Error loading SRTM data!"
-        exit 1
-    fi
+if ! $PSQL_CMD -f "$SQL_FILE" 2>&1 | grep -v "perl: warning"; then
+    echo "Error loading SRTM data!"
+    exit 1
 fi
 
 # Check if load was successful
-if [ -z "$DB_PASSWORD" ]; then
-    TABLE_EXISTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'srtm_elevation');" 2>/dev/null | xargs)
-else
-    TABLE_EXISTS=$(PGPASSWORD="***" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'srtm_elevation');" 2>/dev/null | xargs)
-fi
+TABLE_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'srtm_elevation');" | xargs)
 
 if [ "$TABLE_EXISTS" != "t" ]; then
     echo "✗ Error: SRTM table was not created successfully"
@@ -127,59 +76,38 @@ fi
 
 echo "✓ SRTM data loaded successfully"
 echo "Optimizing raster indexes..."
-if [ -z "$DB_PASSWORD" ]; then
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON public.srtm_elevation USING GIST (ST_ConvexHull(rast));"
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ANALYZE public.srtm_elevation;"
-else
-    PGPASSWORD="***" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON public.srtm_elevation USING GIST (ST_ConvexHull(rast));"
-    PGPASSWORD="***" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ANALYZE public.srtm_elevation;"
-fi
+$PSQL_CMD -c "CREATE INDEX IF NOT EXISTS srtm_elevation_rast_gist ON public.srtm_elevation USING GIST (ST_ConvexHull(rast));"
+$PSQL_CMD -c "ANALYZE public.srtm_elevation;"
 echo "✓ Raster index and stats updated"
 
 echo "Building polygon elevation table (this can be VERY large and may take a while)..."
-    if [ -z "$DB_PASSWORD" ]; then
-        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
+$PSQL_CMD << 'EOF'
 DROP TABLE IF EXISTS public.srtm_elevation_polygons;
 CREATE TABLE public.srtm_elevation_polygons (
-    geom geometry(Polygon, 4326),
+    -- On définit la géométrie directement en 3857
+    geom geometry(Polygon, 3857),
     elevation double precision
 );
+
 INSERT INTO public.srtm_elevation_polygons (geom, elevation)
-SELECT (p).geom, (p).val
+SELECT 
+    ST_Transform((p).geom, 3857), -- On transforme ici une fois pour toutes
+    (p).val
 FROM (
     SELECT ST_PixelAsPolygons(rast, 1) AS p
     FROM public.srtm_elevation
 ) AS polys;
+
+-- L'index GIST sera créé sur du 3857
 CREATE INDEX srtm_elevation_polygons_geom_idx ON public.srtm_elevation_polygons USING GIST (geom);
 ANALYZE public.srtm_elevation_polygons;
 EOF
-    else
-        PGPASSWORD="***" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
-DROP TABLE IF EXISTS public.srtm_elevation_polygons;
-CREATE TABLE public.srtm_elevation_polygons (
-    geom geometry(Polygon, 4326),
-    elevation double precision
-);
-INSERT INTO public.srtm_elevation_polygons (geom, elevation)
-SELECT (p).geom, (p).val
-FROM (
-    SELECT ST_PixelAsPolygons(rast, 1) AS p
-    FROM public.srtm_elevation
-) AS polys;
-CREATE INDEX srtm_elevation_polygons_geom_idx ON public.srtm_elevation_polygons USING GIST (geom);
-ANALYZE public.srtm_elevation_polygons;
-EOF
-    fi
-    echo "✓ Polygon elevation table built"
+echo "✓ Polygon elevation table built"
 echo ""
 
 # Verify the data
 echo "Verifying SRTM data..."
-if [ -z "$DB_PASSWORD" ]; then
-    RASTER_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM public.srtm_elevation;")
-else
-    RASTER_COUNT=$(PGPASSWORD="***" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM public.srtm_elevation;")
-fi
+RASTER_COUNT=$($PSQL_CMD -t -c "SELECT COUNT(*) FROM public.srtm_elevation;")
 
 echo "✓ Rasters in database: $RASTER_COUNT"
 

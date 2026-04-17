@@ -130,7 +130,7 @@ async fn main() {
     sched
         .add(
             Job::new_tz(
-                "0 0 0 * * *",
+                "0 0 1 * * *",
                 chrono_tz::America::Montreal,
                 move |_uuid, _lock| {
                     let conn_clone = conn.clone();

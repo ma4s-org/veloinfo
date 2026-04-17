@@ -54,8 +54,8 @@ pub struct Edge {
     pub road_work: bool,
     pub in_bicycle_route: bool,
     pub snow: bool,
-    pub elevation_start: Option<f64>,
-    pub elevation_end: Option<f64>,
+    pub elevation_start: Option<i16>,
+    pub elevation_end: Option<i16>,
 }
 
 impl Eq for Edge {}
@@ -109,8 +109,8 @@ pub struct EdgePoint {
     pub cycleway_right_oneway: Option<Oneway>,
     pub informal: bool,
     pub routing_bicycle_use_sidepath: bool,
-    pub elevation_start: Option<f64>,
-    pub elevation_end: Option<f64>,
+    pub elevation_start: Option<i16>,
+    pub elevation_end: Option<i16>,
 }
 
 impl Default for EdgePoint {
@@ -529,10 +529,7 @@ impl EdgePoint {
         }
     }
 
-    pub async fn get_neighbors(
-        &self,
-        conn: &sqlx::Pool<Postgres>,
-    ) -> ARc<Vec<ARc<EdgePoint>>> {
+    pub async fn get_neighbors(&self, conn: &sqlx::Pool<Postgres>) -> ARc<Vec<ARc<EdgePoint>>> {
         let node_id = self.get_node_id();
         if let Some(neighbors) = NEIGHBORS_CACHE.lock().await.get(node_id).await {
             return neighbors;
@@ -542,10 +539,10 @@ impl EdgePoint {
             e.id,
             e.source,
             e.target,
-            x1 as lon1,
-            y1 as lat1,
-            x2 as lon2,
-            y2 as lat2,
+            ST_X(ST_Transform(ST_SetSRID(ST_MakePoint(e.x1, e.y1), 3857), 4326)) as lon1,
+            ST_Y(ST_Transform(ST_SetSRID(ST_MakePoint(e.x1, e.y1), 3857), 4326)) as lat1,
+            ST_X(ST_Transform(ST_SetSRID(ST_MakePoint(e.x2, e.y2), 3857), 4326)) as lon2,
+            ST_Y(ST_Transform(ST_SetSRID(ST_MakePoint(e.x2, e.y2), 3857), 4326)) as lat2,
             e.tags,
             e.way_id,
             e.in_bicycle_route,
@@ -576,13 +573,13 @@ impl EdgePoint {
                         ARc::new((ARc::new(edge), direction).into())
                     })
                     .collect();
-                
+
                 // Le cache fonctionne normalement pour tous les cas.
                 // La pénalité pour les traversiers est appliquée dans get_cost(),
                 // pas dans le filtrage SQL.
                 let mut cache = NEIGHBORS_CACHE.lock().await;
                 cache.insert(node_id, ARc::new(result.clone())).await;
-                
+
                 ARc::new(result)
             }
             Err(e) => {
@@ -723,8 +720,8 @@ impl Edge {
                 }
 
                 for neighbor in current_fwd.get_neighbors(conn).await.iter() {
-                    let tentative_g_score =
-                        g_score_fwd[&current_fwd] + neighbor.length * h.get_cost(&neighbor, allow_ferry);
+                    let tentative_g_score = g_score_fwd[&current_fwd]
+                        + neighbor.length * h.get_cost(&neighbor, allow_ferry);
                     if tentative_g_score < *g_score_fwd.get(neighbor).unwrap_or(&f64::INFINITY) {
                         came_from_fwd.insert(neighbor.clone(), current_fwd.clone());
                         g_score_fwd.insert(neighbor.clone(), tentative_g_score);
@@ -982,10 +979,10 @@ impl Edge {
                 e.id,
                 e.source,
                 e.target,
-                x1 as lon1,
-                y1 as lat1,
-                x2 as lon2,
-                y2 as lat2,
+                ST_X(ST_Transform(ST_SetSRID(ST_MakePoint(e.x1, e.y1), 3857), 4326)) as lon1,
+                ST_Y(ST_Transform(ST_SetSRID(ST_MakePoint(e.x1, e.y1), 3857), 4326)) as lat1,
+                ST_X(ST_Transform(ST_SetSRID(ST_MakePoint(e.x2, e.y2), 3857), 4326)) as lon2,
+                ST_Y(ST_Transform(ST_SetSRID(ST_MakePoint(e.x2, e.y2), 3857), 4326)) as lat2,
                 e.tags,
                 e.way_id,
                 e.tags->>'name' as name, 
@@ -1028,10 +1025,10 @@ impl Edge {
                 e.id,
                 e.source,
                 e.target,
-                x1 as lon1,
-                y1 as lat1,
-                x2 as lon2,
-                y2 as lat2,
+                ST_X(ST_Transform(ST_SetSRID(ST_MakePoint(e.x1, e.y1), 3857), 4326)) as lon1,
+                ST_Y(ST_Transform(ST_SetSRID(ST_MakePoint(e.x1, e.y1), 3857), 4326)) as lat1,
+                ST_X(ST_Transform(ST_SetSRID(ST_MakePoint(e.x2, e.y2), 3857), 4326)) as lon2,
+                ST_Y(ST_Transform(ST_SetSRID(ST_MakePoint(e.x2, e.y2), 3857), 4326)) as lat2,
                 e.tags,
                 e.way_id,
                 e.tags->>'name' as name, 

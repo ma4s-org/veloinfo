@@ -4,14 +4,14 @@ use crate::db::edge::EdgePoint;
 
 /// Calculate the slope percentage between two elevations over a distance
 pub fn calculate_slope_percentage(
-    elevation_start: f64,
-    elevation_end: f64,
+    elevation_start: i16,
+    elevation_end: i16,
     distance_meters: f64,
 ) -> f64 {
     if distance_meters <= 0.0 {
         return 0.0;
     }
-    ((elevation_end - elevation_start) / distance_meters) * 100.0
+    ((elevation_end - elevation_start) as f64 / distance_meters) * 100.0
 }
 
 pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
@@ -60,8 +60,8 @@ mod tests {
 
     #[test]
     fn test_flat_slope() {
-        assert!((calculate_slope_percentage(100.0, 101.0, 50.0) - 2.0).abs() < 0.01);
-        assert!((calculate_slope_percentage(100.0, 100.0, 100.0) - 0.0).abs() < 0.01);
+        assert!((calculate_slope_percentage(100, 101, 50.0) - 2.0).abs() < 0.01);
+        assert!((calculate_slope_percentage(100, 100, 100.0) - 0.0).abs() < 0.01);
     }
 
     #[test]
@@ -85,8 +85,8 @@ mod tests {
             source: 6,
             target: 7,
             length: 100.0,
-            elevation_start: Some(100.0),
-            elevation_end: Some(101.0),
+            elevation_start: Some(100),
+            elevation_end: Some(101),
             ..Default::default()
         };
         let slope_cost_very_small_uphill = get_edge_slope_cost(&edge_very_small_uphill);
@@ -97,8 +97,8 @@ mod tests {
             source: 5,
             target: 6,
             length: 100.0,
-            elevation_start: Some(100.0),
-            elevation_end: Some(105.0),
+            elevation_start: Some(100),
+            elevation_end: Some(105),
             ..Default::default()
         };
         let slope_cost_small_uphill = get_edge_slope_cost(&edge_small_uphill);
@@ -109,8 +109,8 @@ mod tests {
             source: 1,
             target: 2,
             length: 100.0,
-            elevation_start: Some(100.0),
-            elevation_end: Some(110.0),
+            elevation_start: Some(100),
+            elevation_end: Some(110),
             ..Default::default()
         };
         let slope_cost = get_edge_slope_cost(&edge);
@@ -121,8 +121,8 @@ mod tests {
             source: 4,
             target: 5,
             length: 100.0,
-            elevation_start: Some(100.0),
-            elevation_end: Some(120.0),
+            elevation_start: Some(100),
+            elevation_end: Some(120),
             ..Default::default()
         };
         let slope_cost_steep_uphill = get_edge_slope_cost(&edge_steep_uphill);
@@ -133,8 +133,8 @@ mod tests {
             source: 4,
             target: 5,
             length: 100.0,
-            elevation_start: Some(100.0),
-            elevation_end: Some(130.0),
+            elevation_start: Some(100),
+            elevation_end: Some(130),
             ..Default::default()
         };
         let slope_cost_very_steep_uphill = get_edge_slope_cost(&edge_very_steep_uphill);
@@ -145,8 +145,8 @@ mod tests {
             source: 7,
             target: 8,
             length: 100.0,
-            elevation_start: Some(105.0),
-            elevation_end: Some(100.0),
+            elevation_start: Some(105),
+            elevation_end: Some(100),
             ..Default::default()
         };
         let slope_cost_downhill = get_edge_slope_cost(&edge_downhill);

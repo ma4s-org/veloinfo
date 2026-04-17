@@ -1,5 +1,4 @@
-use crate::{db::edge::Edge, VeloinfoState};
-use axum::extract::State;
+use crate::db::edge::Edge;
 use sqlx::PgPool;
 use tokio::process::Command;
 
@@ -21,9 +20,4 @@ pub async fn import(conn: &PgPool) {
     }
     println!("clearing cache");
     Edge::clear_cache_and_reload(&conn).await;
-}
-
-#[allow(dead_code)]
-pub async fn import_mtl(State(state): State<VeloinfoState>) {
-    import(&state.conn).await;
 }
