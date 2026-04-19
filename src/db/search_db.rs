@@ -116,22 +116,34 @@ pub async fn get_with_adress(
     let r = match sqlx::query_as(
         r#"select * 
             from (
-                select distinct on ($2 || ' ' || street || ', ' || COALESCE(city,''))
-                    $2 || ' ' || street || ', ' || COALESCE(city,'') as name,
-                    CASE
-                        WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_X(ST_Transform(st_centroid(geom), 4326))
-                        ELSE ST_X(ST_Transform(st_centroid(geom), 4326))
-                    END as lng,
-                    CASE
-                        WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_Y(ST_Transform(st_centroid(geom), 4326))
-                        ELSE ST_Y(ST_Transform(st_centroid(geom), 4326))
-                    END as lat,
-                    st_centroid(geom) as geom
-                from address_range ar 
-                where tsvector  @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery and
-                    (start <= $2 and "end" >= $2 or start >= $2 and "end" <= $2 )and
-                    odd_even = $3
-                order by $2 || ' ' || street || ', ' || COALESCE(city,'')
+                select distinct on (name)
+                    name, lng, lat, geom
+                from (
+                    select
+                        $2 || ' ' || street || ', ' || COALESCE(city,'') as name,
+                        ST_X(ST_Transform(geom, 4326)) as lng,
+                        ST_Y(ST_Transform(geom, 4326)) as lat,
+                        geom
+                    from address_node an
+                    where to_tsvector('simple', unaccent(coalesce(street, '') || ' ' || coalesce(city, ''))) @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
+                        and housenumber = $2
+                    union
+                    select
+                        $2 || ' ' || street || ', ' || COALESCE(city,'') as name,
+                        CASE
+                            WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_X(ST_Transform(st_centroid(geom), 4326))
+                            ELSE ST_X(ST_Transform(st_centroid(geom), 4326))
+                        END as lng,
+                        CASE
+                            WHEN ST_GeometryType(geom) = 'ST_Point' THEN ST_Y(ST_Transform(st_centroid(geom), 4326))
+                            ELSE ST_Y(ST_Transform(st_centroid(geom), 4326))
+                        END as lat,
+                        st_centroid(geom) as geom
+                    from address_range ar 
+                    where tsvector @@ (plainto_tsquery('simple', unaccent($1))::text || ':*')::tsquery
+                        and (start <= $2 and "end" >= $2 or start >= $2 and "end" <= $2)
+                        and odd_even = $3
+                ) combined
             ) t
             order by
             geom<-> ST_Transform(ST_SetSRID(ST_MakePoint($4, $5), 4326), 3857)"#,

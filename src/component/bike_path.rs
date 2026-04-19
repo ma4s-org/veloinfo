@@ -20,68 +20,75 @@ pub async fn bike_path_mvt(
     let query = r#"
         WITH
         bounds AS (
-            SELECT ST_TileEnvelope($1, $2, $3) AS geom
+            SELECT 
+                ST_TileEnvelope($1, $2, $3) AS geom_mercator,
+                ST_Transform(ST_TileEnvelope($1, $2, $3), 4326) AS geom_wgs
+        ),
+        filtered_ways AS (
+            SELECT aw.way_id, aw.geom, aw.tags
+            FROM all_way aw, bounds b
+            WHERE COALESCE(aw.tags->>'bicycle', 'yes') <> 'no'
+              AND ST_Intersects(aw.geom, b.geom_wgs)
         ),
         all_bike_paths AS (
             SELECT
-                aw.geom,
-                aw.tags,
+                fw.geom,
+                fw.tags,
                 COALESCE(cscore.score, 1) as score,
                 cs.city_name IS NOT NULL as snow,
                 CASE
                     -- 1. Ferry
-                    WHEN aw.tags->>'route' = 'ferry' THEN 'ferry'
+                    WHEN fw.tags->>'route' = 'ferry' THEN 'ferry'
                     
                     -- 2. Pistes dédiées (tracks, etc.)
                     WHEN 
-                        aw.tags->>'highway' = 'cycleway' OR
-                        aw.tags->>'cyclestreet' = 'yes' OR
-                        aw.tags->>'cycleway' = 'track' OR
-                        aw.tags->>'cycleway:left' = 'track' OR
-                        aw.tags->>'cycleway:right' = 'track' OR
-                        aw.tags->>'cycleway:both' = 'track'
-                    THEN CASE WHEN aw.tags->>'cycleway' = 'crossing' THEN 'cycleway_crossing' ELSE 'cycleway' END
+                        fw.tags->>'highway' = 'cycleway' OR
+                        fw.tags->>'cyclestreet' = 'yes' OR
+                        fw.tags->>'cycleway' = 'track' OR
+                        fw.tags->>'cycleway:left' = 'track' OR
+                        fw.tags->>'cycleway:right' = 'track' OR
+                        fw.tags->>'cycleway:both' = 'track'
+                    THEN CASE WHEN fw.tags->>'cycleway' = 'crossing' THEN 'cycleway_crossing' ELSE 'cycleway' END
                     
                     -- 3. Voies désignées (partagées avec bus ou marquées sur le côté)
                     WHEN 
-                        aw.tags->>'cycleway:left' = 'share_busway' OR
-                        aw.tags->>'cycleway:right' = 'share_busway' OR
-                        aw.tags->>'cycleway:both' = 'share_busway' OR
-                        aw.tags->>'cycleway:right' = 'lane' OR
-                        aw.tags->>'cycleway:left' = 'lane' OR
-                        aw.tags->>'cycleway:both' = 'lane' OR
-                        aw.tags->>'cycleway' = 'lane'
+                        fw.tags->>'cycleway:left' = 'share_busway' OR
+                        fw.tags->>'cycleway:right' = 'share_busway' OR
+                        fw.tags->>'cycleway:both' = 'share_busway' OR
+                        fw.tags->>'cycleway:right' = 'lane' OR
+                        fw.tags->>'cycleway:left' = 'lane' OR
+                        fw.tags->>'cycleway:both' = 'lane' OR
+                        fw.tags->>'cycleway' = 'lane'
                     THEN 'designated'
                     
                     -- 4. Voies partagées (cas plus généraux)
                     WHEN 
-                        aw.tags->>'cycleway' = 'shared_lane' OR
-                        aw.tags->>'cycleway:left' = 'shared_lane' OR
-                        aw.tags->>'cycleway:left' = 'opposite_lane' OR
-                        aw.tags->>'cycleway:right' = 'shared_lane' OR
-                        aw.tags->>'cycleway:right' = 'opposite_lane' OR
-                        aw.tags->>'cycleway:both' = 'shared_lane' OR
-                        (aw.tags->>'highway' = 'footway' AND aw.tags->>'bicycle' = 'yes')
+                        fw.tags->>'cycleway' = 'shared_lane' OR
+                        fw.tags->>'cycleway:left' = 'shared_lane' OR
+                        fw.tags->>'cycleway:left' = 'opposite_lane' OR
+                        fw.tags->>'cycleway:right' = 'shared_lane' OR
+                        fw.tags->>'cycleway:right' = 'opposite_lane' OR
+                        fw.tags->>'cycleway:both' = 'shared_lane' OR
+                        (fw.tags->>'highway' = 'footway' AND fw.tags->>'bicycle' = 'yes')
                     THEN  'shared_lane'
                 END as kind
             FROM
-                all_way aw
+                filtered_ways fw
             LEFT JOIN LATERAL (
                 SELECT way_ids, score
                 FROM cyclability_score
-                WHERE aw.way_id = ANY(cyclability_score.way_ids)
+                WHERE fw.way_id = ANY(cyclability_score.way_ids)
                 ORDER BY cyclability_score.created_at DESC
                 LIMIT 1
             ) cscore ON true
-            LEFT JOIN city ON ST_Intersects(aw.geom, city.geom)
+            LEFT JOIN city ON ST_Intersects(fw.geom, city.geom)
             LEFT JOIN city_snow cs ON city.name = cs.city_name
-            WHERE COALESCE(aw.tags->>'bicycle', 'yes') <> 'no'
         ),
         mvtgeom AS (
             SELECT
                 ST_AsMVTGeom(
                     ST_Transform(abp.geom, 3857),
-                    bounds.geom
+                    bounds.geom_mercator
                 ) AS geom,
                 abp.tags,
                 abp.score,
@@ -91,27 +98,12 @@ pub async fn bike_path_mvt(
                 all_bike_paths abp, bounds
             WHERE
                     abp.kind IS NOT NULL AND
-                    ST_Intersects(abp.geom, ST_Transform(bounds.geom, 3857)) AND
                     NOT (
                         abp.snow AND (
                             COALESCE(abp.tags->>'winter_service', 'yes') = 'no'
-                            OR (
-                                (
-                                    (abp.tags->>'cycleway:conditional') IS NOT NULL
-                                    AND regexp_replace(lower(abp.tags->>'cycleway:conditional'), '[()\s]', '', 'g') LIKE '%@snow%'
-                                    AND regexp_replace(lower(abp.tags->>'cycleway:conditional'), '[()\s]', '', 'g') LIKE '%no%'
-                                )
-                                OR (
-                                    (abp.tags->>'cycleway:left:conditional') IS NOT NULL
-                                    AND regexp_replace(lower(abp.tags->>'cycleway:left:conditional'), '[()\s]', '', 'g') LIKE '%@snow%'
-                                    AND regexp_replace(lower(abp.tags->>'cycleway:left:conditional'), '[()\s]', '', 'g') LIKE '%no%'
-                                )
-                                OR (
-                                    (abp.tags->>'cycleway:right:conditional') IS NOT NULL
-                                    AND regexp_replace(lower(abp.tags->>'cycleway:right:conditional'), '[()\s]', '', 'g') LIKE '%@snow%'
-                                    AND regexp_replace(lower(abp.tags->>'cycleway:right:conditional'), '[()\s]', '', 'g') LIKE '%no%'
-                                )
-                            )
+                            OR abp.tags->>'cycleway:conditional' LIKE '%snow%no%'
+                            OR abp.tags->>'cycleway:left:conditional' LIKE '%snow%no%'
+                            OR abp.tags->>'cycleway:right:conditional' LIKE '%snow%no%'
                         )
                     )
         )
