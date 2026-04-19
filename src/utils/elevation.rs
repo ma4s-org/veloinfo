@@ -26,15 +26,15 @@ pub fn get_edge_slope_cost(edge: &EdgePoint) -> f64 {
 
 fn sigmoid_transition(x: f64) -> f64 {
     // --- 1. VOS PARAMÈTRES RÉGLABLES ---
-    let steepness: f64 = 0.6; // Transition plus abrupte (était 0.4)
-    let midpoint: f64 = 7.0; // Pénalité commence plus tôt (était 4.0%)
+    let steepness: f64 = 0.6;
+    let midpoint: f64 = 7.0;
     let min_val: f64 = 1.0;
 
-    let pos_max: f64 = 3.;
-    let slowdown_factor: f64 = 1.2; // Croissance linéaire plus rapide (était 2.5)
+    let pos_max: f64 = 6.;
+    let slowdown_factor: f64 = 6.;
 
-    let neg_max: f64 = 2.0; // Descente neutre
-    let threshold: f64 = 14.0; // Relais linéaire plus tôt (était 15.0%)
+    let neg_max: f64 = 2.0;
+    let threshold: f64 = 14.0;
 
     // --- 2. LE RELAIS LINÉAIRE (Calculé dynamiquement) ---
     if x > threshold {

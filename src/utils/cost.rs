@@ -144,7 +144,7 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
     } else if has_cycleway_of_type(edge, &Cycleway::Lane) {
         1.2
     } else if has_cycleway_of_type(edge, &Cycleway::SharedLane) {
-        1.3
+        1.4
     } else if has_cycleway_of_type(edge, &Cycleway::ShareBusway) {
         1.4
     } else {
@@ -154,7 +154,7 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
     let mut base = 1.0;
 
     if edge.cycleway == Some(Cycleway::Crossing) {
-        base += 2.3
+        base += 1.
     }
 
     // Conditions exclusives (une seule s'applique)
@@ -176,10 +176,11 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
     } else {
         match edge.highway {
             Some(Highway::Residential) | Some(Highway::LivingStreet) => 1.0,
-            Some(Highway::Unclassified) => 1.05,
-            Some(Highway::Service) => 1.05,
-            Some(Highway::Tertiary) => 1.1,
+            Some(Highway::Unclassified) => 1.1,
+            Some(Highway::Service) => 1.1,
+            Some(Highway::Tertiary) => 1.2,
             Some(Highway::Secondary) | Some(Highway::SecondaryLink) => 1.3,
+            Some(Highway::Primary) => 1.5,
             _ => return None,
         }
     };
@@ -204,7 +205,7 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
         base -= 0.4;
     }
     if edge.bicycle == Some(Bicycle::Dismount) {
-        base += 2.0;
+        base += 1.0;
     }
     if edge.in_bicycle_route {
         base -= 0.2;
@@ -288,7 +289,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
                 if edge.bridge == Some(true) {
                     1.6
                 } else {
-                    5.
+                    6.
                 }
             }
         } else if edge.footway == Some(Footway::Sidewalk) {
@@ -302,12 +303,6 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
         local_cost
     } else if edge.route == Some(Route::Ferry) {
         10.
-    } else if edge.highway == Some(Highway::Primary) {
-        if edge.in_bicycle_route {
-            2.
-        } else {
-            3.5
-        }
     } else if edge.highway == Some(Highway::Trunk) {
         9.0
     } else if edge.highway.is_some() {
