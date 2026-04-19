@@ -153,10 +153,12 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
 
     let mut base = 1.0;
 
+    if edge.cycleway == Some(Cycleway::Crossing) {
+        base += 2.3
+    }
+
     // Conditions exclusives (une seule s'applique)
     if edge.surface == Some(Surface::FineGravel) || edge.surface == Some(Surface::Gravel) {
-        base += 1.0;
-    } else if edge.cycleway == Some(Cycleway::Crossing) {
         base += 1.0;
     } else if edge.smoothness == Some(Smoothness::Bad) {
         base += 1.0;
