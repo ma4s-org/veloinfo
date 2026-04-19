@@ -8,6 +8,7 @@ use axum::{
     Json,
 };
 use geojson::JsonValue;
+use sqlx::Row;
 
 use crate::VeloinfoState;
 
@@ -20,15 +21,13 @@ pub async fn bike_path_mvt(
     let query = r#"
         WITH
         bounds AS (
-            SELECT 
-                ST_TileEnvelope($1, $2, $3) AS geom_mercator,
-                ST_Transform(ST_TileEnvelope($1, $2, $3), 4326) AS geom_wgs
+            SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
         filtered_ways AS (
             SELECT aw.way_id, aw.geom, aw.tags
             FROM all_way aw, bounds b
             WHERE COALESCE(aw.tags->>'bicycle', 'yes') <> 'no'
-              AND ST_Intersects(aw.geom, b.geom_wgs)
+              AND aw.geom && b.geom
         ),
         all_bike_paths AS (
             SELECT
@@ -85,53 +84,71 @@ pub async fn bike_path_mvt(
             LEFT JOIN city_snow cs ON city.name = cs.city_name
         ),
         mvtgeom AS (
-            SELECT
-                ST_AsMVTGeom(
-                    ST_Transform(abp.geom, 3857),
-                    bounds.geom_mercator
-                ) AS geom,
-                abp.tags,
-                abp.score,
-                abp.kind,
-                abp.snow
-            FROM
-                all_bike_paths abp, bounds
-            WHERE
-                    abp.kind IS NOT NULL AND
-                    NOT (
-                        abp.snow AND (
-                            COALESCE(abp.tags->>'winter_service', 'yes') = 'no'
-                            OR abp.tags->>'cycleway:conditional' LIKE '%snow%no%'
-                            OR abp.tags->>'cycleway:left:conditional' LIKE '%snow%no%'
-                            OR abp.tags->>'cycleway:right:conditional' LIKE '%snow%no%'
-                        )
-                    )
+        SELECT
+            ST_AsMVTGeom(
+                abp.geom,
+                bounds.geom
+            ) AS geom,
+            abp.tags,
+            abp.score,
+            abp.kind,
+            abp.snow
+        FROM
+            all_bike_paths abp, bounds
+        WHERE
+            abp.kind IS NOT NULL AND
+            -- On n'exclut que si c'est explicitement interdit en hiver
+            NOT (
+                abp.snow = true AND (
+                    COALESCE(abp.tags->>'winter_service', 'yes') = 'no'
+                    OR (LOWER(abp.tags->>'cycleway:conditional') LIKE '%snow%' AND LOWER(abp.tags->>'cycleway:conditional') LIKE '%no%') IS TRUE
+                    OR (LOWER(abp.tags->>'cycleway:left:conditional') LIKE '%snow%' AND LOWER(abp.tags->>'cycleway:left:conditional') LIKE '%no%') IS TRUE
+                    OR (LOWER(abp.tags->>'cycleway:right:conditional') LIKE '%snow%' AND LOWER(abp.tags->>'cycleway:right:conditional') LIKE '%no%') IS TRUE
+                )
+            )
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
         FROM mvtgeom;
     "#;
 
-    let tile: Result<Option<Vec<u8>>, sqlx::Error> = sqlx::query_scalar(query)
+    let result = sqlx::query(query)
         .bind(z as i32)
         .bind(x as i32)
         .bind(y as i32)
-        .fetch_one(conn)
+        .fetch_optional(conn)
         .await;
-    match tile {
-        Ok(Some(mvt)) => Response::builder()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
-            .body(Body::from(mvt))
-            .unwrap()
-            .into_response(),
-        Ok(None) => Response::builder() // No tile found, return empty response
-            .status(StatusCode::NO_CONTENT)
-            .body(Body::empty())
-            .unwrap()
-            .into_response(),
+    match result {
+        Ok(Some(row)) => {
+            let mvt: Option<Vec<u8>> = row.try_get(0).ok();
+            eprintln!("MVT size: {:?}", mvt.as_ref().map(|v| v.len()));
+            match mvt {
+                Some(tile) if !tile.is_empty() => Response::builder()
+                    .status(StatusCode::OK)
+                    .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
+                    .body(Body::from(tile))
+                    .unwrap()
+                    .into_response(),
+                _ => {
+                    eprintln!("Empty tile returned");
+                    Response::builder()
+                        .status(StatusCode::NO_CONTENT)
+                        .body(Body::empty())
+                        .unwrap()
+                        .into_response()
+                }
+            }
+        }
+        Ok(None) => {
+            eprintln!("No row returned");
+            Response::builder()
+                .status(StatusCode::NO_CONTENT)
+                .body(Body::empty())
+                .unwrap()
+                .into_response()
+        }
         Err(e) => {
-            eprintln!("Error fetching tile: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Error fetching tile").into_response()
+            eprintln!("SQL error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "SQL error").into_response()
         }
     }
 }
