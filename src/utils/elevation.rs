@@ -31,7 +31,7 @@ fn sigmoid_transition(x: f64) -> f64 {
     let min_val: f64 = 1.0;
 
     let pos_max: f64 = 3.;
-    let slowdown_factor: f64 = 4.0; // Croissance linéaire plus rapide (était 2.5)
+    let slowdown_factor: f64 = 1.2; // Croissance linéaire plus rapide (était 2.5)
 
     let neg_max: f64 = 2.0; // Descente neutre
     let threshold: f64 = 14.0; // Relais linéaire plus tôt (était 15.0%)
