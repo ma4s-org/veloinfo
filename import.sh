@@ -26,30 +26,64 @@ MERGED_FILE="regions.osm.pbf"
 
 echo "--- Étape 1 : Téléchargement des données OSM ---"
 rm -f "$MERGED_FILE"
-wget "$QUEBEC_URL" -O "$QUEBEC_FILE"
-wget "$ONTARIO_URL" -O "$ONTARIO_FILE"
-wget "$NB_URL" -O "$NB_FILE"
-wget "$MAINE_URL" -O "$MAINE_FILE"
-wget "$VERMONT_URL" -O "$VERMONT_FILE"
-wget "$NEWYORK_URL" -O "$NEWYORK_FILE"
+
+# Téléchargement conditionnel (skip si fichier existe et non vide)
+download_if_missing() {
+    local url="$1"
+    local file="$2"
+    if [ -s "$file" ]; then
+        echo "   -> $file déjà présent, skip..."
+    else
+        wget "$url" -O "$file"
+    fi
+}
+
+download_if_missing "$QUEBEC_URL" "$QUEBEC_FILE"
+download_if_missing "$ONTARIO_URL" "$ONTARIO_FILE"
+download_if_missing "$NB_URL" "$NB_FILE"
+download_if_missing "$MAINE_URL" "$MAINE_FILE"
+download_if_missing "$VERMONT_URL" "$VERMONT_FILE"
+download_if_missing "$NEWYORK_URL" "$NEWYORK_FILE"
 
 echo "   -> Extractions géographiques ciblées..."
-osmium extract --bbox -76.55,41.0,-74.0,57.0 "$ONTARIO_FILE" -o "$ONT_EAST_FILE"
-osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NY_NORTH_FILE"
+osmium extract --bbox -76.55,41.0,-74.0,57.0 "$ONTARIO_FILE" -o "$ONT_EAST_FILE" --overwrite
+osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NY_NORTH_FILE" --overwrite
 
-echo "   -> Fusion Osmium..."
-osmium merge "$QUEBEC_FILE" "$ONT_EAST_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE" -o "$MERGED_FILE"
+echo "   -> Fusion et tri des données (requis par osm2pgsql)..."
+# Les extractions bbox ne sont plus triées - il faut trier chaque extrait avant merge
+echo "   -> Tri des extraits individuels..."
+for f in "$QUEBEC_FILE" "$ONT_EAST_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE"; do
+    if [ -f "$f" ]; then
+        osmium sort "$f" -o "${f}.sorted.pbf" --overwrite --strategy=multipass
+        mv "${f}.sorted.pbf" "$f"
+    fi
+done
 
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NY_NORTH_FILE" "$ONT_EAST_FILE"
+echo "   -> Merge des extraits (dedup automatique)..."
+osmium merge "$QUEBEC_FILE" "$ONT_EAST_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE" -o "$MERGED_FILE" --overwrite
+
+echo "   -> Tri final..."
+osmium sort "$MERGED_FILE" -o "${MERGED_FILE}.tmp.pbf" --overwrite
+mv "${MERGED_FILE}.tmp.pbf" "$MERGED_FILE"
+
 
 # ==============================================================================
 # 2. IMPORTATION OSM2PGSQL (STAGING)
 # ==============================================================================
 echo "--- Étape 2 : Importation osm2pgsql (Schéma import) ---"
 $PSQL_CMD -c "CREATE SCHEMA IF NOT EXISTS import;"
+
+# Vérifier et importer SRTM si nécessaire
+SRTM_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'srtm_elevation_polygons');" | xargs)
+if [ "$SRTM_EXISTS" != "t" ]; then
+    echo "   -> SRTM non détecté, lancement de import_srtm.sh..."
+    ./import_srtm.sh
+else
+    echo "   -> SRTM déjà présent, skip..."
+fi
+
 osm2pgsql --cache 2000 --slim --drop -H db -U postgres -d carte -O flex -S import.lua --schema import "$MERGED_FILE"
 rm -f "$MERGED_FILE"
-
 # ==============================================================================
 # 3. CALCULS GÉOSPATIAUX (TURBO MODE FULL 3857)
 # ==============================================================================
@@ -59,18 +93,31 @@ $PSQL_CMD <<EOF
 SET search_path = import, public;
 SET synchronous_commit = off;
 
+-- Extensions requises
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 -- A. Villes subdivisées et converties en 3857
 DROP TABLE IF EXISTS import.city_subdivided CASCADE;
 CREATE TABLE import.city_subdivided AS 
 SELECT name, ST_Transform(ST_Subdivide(ST_MakeValid(geom), 256), 3857) as geom 
-FROM public.city;
+FROM import.city
+WHERE admin_level >= 8;  -- Seulement villes/villages
 CREATE INDEX ON import.city_subdivided USING GIST (geom);
+
+-- Si pas de villes (table vide), on la crée quand même
+INSERT INTO import.city_subdivided (name, geom)
+SELECT NULL, NULL WHERE NOT EXISTS (SELECT 1 FROM import.city_subdivided) LIMIT 0;
 
 -- B. Créer le garde-fou 'bounds' en 3857 (basé sur tes polygones SRTM 3857)
 DROP TABLE IF EXISTS import.srtm_boundary;
 CREATE TABLE import.srtm_boundary AS 
 SELECT ST_SetSRID(ST_Extent(geom), 3857) as geom 
-FROM public.srtm_elevation_polygons;
+FROM public.srtm_elevation_polygons
+WHERE EXISTS (SELECT 1 FROM public.srtm_elevation_polygons LIMIT 1);
+
+-- Si SRTM n'existe pas encore, bounds vide
+INSERT INTO import.srtm_boundary SELECT ST_GeomFromText('POLYGON EMPTY', 3857)
+WHERE NOT EXISTS (SELECT 1 FROM import.srtm_boundary);
 
 -- C. Structure EDGE (Tout en 3857)
 CREATE SEQUENCE IF NOT EXISTS edge_id;
@@ -144,6 +191,17 @@ CREATE MATERIALIZED VIEW import.name_query AS
 
 CREATE INDEX ON import.address_range USING GIN (tsvector);
 CREATE INDEX ON import.name_query USING GIN (tsvector);
+
+-- G. Dernier score de cyclabilité par way
+DROP TABLE IF EXISTS import.last_cycleway_score CASCADE;
+CREATE TABLE import.last_cycleway_score AS
+    SELECT * FROM (
+        SELECT c.*, cs.score, cs.created_at,
+               ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
+        FROM public.cyclability_score cs 
+        JOIN import.cycleway_way c ON c.way_id = ANY(cs.way_ids)
+    ) t WHERE t.rn = 1;
+CREATE UNIQUE INDEX ON import.last_cycleway_score(way_id);
 EOF
 
 # ==============================================================================
@@ -171,6 +229,10 @@ BEGIN
 END \$\$;
 COMMIT;
 EOF
+
+
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NY_NORTH_FILE" "$ONT_EAST_FILE"
+rm -f "$MERGED_FILE"
 
 # Import des océans
 OCEAN_EXISTS=$($PSQL_CMD -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ocean');" | xargs)

@@ -1,4 +1,4 @@
-FROM postgres:17.5
+FROM docker.io/library/postgres:17.5
 
 LABEL maintainer="PostGIS Project - https://postgis.net"
 
