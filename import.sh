@@ -176,7 +176,7 @@ CREATE INDEX ON import.edge (source);
 CREATE INDEX ON import.edge (target);
 CREATE INDEX ON import.edge (city_name);
 CREATE INDEX ON import.edge (way_id);
-ANALYZE import.edge;
+ANALYZE;
 
 -- F. Vues de recherche
 CREATE MATERIALIZED VIEW import.address_range AS

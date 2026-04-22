@@ -141,7 +141,10 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
         1.0
     } else if has_cycleway_of_type(edge, &Cycleway::Track) {
         1.0
-    } else if has_cycleway_of_type(edge, &Cycleway::Lane) {
+    } else if edge.lcn{
+        1.0
+    }
+    else if has_cycleway_of_type(edge, &Cycleway::Lane) {
         1.2
     } else if has_cycleway_of_type(edge, &Cycleway::SharedLane) {
         1.4

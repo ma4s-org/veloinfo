@@ -94,6 +94,7 @@ pub struct EdgePoint {
     pub cycleway_left: Option<Cycleway>,
     pub cycleway_right: Option<Cycleway>,
     pub cycleway_both: Option<Cycleway>,
+    pub lcn: bool,
     pub highway: Option<Highway>,
     pub bicycle: Option<Bicycle>,
     pub surface: Option<Surface>,
@@ -136,6 +137,7 @@ impl Default for EdgePoint {
             cycleway_left: None,
             cycleway_right: None,
             cycleway_both: None,
+            lcn: false,
             highway: None,
             route: None,
             bicycle: None,
@@ -422,6 +424,16 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             }
         };
 
+        let parse_lcn = |v: Option<&String>| -> bool {
+            match v {
+                Some(s) => match s.as_str() {
+                    "yes" => true,
+                    _ => false,
+                },
+                None => false,
+            }
+        };
+
         let normalize = |s: &str| -> String {
             s.replace(' ', "")
                 .replace('(', "")
@@ -494,6 +506,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             footway: parse_footway(get("footway")),
             tunnel: parse_tunnel(get("tunnel")),
             bridge: parse_bridge(get("bridge")),
+            lcn: parse_lcn(get("lcn")),
             oneway: parse_oneway(get("oneway")),
             oneway_bicycle: parse_oneway(get("oneway:bicycle")),
             cycleway_left_oneway: parse_oneway(get("cycleway:left:oneway")),
