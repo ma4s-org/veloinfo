@@ -90,60 +90,58 @@ async fn main() {
 
     // Configuration du planificateur de tâches (cron)
     println!("Starting cron scheduler");
-    let sched = JobScheduler::new().await.unwrap();
 
     // En production, on gère l'import automatique des données et le cache
     if !dev {
-        let conn = conn.clone();
+        let conn_clone = conn.clone();
         tokio::spawn(async move {
             // Si un fichier lock existe, on relance l'import
             if std::path::Path::new("lock/import").exists() {
                 std::fs::remove_file("lock/import").unwrap();
-                import(&conn).await;
+                import(&conn_clone).await;
             }
             // Rechargement du cache des segments (edges)
-            Edge::clear_cache_and_reload(&conn).await;
-
-            // Tâche planifiée : tous les semaines à minuit (heure de Montréal)
-            // On crée un fichier lock et on quitte l'application (elle sera redémarrée par Docker/Systemd)
-            sched
-                .add(
-                    Job::new_tz(
-                        "0 0 * * 0",
-                        chrono_tz::America::Montreal,
-                        move |_uuid, _l| {
-                            std::fs::File::create("lock/import").unwrap();
-                            exit(0);
-                        },
-                    )
-                    .unwrap(),
-                )
-                .await
-                .unwrap();
-            sched.start().await.unwrap();
+            Edge::clear_cache_and_reload(&conn_clone).await;
         });
+
+         let sched_restart = JobScheduler::new().await.unwrap();
+         sched_restart
+             .add(
+                Job::new_tz(
+                    "0 0 0 * * *",
+                    chrono_tz::America::Montreal,
+                     move |_uuid, _l| {
+                         std::fs::File::create("lock/import").unwrap();
+                         exit(0);
+                     },
+                 )
+                 .unwrap()
+             )
+             .await
+             .unwrap();
+         sched_restart.start().await.unwrap();
+
+        let sched_road_work = JobScheduler::new().await.unwrap();
+        sched_road_work
+            .add(
+                Job::new_tz(
+                    "0 0 1 * * *",
+                    chrono_tz::America::Montreal,
+                    move |_uuid, _lock| {
+                        let conn_clone = conn.clone();
+                        tokio::spawn(async move {
+                            mtl::fetch_montreal_data(&conn_clone).await;
+                            Edge::clear_cache_and_reload(&conn_clone).await;
+                        });
+                    },
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        sched_road_work.start().await.unwrap();
     }
 
-    // on lance la récupération des données des traveaux
-    // tous les jours
-    let sched = JobScheduler::new().await.unwrap();
-    sched
-        .add(
-            Job::new_tz(
-                "0 0 1 * * *",
-                chrono_tz::America::Montreal,
-                move |_uuid, _lock| {
-                    let conn_clone = conn.clone();
-                    tokio::spawn(async move {
-                        mtl::fetch_montreal_data(&conn_clone).await;
-                        Edge::clear_cache_and_reload(&conn_clone).await;
-                    });
-                },
-            )
-            .unwrap(),
-        )
-        .await
-        .unwrap();
 
     // Définition du routeur Axum
     let mut app = Router::new()
@@ -269,7 +267,8 @@ async fn service_worker_js() -> impl axum::response::IntoResponse {
     )
 }
 
-/// Handler pour la version
 async fn version() -> &'static str {
     "1.1"
 }
+
+

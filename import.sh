@@ -94,7 +94,7 @@ SET search_path = import, public;
 SET synchronous_commit = off;
 
 -- Extensions requises
-CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA public;
 
 -- A. Villes subdivisées et converties en 3857
 DROP TABLE IF EXISTS import.city_subdivided CASCADE;
