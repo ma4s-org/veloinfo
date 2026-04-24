@@ -30,7 +30,7 @@ fn sigmoid_transition(x: f64) -> f64 {
     let midpoint: f64 = 7.0;
     let min_val: f64 = 1.0;
 
-    let pos_max: f64 = 6.;
+    let pos_max: f64 = 3.;
     let slowdown_factor: f64 = 6.;
 
     let neg_max: f64 = 2.0;

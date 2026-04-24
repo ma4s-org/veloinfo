@@ -147,7 +147,7 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
     else if has_cycleway_of_type(edge, &Cycleway::Lane) {
         1.2
     } else if has_cycleway_of_type(edge, &Cycleway::SharedLane) {
-        1.4
+        1.3
     } else if has_cycleway_of_type(edge, &Cycleway::ShareBusway) {
         1.4
     } else {
@@ -179,10 +179,10 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
     } else {
         match edge.highway {
             Some(Highway::Residential) | Some(Highway::LivingStreet) => 1.0,
-            Some(Highway::Unclassified) => 1.1,
-            Some(Highway::Service) => 1.1,
-            Some(Highway::Tertiary) => 1.2,
-            Some(Highway::Secondary) | Some(Highway::SecondaryLink) => 1.3,
+            Some(Highway::Unclassified) => 1.2,
+            Some(Highway::Service) => 1.2,
+            Some(Highway::Tertiary) => 1.3,
+            Some(Highway::Secondary) | Some(Highway::SecondaryLink) => 1.4,
             Some(Highway::Primary) => 1.5,
             _ => return None,
         }
