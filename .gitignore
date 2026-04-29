@@ -6,5 +6,7 @@
 /import
 .jj
 .vscode
-.aider*
+.envrc
+.direnv
 nodes.bin
+*.tmp

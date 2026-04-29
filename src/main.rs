@@ -104,22 +104,22 @@ async fn main() {
             Edge::clear_cache_and_reload(&conn_clone).await;
         });
 
-         let sched_restart = JobScheduler::new().await.unwrap();
-         sched_restart
-             .add(
+        let sched_restart = JobScheduler::new().await.unwrap();
+        sched_restart
+            .add(
                 Job::new_tz(
                     "0 0 0 * * *",
                     chrono_tz::America::Montreal,
-                     move |_uuid, _l| {
-                         std::fs::File::create("lock/import").unwrap();
-                         exit(0);
-                     },
-                 )
-                 .unwrap()
-             )
-             .await
-             .unwrap();
-         sched_restart.start().await.unwrap();
+                    move |_uuid, _l| {
+                        std::fs::File::create("lock/import").unwrap();
+                        exit(0);
+                    },
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        sched_restart.start().await.unwrap();
 
         let sched_road_work = JobScheduler::new().await.unwrap();
         sched_road_work
@@ -141,7 +141,6 @@ async fn main() {
             .unwrap();
         sched_road_work.start().await.unwrap();
     }
-
 
     // Définition du routeur Axum
     let mut app = Router::new()
@@ -270,5 +269,3 @@ async fn service_worker_js() -> impl axum::response::IntoResponse {
 async fn version() -> &'static str {
     "1.1"
 }
-
-
