@@ -141,10 +141,7 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
         1.0
     } else if has_cycleway_of_type(edge, &Cycleway::Track) {
         1.0
-    } else if edge.lcn{
-        1.1
-    }
-    else if has_cycleway_of_type(edge, &Cycleway::Lane) {
+    } else if has_cycleway_of_type(edge, &Cycleway::Lane) {
         1.2
     } else if has_cycleway_of_type(edge, &Cycleway::SharedLane) {
         1.3
@@ -157,7 +154,7 @@ fn get_cycleway_cost(edge: &EdgePoint) -> Option<f64> {
     let mut base = 1.0;
 
     if edge.cycleway == Some(Cycleway::Crossing) {
-        base += 1.
+        base += 0.6
     }
 
     // Conditions exclusives (une seule s'applique)
@@ -182,13 +179,13 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
             Some(Highway::Unclassified) => 1.2,
             Some(Highway::Service) => 1.2,
             Some(Highway::Tertiary) => 1.3,
-            Some(Highway::Secondary) | Some(Highway::SecondaryLink) => 1.4,
-            Some(Highway::Primary) => 1.5,
+            Some(Highway::Secondary) | Some(Highway::SecondaryLink) => 1.5,
+            Some(Highway::Primary) => 1.6,
             _ => return None,
         }
     };
 
-    let mut base = 1.9;
+    let mut base = 1.6;
 
     // Conditions positives : exclusives (une seule s'applique)
     if edge.surface == Some(Surface::Sett)
@@ -204,8 +201,11 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
     if edge.tunnel == Some(Tunnel::Yes) {
         base += 0.5;
     }
+    if edge.lcn {
+        base -= 0.2
+    }
     if edge.bicycle == Some(Bicycle::Yes) || edge.bicycle == Some(Bicycle::Designated) {
-        base -= 0.4;
+        base -= 0.2;
     }
     if edge.bicycle == Some(Bicycle::Dismount) {
         base += 1.0;
