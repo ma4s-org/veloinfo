@@ -1,144 +1,25 @@
-console.log("Enregistrement du service worker");
+// SW veloinfo: Proxy transparent (pas de cache)
+// Intercepte les requêtes /martin/* et les forward directement au réseau
+// Utile pour: monitoring, analytics, offline detection, futures features
 
-// Configuration du cache
-const CACHE_VERSION = 'v1';
-const APP_CACHE = `app-cache-${CACHE_VERSION}`;
-const KNOWN_CACHES = [APP_CACHE];
-
-// Constantes
-const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 heures en millisecondes
-
-// Event d'installation : active immédiatement le nouveau SW sans attendre les clients
-self.addEventListener('install', function(event) {
+self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// Event d'activation : nettoie les anciens caches et prend contrôle des clients
-self.addEventListener('activate', function(event) {
-    event.waitUntil(
-        // Récupère tous les noms de caches
-        caches.keys().then(cacheNames =>
-            // Supprime les caches qui ne sont pas dans KNOWN_CACHES (anciens caches)
-            Promise.all(
-                cacheNames
-                    .filter(name => !KNOWN_CACHES.includes(name))
-                    .map(name => caches.delete(name))
-            )
-        ).then(() => self.clients.claim()) // Prend contrôle de tous les clients
-    );
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
 });
 
-
-// Event de fetch : intercepte toutes les requêtes réseau
-self.addEventListener('fetch', function(event) {
-    // On ne traite que les requêtes GET (le cache ne supporte pas POST, PUT, etc.)
-    if (event.request.method !== 'GET') {
+self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+    
+    // Intercepte SEULEMENT les tuiles Martin en GET
+    if (url.origin !== location.origin || 
+        !url.pathname.startsWith('/martin/') || 
+        event.request.method !== 'GET') {
         return;
     }
-
-    // Ignore les requêtes cross-origin (S3, CDN externes, etc.)
-    const requestUrl = new URL(event.request.url);
-    if (requestUrl.origin !== location.origin) {
-        return;
-    }
-
-    event.respondWith(
-        (async () => {
-            const cache = await caches.open(APP_CACHE);
-            const cachedResponse = await cache.match(event.request);
-            const now = Date.now();
-
-            // Étape 1 : Si cache existe, le retourner IMMÉDIATEMENT
-            if (cachedResponse) {
-                const cachedDateStr = cachedResponse.headers.get('sw-cache-date');
-                const cachedDate = cachedDateStr ? parseInt(cachedDateStr) : null;
-                
-                // Vérifier si le cache est expiré (> 12 heures)
-                const isExpired = !cachedDate || isNaN(cachedDate) || (now - cachedDate >= CACHE_DURATION);
-                
-                if (isExpired) {
-                    // Cache expiré : retourner cache MAINTENANT + rafraîchir en arrière-plan
-                    refreshCacheInBackground(cache, event.request, now);
-                    return cachedResponse;
-                }
-                
-                // Cache valide (< 12h) : retourner cache
-                return cachedResponse;
-            }
-
-            // Étape 2 : Pas de cache → requête réseau
-            try {
-                const networkResponse = await fetch(event.request);
-
-                // Si la réponse est valide, la mettre en cache
-                if (networkResponse && networkResponse.ok) {
-                    await updateCache(cache, event.request, networkResponse.clone(), now);
-                    return networkResponse;
-                }
-
-                return networkResponse;
-            } catch (err) {
-                console.error("Erreur Fetch SW:", err);
-                return Response.error();
-            }
-        })()
-    );
+    
+    // Forward direct au réseau - aucun cache, aucune modification
+    event.respondWith(fetch(event.request));
 });
-
-/**
- * Rafraîchit le cache en arrière-plan (ne bloque pas la réponse)
- * @param {Cache} cache - Instance du cache
- * @param {Request} request - Requête originale
- * @param {number} timestamp - Timestamp actuel (Date.now())
- */
-async function refreshCacheInBackground(cache, request, timestamp) {
-    try {
-        const networkResponse = await fetch(request);
-        
-        if (networkResponse && networkResponse.ok) {
-            await updateCache(cache, request, networkResponse.clone(), timestamp);
-            console.log("Cache rafraîchi en arrière-plan:", request.url);
-        }
-    } catch (err) {
-        console.warn("Échec rafraîchissement cache:", err);
-    }
-}
-
-/**
- * Met en cache une réponse avec timestamp pour suivi d'expiration
- * @param {Cache} cache - Instance du cache
- * @param {Request} request - Requête originale
- * @param {Response} response - Réponse à mettre en cache
- * @param {number} timestamp - Timestamp actuel (Date.now())
- */
-async function updateCache(cache, request, response, timestamp) {
-    // Ne met en cache que les réponses valides
-    if (!response || !response.ok) {
-        return response;
-    }
-
-    // Ne pas mettre en cache les réponses vides (204, 304, etc.)
-    if (response.status === 204 || response.status === 304) {
-        return response;
-    }
-
-    try {
-        // Ajoute un header personnalisé avec la date de mise en cache
-        const headers = new Headers(response.headers);
-        headers.append('sw-cache-date', timestamp.toString());
-
-        // Clone la réponse en blob pour éviter les consommations multiples
-        const body = await response.clone().blob();
-
-        // Enregistre la réponse avec le header de date
-        await cache.put(request, new Response(body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: headers
-        }));
-    } catch (err) {
-        console.warn("Erreur lors de la mise en cache:", err);
-    }
-
-    return response;
-}
