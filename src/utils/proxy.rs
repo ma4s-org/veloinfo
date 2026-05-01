@@ -30,7 +30,10 @@ pub async fn martin_proxy(
             };
             (
                 status,
-                [(axum::http::header::CONTENT_TYPE, content_type)],
+                [
+                    (axum::http::header::CONTENT_TYPE, content_type),
+                    (axum::http::header::CACHE_CONTROL, "public, max-age=86400, stale-while-revalidate=604800".into()),
+                ],
                 body,
             )
                 .into_response()
