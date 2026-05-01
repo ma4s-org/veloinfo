@@ -7,6 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::{Duration, Utc};
 use geojson::JsonValue;
 use sqlx::Row;
 
@@ -120,14 +121,18 @@ pub async fn bike_path_mvt(
     match result {
         Ok(Some(row)) => {
             let mvt: Option<Vec<u8>> = row.try_get(0).ok();
-            eprintln!("MVT size: {:?}", mvt.as_ref().map(|v| v.len()));
             match mvt {
-                Some(tile) if !tile.is_empty() => Response::builder()
-                    .status(StatusCode::OK)
-                    .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
-                    .body(Body::from(tile))
-                    .unwrap()
-                    .into_response(),
+                Some(tile) if !tile.is_empty() => {
+                    let expires = Utc::now() + Duration::days(1);
+                    Response::builder()
+                        .status(StatusCode::OK)
+                        .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
+                        .header(header::CACHE_CONTROL, "public, max-age=86400, stale-while-revalidate=604800")
+                        .header(header::EXPIRES, expires.format("%a, %d %b %Y %H:%M:%S GMT").to_string())
+                        .body(Body::from(tile))
+                        .unwrap()
+                        .into_response()
+                }
                 _ => {
                     eprintln!("Empty tile returned");
                     Response::builder()

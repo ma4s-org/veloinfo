@@ -267,5 +267,5 @@ async fn service_worker_js() -> impl axum::response::IntoResponse {
 }
 
 async fn version() -> &'static str {
-    "1.1"
+    "1.2"
 }
