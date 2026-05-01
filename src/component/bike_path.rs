@@ -127,8 +127,14 @@ pub async fn bike_path_mvt(
                     Response::builder()
                         .status(StatusCode::OK)
                         .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
-                        .header(header::CACHE_CONTROL, "public, max-age=86400, stale-while-revalidate=604800")
-                        .header(header::EXPIRES, expires.format("%a, %d %b %Y %H:%M:%S GMT").to_string())
+                        .header(
+                            header::CACHE_CONTROL,
+                            "public, max-age=86400, stale-while-revalidate=15768000",
+                        )
+                        .header(
+                            header::EXPIRES,
+                            expires.format("%a, %d %b %Y %H:%M:%S GMT").to_string(),
+                        )
                         .body(Body::from(tile))
                         .unwrap()
                         .into_response()
