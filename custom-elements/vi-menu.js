@@ -1,10 +1,10 @@
 import { getViMain } from '/custom-elements/vi-context.js';
 let html = String.raw;
 class ViMenu extends HTMLElement {
-    constructor() {
-        super();
+  constructor() {
+    super();
 
-        this.innerHTML = html`
+    this.innerHTML = html`
             <style>
                 vi-menu {
                     position: absolute;
@@ -77,67 +77,67 @@ class ViMenu extends HTMLElement {
             <vi-install-android id="android-install"></vi-install-android>
             <vi-install-ios id="ios-install"></vi-install-ios>
             `;
-    }
+  }
 
-    connectedCallback() {
-        this.querySelector('#vi-menu').addEventListener('click', () => {
-            this.querySelector('md-menu').open = !this.querySelector('md-menu').open;
-        });
+  connectedCallback() {
+    this.querySelector('#vi-menu').addEventListener('click', () => {
+      this.querySelector('md-menu').open = !this.querySelector('md-menu').open;
+    });
 
-        // When closing the menu, deselect the button
-        const menu = this.querySelector('md-menu');
-        const observer = new MutationObserver((mutationsList) => {
-            for (const mutation of mutationsList) {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'open') {
-                    if (!menu.open) {
-                        this.querySelector('md-icon-button').selected = false;
-                    }
-                }
-            }
-        });
-        observer.observe(menu, { attributes: true });
-
-        // Add install links
-        const os = this.detectMobileOS();
-
-        if (os === 'ios') {
-            this.querySelector('#ios').style.display = 'block';
-            this.querySelector('#ios').addEventListener('click', () => {
-                this.querySelector('vi-install-ios').setAttribute('open', 'true');
-            });
-        } else if (os === 'android') {
-            this.querySelector('#android').style.display = 'block';
-            this.querySelector('#android').addEventListener('click', () => {
-                this.querySelector('vi-install-android').setAttribute('open', 'true');
-            });
+    // When closing the menu, deselect the button
+    const menu = this.querySelector('md-menu');
+    const observer = new MutationObserver((mutationsList) => {
+      for (const mutation of mutationsList) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'open') {
+          if (!menu.open) {
+            this.querySelector('md-icon-button').selected = false;
+          }
         }
+      }
+    });
+    observer.observe(menu, { attributes: true });
 
-        this.querySelector('#osm-edit').addEventListener('click', () => this.clickOSMEdit());
+    // Add install links
+    const os = this.detectMobileOS();
+
+    if (os === 'ios') {
+      this.querySelector('#ios').style.display = 'block';
+      this.querySelector('#ios').addEventListener('click', () => {
+        this.querySelector('vi-install-ios').setAttribute('open', 'true');
+      });
+    } else if (os === 'android') {
+      this.querySelector('#android').style.display = 'block';
+      this.querySelector('#android').addEventListener('click', () => {
+        this.querySelector('vi-install-android').setAttribute('open', 'true');
+      });
     }
 
-    clickOSMEdit() {
-        const map = getViMain().map;
-        let zoom = map && map.getZoom();
-        let lat = map && map.getCenter().lat;
-        let lng = map && map.getCenter().lng;
-        window.open(`https://www.openstreetmap.org/#map=${zoom}/${lat}/${lng}&layers=Y`, '_blank');
+    this.querySelector('#osm-edit').addEventListener('click', () => this.clickOSMEdit());
+  }
+
+  clickOSMEdit() {
+    const map = getViMain().map;
+    let zoom = map && map.getZoom();
+    let lat = map && map.getCenter().lat;
+    let lng = map && map.getCenter().lng;
+    window.open(`https://www.openstreetmap.org/#map=${zoom}/${lat}/${lng}&layers=C`, '_blank');
+  }
+
+  detectMobileOS() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // iOS detection
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+      return 'ios';
     }
 
-    detectMobileOS() {
-        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-
-        // iOS detection
-        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-            return 'ios';
-        }
-
-        // Android detection
-        if (/android/i.test(userAgent)) {
-            return 'android';
-        }
-
-        return 'unknown';
+    // Android detection
+    if (/android/i.test(userAgent)) {
+      return 'android';
     }
+
+    return 'unknown';
+  }
 }
 
 customElements.define('vi-menu', ViMenu);
