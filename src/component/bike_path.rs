@@ -19,7 +19,36 @@ pub async fn bike_path_mvt(
     Path((z, x, y)): Path<(u32, u32, u32)>,
 ) -> impl IntoResponse {
     let conn = &state.conn;
-    let query = r#"
+    
+    // Zoom >= 13: requête simplifiée pour performance
+    // Zoom < 13: requête complète avec tous les types de pistes
+    let query = if z >= 13 {
+        r#"
+        WITH
+        bounds AS (
+            SELECT ST_TileEnvelope($1, $2, $3) AS geom
+        ),
+        mvtgeom AS (
+            SELECT
+                ST_AsMVTGeom(
+                    aw.geom,
+                    bounds.geom
+                ) AS geom,
+                aw.tags,
+                1 as score,
+                'cycleway' as kind,
+                false as snow
+            FROM
+                all_way aw, bounds b
+            WHERE
+                aw.tags->>'highway' = 'cycleway' AND
+                aw.geom && b.geom
+        )
+        SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
+        FROM mvtgeom;
+        "#
+    } else {
+        r#"
         WITH
         bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
@@ -110,7 +139,8 @@ pub async fn bike_path_mvt(
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
         FROM mvtgeom;
-    "#;
+        "#
+    };
 
     let result = sqlx::query(query)
         .bind(z as i32)
