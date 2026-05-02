@@ -19,8 +19,9 @@ const html = String.raw;
 
 // Constantes de couleurs
 const MARKER_COLORS = {
-    START: "#f00",  // Rouge pour le départ
-    END: "#00f"     // Bleu pour l'arrivée
+    START: "#f00",      // Rouge pour le départ d'itinéraire (GPS)
+    END: "#00f",        // Bleu pour l'arrivée / point cliqué
+    SEGMENT_START: "#ffa500"  // Orange pour le début du segment sélectionné
 };
 
 const LAYERS = {
@@ -394,82 +395,201 @@ class ViMain extends HTMLElement {
         this.querySelector('#info').appendChild(viInfo);
     }
 
+    /**
+     * Gère le clic sur la carte pour la sélection de points et segments.
+     * 
+     * Déclenché par: this.map.on("click", ...) ligne 266
+     * Condition: seulement si un panneau est ouvert (vi-change-start, info_panel_*,
+     *            segment_panel, layers, point_panel)
+     * 
+     * COULEURS DES MARQUEURS:
+     *   - ORANGE (#ffa500) = début du segment sélectionné
+     *   - ROUGE (#f00)     = départ d'itinéraire (GPS)
+     *   - BLEU (#00f)      = destination / point cliqué
+     * 
+     * FLUX DE LA MÉTHODE:
+     * 
+     * 1. MODE "CHANGER LE DÉPART" (lignes ~471-478)
+     *    Condition: vi-change-start présent && this.changeStartDestination existe
+     *    Actions:
+     *      - Crée start_marker (rouge) aux nouvelles coordonnées du clic
+     *      - Crée end_marker (bleu) à this.changeStartDestination
+     *      - Nettoie this.changeStartDestination = null
+     *      - Lance this.route() pour recalculer l'itinéraire
+     *      - RETURN (fin prématurée)
+     * 
+     * 2. DÉTECTION DE PISTE CYCLABLE (lignes ~483-489)
+     *    - queryRenderedFeatures avec boîte 20x20px
+     *    - Couches: ['cycleway', 'designated', 'shared_lane']
+     *    - Vérifie si segment_panel est déjà ouvert (existingSegmentPanel)
+     * 
+     * 3. CLIC SUR PISTE CYCLABLE (lignes ~491-514)
+     *    3a. SI segment_panel déjà ouvert:
+     *        → this.selectBigger(event) — agrandit la sélection
+     *        → RETURN (fin prématurée)
+     *    3b. SINON (premier segment):
+     *        → start_marker (ORANGE) au début du segment (depuis geom_json)
+     *        → end_marker (BLEU) au point cliqué
+     *        → Requête HTTP: /segment_panel_lng_lat/{lng}/{lat}
+     *        → Affiche vi-segment-panel avec les données
+     *        → Met à jour l'URL: ?point_lng=...&point_lat=...
+     * 
+     * 4. CLIC DANS LE VIDE (lignes ~516-543)
+     *    4a. SI segment_panel ouvert:
+     *        → this.clear() — supprime les marqueurs de sélection
+     *    4b. Crée ou déplace end_marker (BLEU) au clic
+     *    4c. Vide la source "selected" (LineString vide)
+     *    4d. Recherche itérative d'un nom de lieu (1000px par 10px)
+     *        Couches: ['name', 'Road network', 'City labels',
+     *                 'Town labels', 'Village labels']
+     *        → S'arrête dès qu'un f.properties.name est trouvé
+     *    4e. Affiche vi-point-panel avec le nom trouvé (ou "" si rien)
+     * 
+     * RÉSUMÉ DES CAS D'USAGE:
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ Cas                    │ Action                                      │
+     * ├──────────────────────────────────────────────────────────────────────┤
+     * │ Changer point départ   │ vi-change-start + destination → route()     │
+     * │ 1er clic sur piste     → start_marker (ORANGE) + end_marker (BLEU)   │
+     * │                        → + segment_panel                             │
+     * │ 2ème clic sur piste      → selectBigger() (agrandir sélection)         │
+     * │ Clic dans le vide      → end_marker (BLEU) + point_panel             │
+     * │ Clic (segment ouvert)  → clear() + end_marker (BLEU) + point_panel   │
+     * │ Bouton Itinéraire      → start_marker (ORANGE→ROUGE GPS) + BLEU      │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * 
+     * @param {Object} event - Événement de clic MapLibre
+     * @param {Object} event.lngLat - Coordonnées géographiques du clic
+     * @param {Object} event.point - Coordonnées pixels du clic (x, y)
+     */
     async select(event) {
-        // Mode sélection du nouveau point de départ
-        if (document.querySelector('vi-change-start') && this.changeStartDestination) {
-            // Créer les marqueurs avec les nouvelles coordonnées
-            this.setMarkers(event.lngLat.lng, event.lngLat.lat,
-                this.changeStartDestination.lng, this.changeStartDestination.lat);
-
-            // Nettoyer la destination
-            this.changeStartDestination = null;
-
-            this.route();
+        // Éviter les exécutions multiples du même clic
+        if (this._isSelecting) {
             return;
         }
-
-        if (this.start_marker && this.end_marker) {
-            this.clear();
-        }
-
-
-        if (this.start_marker && this.map.getLayer("selected")) {
-            this.selectBigger(event);
-            return;
-        }
-
-        if (this.start_marker) this.start_marker.remove();
-        // Premier clic = destination (bleu), le départ viendra de la géolocalisation
-        this.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([event.lngLat.lng, event.lngLat.lat]).addTo(this.map);
-
-        const width = 20;
-        let features = this.map.queryRenderedFeatures(
-            [
-                [event.point.x - width / 2, event.point.y - width / 2],
-                [event.point.x + width / 2, event.point.y + width / 2]
-            ], { layers: ['cycleway', 'designated', 'shared_lane'] }
-        );
-        if (features.length) {
-            console.log("aaaaaaaaaaa");
-            const response = await fetch(`/segment_panel_lng_lat/${event.lngLat.lng}/${event.lngLat.lat}`);
-            const jsonData = await response.json();
-            const segment_panel = new SegmentPanel(jsonData);
-            this.querySelector("#info").innerHTML = ``;
-            this.querySelector("#info").appendChild(segment_panel);
-            // Mettre à jour l'URL avec le point sélectionné pour partage
-            this.updateSegmentUrl(event.lngLat.lng, event.lngLat.lat);
-        } else {
-            const selected = this.map.getSource("selected");
-            if (selected) {
-                selected.setData({
-                    type: "Feature",
-                    properties: {},
-                    geometry: { type: "LineString", coordinates: [] }
-                });
+        this._isSelecting = true;
+        
+        try {
+            // Mode sélection du nouveau point de départ
+            if (document.querySelector('vi-change-start') && this.changeStartDestination) {
+                // Créer les marqueurs avec les nouvelles coordonnées
+                this.setMarkers(event.lngLat.lng, event.lngLat.lat,
+                    this.changeStartDestination.lng, this.changeStartDestination.lat);
+                this.changeStartDestination = null;
+                this.route();
+                return;
             }
-
-            // Recherche du nom le plus proche
-            let name = "";
-            for (let i = 0; i < 1000; i += 10) {
-                features = this.map.queryRenderedFeatures(
-                    [
-                        [event.point.x - i, event.point.y - i],
-                        [event.point.x + i, event.point.y + i]
-                    ], { layers: ['name', 'Road network', 'City labels', 'Town labels', 'Village labels'] }
-                );
-                for (const f of features) {
-                    if (f.properties.name) {
-                        name = f.properties.name;
-                        i = 1000;
-                        break;
+            
+            // Clic : créer ou déplacer le point d'arrivée (BLEU) SEULEMENT si pas sur une piste
+            // Vérifier d'abord si on clique sur une piste cyclable
+            const width = 20;
+            const features = this.map.queryRenderedFeatures(
+                [
+                    [event.point.x - width / 2, event.point.y - width / 2],
+                    [event.point.x + width / 2, event.point.y + width / 2]
+                ], { layers: ['cycleway', 'designated', 'shared_lane'] }
+            );
+            
+            // Vérifier si un segment_panel est déjà ouvert (pour agrandir la sélection)
+            const existingSegmentPanel = document.getElementById("segment_panel");
+            
+            if (features.length) {
+                // Sur une piste : afficher segment_panel + marqueur BLEU pour agrandir sélection
+                if (existingSegmentPanel) {
+                    // Déjà un segment de sélectionné → agrandir la sélection
+                    this.selectBigger(event);
+                    return;
+                }
+                
+                // Premier segment sélectionné → récupérer le début du segment pour start_marker
+                const response = await fetch(`/segment_panel_lng_lat/${event.lngLat.lng}/${event.lngLat.lat}`);
+                const jsonData = await response.json();
+                
+                // Créer start_marker (ROUGE) au début du segment et end_marker (BLEU) au clic
+                if (jsonData.geom_json) {
+                    const geom = JSON.parse(jsonData.geom_json);
+                    if (geom && geom[0] && geom[0][0]) {
+                        // start_marker au début du segment (geom = [[[lng,lat],...]])
+                        const startCoord = geom[0][0];
+                        if (this.start_marker) {
+                            this.start_marker.setLngLat(startCoord);
+                        } else {
+                            this.start_marker = new maplibregl.Marker({ color: MARKER_COLORS.SEGMENT_START })
+                                .setLngLat(startCoord)
+                                .addTo(this.map);
+                        }
                     }
                 }
-                if (name) break;
+                
+                // end_marker au point cliqué
+                if (this.end_marker) {
+                    this.end_marker.setLngLat([event.lngLat.lng, event.lngLat.lat]);
+                } else {
+                    this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
+                        .setLngLat([event.lngLat.lng, event.lngLat.lat])
+                        .addTo(this.map);
+                }
+                
+                const segment_panel = new SegmentPanel(jsonData);
+                this.querySelector("#info").innerHTML = ``;
+                this.querySelector("#info").appendChild(segment_panel);
+                this.updateSegmentUrl(event.lngLat.lng, event.lngLat.lat);
+            } else {
+                // Dans le vide : si segment_panel ouvert, on enlève les marqueurs
+                if (existingSegmentPanel) {
+                    this.clear();
+                }
+                
+                // Créer ou déplacer le point BLEU
+                if (this.end_marker) {
+                    this.end_marker.setLngLat([event.lngLat.lng, event.lngLat.lat]);
+                } else {
+                    this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
+                        .setLngLat([event.lngLat.lng, event.lngLat.lat])
+                        .addTo(this.map);
+                }
+                
+                const selected = this.map.getSource("selected");
+                if (selected) {
+                    selected.setData({
+                        type: "Feature",
+                        properties: {},
+                        geometry: { type: "LineString", coordinates: [] }
+                    });
+                }
+                
+                // Recherche du nom le plus proche pour point_panel
+                let name = "";
+                for (let i = 0; i < 1000; i += 10) {
+                    const features = this.map.queryRenderedFeatures(
+                        [
+                            [event.point.x - i, event.point.y - i],
+                            [event.point.x + i, event.point.y + i]
+                        ], { layers: ['name', 'Road network', 'City labels', 'Town labels', 'Village labels'] }
+                    );
+                    for (const f of features) {
+                        if (f.properties.name) {
+                            name = f.properties.name;
+                            break;
+                        }
+                    }
+                    if (name) break;
+                }
+                
+                const point_panel = document.createElement("vi-point-panel");
+                point_panel.panel_id = "point_panel";
+                point_panel.coords = { lng: event.lngLat.lng, lat: event.lngLat.lat, name };
+                this.querySelector("#info").innerHTML = ``;
+                this.querySelector("#info").appendChild(point_panel);
             }
-
-            const pointPanel = new PointPanel(name);
-            this.querySelector("#info").innerHTML = ``;
-            this.querySelector("#info").appendChild(pointPanel);
+            
+        } finally {
+            // Délai basé sur le zoom pour éviter les conflits
+            const zoom = this.map.getZoom();
+            const delay = zoom < 10 ? 500 : 300; // Plus long à faible zoom
+            setTimeout(() => {
+                this._isSelecting = false;
+            }, delay);
         }
     }
 
@@ -518,6 +638,41 @@ class ViMain extends HTMLElement {
     }
 
     async route() {
+        // Vérifier qu'on a une destination (end_marker)
+        if (!this.end_marker) {
+            console.warn("route() : pas de destination (end_marker)");
+            return;
+        }
+        
+        // Quand on clique "Itinéraire", on utilise TOUJOURS la GPS comme départ
+        // On supprime le marqueur de segment (ORANGE) s'il existe
+        if (this.start_marker) {
+            this.start_marker.remove();
+            this.start_marker = null;
+        }
+        
+        // Créer le marqueur de départ ROUGE depuis la géolocalisation
+        const position = this.getLastPosition();
+        if (!position) {
+            // Pas de GPS → afficher RouteSearching quand même, il gérera la demande GPS
+            // ou proposera "entrer votre position manuellement"
+            const info = document.getElementById("info");
+            const routeSearching = new RouteSearching(this);
+            info.innerHTML = ``;
+            info.appendChild(routeSearching);
+            return;
+        }
+        
+        this.start_marker = new maplibregl.Marker({ color: MARKER_COLORS.START })
+            .setLngLat([position.lng, position.lat])
+            .addTo(this.map);
+        
+        // Centrer la carte pour voir les deux marqueurs
+        const bounds = new maplibregl.LngLatBounds();
+        bounds.extend([position.lng, position.lat]);
+        bounds.extend([this.end_marker.getLngLat().lng, this.end_marker.getLngLat().lat]);
+        this.map.fitBounds(bounds, { padding: 50 });
+        
         const info = document.getElementById("info");
         const routeSearching = new RouteSearching(this);
         info.innerHTML = ``;

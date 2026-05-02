@@ -3,6 +3,11 @@ import ViSearchResult from "./vi-search-result.js";
 import { getViMain } from '/custom-elements/vi-context.js';
 let html = String.raw;
 
+// Couleur BLEU pour la destination
+const MARKER_COLORS = {
+    END: "#00f"
+};
+
 class SearchInput extends HTMLElement {
     query = "";
     selectedIndex = -1;
@@ -272,8 +277,10 @@ class SearchResult extends HTMLElement {
                 viMain.end_marker.remove();
                 viMain.end_marker = null;
             }
-            // Le point choisi via la recherche est la destination : marqueur bleu
-            viMain.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([lng, lat]).addTo(map);
+            // Le point choisi via la recherche est la destination : marqueur BLEU (end_marker)
+            viMain.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
+                .setLngLat([lng, lat])
+                .addTo(viMain.map);
         }
 
         const searchInput = this.closest('vi-search-input');
@@ -292,7 +299,7 @@ class SearchResult extends HTMLElement {
         if (!changeStartElement) {
             let result = await fetch(`/point_panel_lng_lat/${lng}/${lat}`);
             let json = await result.json();
-            let pointPanel = new PointPanel(json.name);
+            let pointPanel = new PointPanel(json.name, { lng, lat });
             document.getElementById("info").innerHTML = '';
             document.getElementById("info").appendChild(pointPanel);
         }

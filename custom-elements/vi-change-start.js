@@ -1,4 +1,5 @@
 import { getViMain } from '/custom-elements/vi-context.js';
+import RouteSearching from '/custom-elements/vi-route-searching.js';
 
 let html = String.raw;
 
@@ -40,7 +41,11 @@ class ChangeStart extends HTMLElement {
             viMain.setMarkers(event.lngLat.lng, event.lngLat.lat, this.destination.lng, this.destination.lat);
             viMain.changeStartDestination = null;
             viMain.map.off("click", handleMapClick);
-            viMain.route();
+            // Lancer directement RouteSearching sans recalculer les marqueurs
+            const info = document.getElementById("info");
+            const routeSearching = new RouteSearching(viMain);
+            info.innerHTML = ``;
+            info.appendChild(routeSearching);
         };
         viMain.map.on("click", handleMapClick);
     }

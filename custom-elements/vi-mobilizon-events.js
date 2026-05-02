@@ -136,7 +136,8 @@ class ViMobilizonEvents extends HTMLElement {
                             viMain.start_marker = null;
                         }
 
-                        viMain.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(coords).addTo(map);
+                        // L'événement est la destination → end_marker (BLEU)
+                        viMain.end_marker = new window.maplibregl.Marker({ color: "#00f" }).setLngLat(coords).addTo(map);
                         marker.getPopup().remove();
                         getViMain().route();
                     }

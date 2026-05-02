@@ -158,9 +158,6 @@ class SegmentPanel extends HTMLElement {
             map.fitBounds(getViMain().fitBounds(flattened), { padding: window.innerHeight * .12 });
         }
         const viMain = getViMain();
-        if (!viMain.start_marker) {
-            viMain.start_marker = new window.maplibregl.Marker({ color: "#f00" }).setLngLat(geom[0][0]).addTo(map);
-        }
         if (!data.edit) {
             if (map.getLayer("selected")) {
                 map.getSource("selected").setData({

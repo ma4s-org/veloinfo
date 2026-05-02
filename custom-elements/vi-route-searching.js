@@ -92,60 +92,7 @@ export default class RouteSearching extends HTMLElement {
             this.viMain.querySelector("#info").innerHTML = "<vi-change-start></vi-change-start>";
         });
 
-        var end = this.viMain.start_marker.getLngLat();
-        var start;
-        // Si end_marker existe, on utilise les marqueurs existants (mode changeStartMode)
-        if (this.viMain.end_marker) {
-            end = this.viMain.end_marker.getLngLat();
-            start = { coords: { longitude: this.viMain.start_marker.getLngLat().lng, latitude: this.viMain.start_marker.getLngLat().lat } };
-        } else if (this.viMain.changeStartDestination) {
-            // Mode "entrer votre position manuellement" avec destination déjà définie
-            end = this.viMain.changeStartDestination;
-            // La position de départ sera sélectionnée via vi-change-start
-            // On attend que l'utilisateur clique sur la carte ou utilise la recherche
-            return;
-        } else {
-            // Sinon, on demande la position GPS du départ
-            // Changer la couleur du marqueur en bleu car c'est la destination
-            if (this.viMain.start_marker) {
-                this.viMain.start_marker.remove();
-                this.viMain.start_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([end.lng, end.lat]).addTo(this.viMain.map);
-            }
-            // get the position of the device
-            this.querySelector("#search_position_dialog").removeAttribute("style");
-            this.querySelector("#search_position_dialog").setAttribute("open", "true");
-            start = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve(position);
-                        this.querySelector("#search_position_dialog").removeAttribute("open");
-                    },
-                    (error) => {
-                        console.error('Geolocation error:', error);
-                        this.querySelector("#search_position_dialog").removeAttribute("open");
-                        // Afficher un message d'erreur et proposer la saisie manuelle
-                        const dialog = this.querySelector("#search_position_dialog");
-                        dialog.querySelector("div").innerHTML = `
-                            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                                <div style="align-self: center; color: #d32f2f;">
-                                    Position introuvable: ${error.message || 'timeout'}
-                                </div>
-                                <md-outlined-button id="manual_position_button" style="margin-top: 1em; --md-sys-color-primary: #666666;">entrer votre position manuellement</md-outlined-button>
-                            </div>
-                        `;
-                        // Réattacher le gestionnaire d'événement sur le nouveau bouton
-                        dialog.querySelector("#manual_position_button").addEventListener("click", () => {
-                            this.viMain.changeStartDestination = { lng: end.lng, lat: end.lat };
-                            dialog.close();
-                            this.viMain.querySelector("#info").innerHTML = "<vi-change-start></vi-change-start>";
-                        });
-                        reject(error);
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-                );
-            });
-        }
-
+        // Bouton "changer départ" — à attacher TOUJOURS, même si GPS refusé
         this.querySelector("#change_start_button").addEventListener("click", () => {
             this.viMain.changeStartDestination = { lng: end.lng, lat: end.lat };
             if (this.viMain.map.getLayer("searched_route")) {
@@ -156,6 +103,73 @@ export default class RouteSearching extends HTMLElement {
             }
             this.viMain.querySelector("#info").innerHTML = "<vi-change-start></vi-change-start>";
         });
+
+        var end = this.viMain.end_marker ? this.viMain.end_marker.getLngLat() : null;
+        var start;
+        
+        // Si on a les deux marqueurs, on les utilise
+        if (this.viMain.start_marker && this.viMain.end_marker) {
+            end = this.viMain.end_marker.getLngLat();
+            start = { coords: { longitude: this.viMain.start_marker.getLngLat().lng, latitude: this.viMain.start_marker.getLngLat().lat } };
+        } else if (this.viMain.changeStartDestination) {
+            // Mode "entrer votre position manuellement" avec destination déjà définie
+            end = this.viMain.changeStartDestination;
+            // La position de départ sera sélectionnée via vi-change-start
+            // On attend que l'utilisateur clique sur la carte ou utilise la recherche
+            return;
+        } else {
+            // Pas de start_marker (GPS refusé ou indisponible) → on va le demander
+            // Changer la couleur du marqueur en bleu car c'est la destination
+            if (this.viMain.start_marker) {
+                this.viMain.start_marker.remove();
+                this.viMain.start_marker = null;
+            }
+            if (this.viMain.end_marker) {
+                end = this.viMain.end_marker.getLngLat();
+                // Marqueur BLEU pour la destination
+                this.viMain.start_marker = new maplibregl.Marker({ color: "#00f" })
+                    .setLngLat([end.lng, end.lat])
+                    .addTo(this.viMain.map);
+            }
+            // get the position of the device
+            this.querySelector("#search_position_dialog").removeAttribute("style");
+            this.querySelector("#search_position_dialog").setAttribute("open", "true");
+            try {
+                start = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve(position);
+                            this.querySelector("#search_position_dialog").removeAttribute("open");
+                        },
+                        (error) => {
+                            this.querySelector("#search_position_dialog").removeAttribute("open");
+                            // Afficher un message d'erreur et proposer la saisie manuelle
+                            const dialog = this.querySelector("#search_position_dialog");
+                            dialog.querySelector("div").innerHTML = `
+                                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                    <div style="align-self: center; color: #d32f2f;">
+                                        Position introuvable: ${error.message || 'timeout'}
+                                    </div>
+                                    <md-outlined-button id="manual_position_button" style="margin-top: 1em; --md-sys-color-primary: #666666;">entrer votre position manuellement</md-outlined-button>
+                                </div>
+                            `;
+                            // Réattacher le gestionnaire d'événement sur le nouveau bouton
+                            dialog.querySelector("#manual_position_button").addEventListener("click", () => {
+                                this.viMain.changeStartDestination = { lng: end.lng, lat: end.lat };
+                                dialog.close();
+                                this.viMain.querySelector("#info").innerHTML = "<vi-change-start></vi-change-start>";
+                            });
+                            reject(error);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    );
+                });
+            } catch (error) {
+                // GPS refusé → le bouton "manuellement" est déjà affiché
+                // Les boutons "changer départ" et "manuellement" fonctionnent déjà
+                return;
+            }
+        }
 
         if (this.viMain.map.getSource("searched_route") == null) {
             this.viMain.map.addSource("searched_route", {

@@ -2,9 +2,10 @@ import { getViMain } from '/custom-elements/vi-context.js';
 let html = String.raw;
 
 class PointPanel extends HTMLElement {
-    constructor(name) {
+    constructor(name, coords) {
         super();
         this.name = name;
+        this.coords = coords;
     }
 
     connectedCallback() {
@@ -25,7 +26,14 @@ class PointPanel extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector("#route_button").addEventListener("click", () => {
-            getViMain().route();
+            const viMain = getViMain();
+            // Si end_marker n'existe pas, on le crée depuis les coordonnées du panel
+            if (!viMain.end_marker && this.coords) {
+                viMain.end_marker = new maplibregl.Marker({ color: "#00f" })
+                    .setLngLat([this.coords.lng, this.coords.lat])
+                    .addTo(viMain.map);
+            }
+            viMain.route();
         });
         this.querySelector("#cancel_button").addEventListener("click", () => {
             getViMain().clear();
