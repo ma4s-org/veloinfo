@@ -19,10 +19,10 @@ pub async fn bike_path_mvt(
     Path((z, x, y)): Path<(u32, u32, u32)>,
 ) -> impl IntoResponse {
     let conn = &state.conn;
-    
+
     // Zoom >= 13: requête simplifiée pour performance
     // Zoom < 13: requête complète avec tous les types de pistes
-    let query = if z >= 13 {
+    let query = if z <= 13 {
         r#"
         WITH
         bounds AS (

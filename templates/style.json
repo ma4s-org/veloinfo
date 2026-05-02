@@ -5,7 +5,8 @@
   "sources": {
     "bike_path": {
       "type": "vector",
-      "url": "{{veloinfo_url}}/bike_path"
+      "url": "{{veloinfo_url}}/bike_path",
+      "minzoom": 7
     },
     "city_snow": {
       "type": "vector",
