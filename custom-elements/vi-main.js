@@ -430,6 +430,7 @@ class ViMain extends HTMLElement {
             ], { layers: ['cycleway', 'designated', 'shared_lane'] }
         );
         if (features.length) {
+            console.log("aaaaaaaaaaa");
             const response = await fetch(`/segment_panel_lng_lat/${event.lngLat.lng}/${event.lngLat.lat}`);
             const jsonData = await response.json();
             const segment_panel = new SegmentPanel(jsonData);

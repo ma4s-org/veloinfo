@@ -32,7 +32,7 @@ pub async fn bike_path_mvt(
             SELECT
                 ST_AsMVTGeom(
                     aw.geom,
-                    bounds.geom
+                    b.geom
                 ) AS geom,
                 aw.tags,
                 1 as score,
@@ -117,14 +117,14 @@ pub async fn bike_path_mvt(
         SELECT
             ST_AsMVTGeom(
                 abp.geom,
-                bounds.geom
+                b.geom
             ) AS geom,
             abp.tags,
             abp.score,
             abp.kind,
             abp.snow
         FROM
-            all_bike_paths abp, bounds
+            all_bike_paths abp, bounds b
         WHERE
             abp.kind IS NOT NULL AND
             -- On n'exclut que si c'est explicitement interdit en hiver
