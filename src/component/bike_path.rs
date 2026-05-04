@@ -41,8 +41,11 @@ pub async fn bike_path_mvt(
             FROM
                 all_way aw, bounds b
             WHERE
-                aw.tags->>'highway' = 'cycleway' AND
-                aw.geom && b.geom
+                (aw.tags->>'highway' = 'cycleway' OR
+                     aw.tags->>'cycleway' = 'track' OR
+                     aw.tags->>'cycleway:left' = 'track' OR
+                     aw.tags->>'cycleway:right' = 'track' )
+                AND aw.geom && b.geom
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
         FROM mvtgeom;

@@ -63,7 +63,7 @@ echo "   -> Merge des extraits (dedup automatique)..."
 osmium merge "$QUEBEC_FILE" "$ONT_EAST_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE" -o "$MERGED_FILE" --overwrite
 
 echo "   -> Tri final..."
-osmium sort "$MERGED_FILE" -o "${MERGED_FILE}.tmp.pbf" --overwrite
+osmium sort "$MERGED_FILE" -o "${MERGED_FILE}.tmp.pbf" --overwrite --strategy=multipass
 mv "${MERGED_FILE}.tmp.pbf" "$MERGED_FILE"
 
 
