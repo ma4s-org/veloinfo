@@ -22,7 +22,7 @@ pub async fn bike_path_mvt(
 
     // Zoom >= 13: requête simplifiée pour performance
     // Zoom < 13: requête complète avec tous les types de pistes
-    let query = if z <= 13 {
+    let query = if z <= 12 {
         r#"
         WITH
         bounds AS (
