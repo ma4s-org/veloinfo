@@ -43,43 +43,6 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Tuiles Martin et bike_path: cache-first avec refresh background
-    const isTile = url.pathname.startsWith('/martin/') || 
-                   url.pathname.startsWith('/bike_path');
-    
-    if (isTile) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then(async (cache) => {
-                const cached = await cache.match(event.request);
-                
-                // Retour immédiat depuis le cache si disponible
-                if (cached) {
-                    // Refresh en background
-                    fetch(event.request).then(async (response) => {
-                        if (response.ok) {
-                            cache.put(event.request, response);
-                        }
-                    }).catch(() => {});
-                    
-                    return cached;
-                }
-                
-                // Pas en cache: fetch réseau
-                try {
-                    const response = await fetch(event.request);
-                    if (response.ok) {
-                        cache.put(event.request, response.clone());
-                    }
-                    return response;
-                } catch (err) {
-                    // Hors ligne: retourne 204 No Content
-                    return new Response(null, { status: 204, statusText: 'No Content' });
-                }
-            })
-        );
-        return;
-    }
-    
     // Ressources statiques: cache-first, fallback réseau
     const isStatic = PRECACHE_ASSETS.some(asset => 
         url.pathname === asset || url.pathname.startsWith('/custom-elements/') ||
