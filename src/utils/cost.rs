@@ -338,7 +338,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
             if score == -1.00 {
                 1.0
             } else if score == 0.0 {
-                0.01
+                0.00001
             } else {
                 score
             }
