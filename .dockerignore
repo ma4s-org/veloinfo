@@ -1,4 +1,3 @@
-./target
 Dockerfile
 docker-compose.yaml
 ./dist
