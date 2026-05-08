@@ -1,33 +1,56 @@
 use super::{info_panel::InfopanelContribution, score_selector::ScoreSelector};
+use crate::db::cyclability_score::CyclabilityScore;
 use crate::db::cycleway::{Cycleway, Node};
-use crate::db::edge::Edge;
 use crate::db::user::User;
-use crate::utils::cost::get_h_bigger_selection;
-use crate::{db::cyclability_score::CyclabilityScore, VeloinfoState};
+use crate::VeloinfoState;
+use axum::body::Body;
 use axum::extract::multipart::Multipart;
 use axum::extract::{Path, State};
-use axum::response::IntoResponse;
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
 use axum::Json;
-use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
-use futures::future::join_all;
 use geojson::JsonValue;
 use image::DynamicImage;
 use kamadak_exif::{In, Reader, Tag};
 use lazy_static::lazy_static;
 use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
-use regex::Regex;
 use serde_json::json;
-use sqlx::Postgres;
+use sqlx::Row;
 use std::env;
 use uuid::Uuid;
 
 lazy_static! {
-    static ref RE_NUMBER: Regex = Regex::new(r"\d+").unwrap();
+    static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
 }
 
-lazy_static! {
-    static ref IMAGE_DIR: String = env::var("IMAGE_DIR").unwrap();
+/// Convertit un GeoJSON (String) en WKT pour PostGIS
+fn geojson_to_wkt(geojson: &str) -> Result<String, String> {
+    let value: serde_json::Value = serde_json::from_str(geojson)
+        .map_err(|e| format!("Erreur parsing GeoJSON: {}", e))?;
+    
+    let geom_type = value["type"].as_str().ok_or("Type de géométrie manquant")?;
+    let coords = &value["coordinates"];
+    
+    match geom_type {
+        "Polygon" => {
+            // Polygon: [[[lng,lat],...],...] - on prend le premier anneau (outer ring)
+            let rings = coords.as_array().ok_or("Coordinates invalides")?;
+            if rings.is_empty() {
+                return Err("Polygon vide".to_string());
+            }
+            let outer_ring = rings[0].as_array().ok_or("Outer ring invalide")?;
+            let points: Result<Vec<String>, String> = outer_ring.iter().map(|coord| {
+                let arr = coord.as_array().ok_or("Coord invalide")?;
+                let lng = arr[0].as_f64().ok_or("Lng invalide")?;
+                let lat = arr[1].as_f64().ok_or("Lat invalide")?;
+                Ok::<String, String>(format!("{} {}", lng, lat))
+            }).collect();
+            let points = points?;
+            Ok(format!("POLYGON(({}))", points.join(", ")))
+        }
+        _ => Err(format!("Type de géométrie non supporté: {}", geom_type))
+    }
 }
 
 pub async fn segment_panel_post(
@@ -57,7 +80,7 @@ pub async fn segment_panel_post(
 
     let mut score = -1.;
     let mut comment = "".to_string();
-    let mut way_ids = "".to_string();
+    let mut geom_json = "".to_string();
     let mut photo = None;
     let mut user_name = "".to_string();
     while let Some(field) = multipart.next_field().await.unwrap() {
@@ -72,7 +95,7 @@ pub async fn segment_panel_post(
                     .unwrap()
             }
             "comment" => comment = field.text().await.unwrap_or("".to_string()),
-            "way_ids" => way_ids = field.text().await.unwrap_or("".to_string()),
+            "geom_json" => geom_json = field.text().await.unwrap_or("".to_string()),
             "photo" => {
                 photo = match field.bytes().await {
                     Ok(b) => Some(b),
@@ -89,37 +112,19 @@ pub async fn segment_panel_post(
     if let Some(user_id) = user_id {
         User::update(&user_id, &user_name, &state.conn).await;
     }
-    let way_ids_i64 = RE_NUMBER
-        .find_iter(way_ids.as_str())
-        .map(|m| m.as_str().parse::<i64>().unwrap())
-        .collect::<Vec<i64>>();
 
-    match photo.as_ref() {
-        Some(p) => match p.len() {
-            0 => photo = None,
-            _ => (),
+    // Convertir GeoJSON en WKT pour PostGIS
+    let geom_wkt = match geojson_to_wkt(&geom_json) {
+        Ok(wkt) => {
+            eprintln!("GeoJSON converti en WKT: {}", wkt);
+            wkt
         },
-        None => (),
-    };
-
-    let id = match CyclabilityScore::insert(
-        &score,
-        &Some(comment),
-        &way_ids_i64,
-        &None,
-        &None,
-        user_id,
-        &state.conn,
-    )
-    .await
-    {
-        Ok(id) => id,
         Err(e) => {
-            eprintln!("Error while inserting score: {}", e);
+            eprintln!("Erreur conversion GeoJSON -> WKT: {}", e);
             return (
                 jar,
                 Json(json!({
-                    "way_ids": way_ids.clone(),
+                    "way_ids": "".to_string(),
                     "score_circle": { "score": score },
                     "segment_name": "".to_string(),
                     "score_selector": ScoreSelector::get_score_selector(score),
@@ -135,8 +140,46 @@ pub async fn segment_panel_post(
             );
         }
     };
+
+    let id = match CyclabilityScore::insert(
+        &score,
+        &Some(comment.clone()),
+        &geom_wkt,
+        &None,
+        &None,
+        user_id,
+        &state.conn,
+    )
+    .await
+    {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Error while inserting score: {}", e);
+            return (
+                jar,
+                Json(json!({
+                    "way_ids": "".to_string(),
+                    "score_circle": { "score": score },
+                    "segment_name": "".to_string(),
+                    "score_selector": ScoreSelector::get_score_selector(score),
+                    "comment": "".to_string(),
+                    "edit": false,
+                    "history": Vec::<InfopanelContribution>::new(),
+                    "photo_ids": Vec::<i32>::new(),
+                    "geom_json": "".to_string(),
+                    "fit_bounds": false,
+                    "user_name": user_name,
+                    "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
+                })),
+            );
+        }
+    };
+    // Traiter la photo seulement si elle a du contenu (pas vide)
     if let Some(photo) = photo.as_ref() {
-        let img = (|| -> Result<DynamicImage, Box<dyn std::error::Error>> {
+        if photo.is_empty() {
+            eprintln!("Photo vide ignorée");
+        } else {
+            let img = (|| -> Result<DynamicImage, Box<dyn std::error::Error>> {
             // Try to read EXIF orientation first
             let exif_reader = Reader::new();
             let exif = exif_reader
@@ -202,6 +245,7 @@ pub async fn segment_panel_post(
             }
             Err(e) => eprintln!("Error while processing image: {}", e),
         }
+        } // Fermer le else de photo.is_empty()
     }
 
     // Update photo paths after successful save
@@ -223,231 +267,73 @@ pub async fn segment_panel_post(
         eprintln!("Error updating photo paths: {}", e);
     }
 
-    (jar, segment_panel(state, way_ids).await)
+    // Retourner le segment avec la géométrie sauvegardée
+    let geom_json_for_response = geom_json.clone();
+    (jar, Json(json!({
+        "way_ids": "".to_string(),
+        "score_circle": { "score": score },
+        "segment_name": "Segment sélectionné".to_string(),
+        "score_selector": ScoreSelector::get_score_selector(score),
+        "comment": comment,
+        "edit": true,
+        "history": Vec::<InfopanelContribution>::new(),
+        "photo_ids": Vec::<i32>::new(),
+        "geom_json": geom_json_for_response,
+        "fit_bounds": false,
+        "user_name": user_name,
+        "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
+    })))
 }
 
-pub async fn segment_panel_edit(
-    State(state): State<VeloinfoState>,
-    Path(way_ids): Path<String>,
-    mut jar: CookieJar,
+pub async fn segment_panel_edit_post(
+    State(_state): State<VeloinfoState>,
+    jar: CookieJar,
+    mut multipart: Multipart,
 ) -> (CookieJar, Json<JsonValue>) {
-    let user_name = match jar.get("uuid") {
-        Some(uuid) => {
-            let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
-                Ok(uuid) => uuid,
-                Err(e) => {
-                    eprintln!("Error while parsing uuid: {}", e);
-                    let uuid = Uuid::now_v7();
-                    jar = jar.add(
-                        Cookie::build(("uuid", uuid.to_string()))
-                            .path("/")
-                            .permanent(),
-                    );
-                    uuid
-                }
-            };
-            match User::get(&uuid, &state.conn).await {
-                Some(user) => user.name,
-                None => "".to_string(),
-            }
+    eprintln!("=== segment_panel_edit_post START ===");
+    let mut geom_json = "".to_string();
+    let mut user_name = "".to_string();
+    let mut _edit = "".to_string();
+    
+    while let Some(field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap().to_string();
+        let value = field.text().await.unwrap_or("".to_string());
+        eprintln!("Champ reçu: {} = {}", name, value);
+        match name.as_str() {
+            "geom_json" => geom_json = value,
+            "user_name" => user_name = value,
+            "edit" => _edit = value,
+            _ => eprintln!("Champ inconnu: {}", name),
         }
-        None => {
-            let uuid = Uuid::now_v7();
-            jar = jar.add(
-                Cookie::build(("uuid", uuid.to_string()))
-                    .path("/")
-                    .permanent(),
-            );
-            "".to_string()
-        }
-    };
-    let way_ids_i64 = RE_NUMBER
-        .find_iter(way_ids.as_str())
-        .map(|m| m.as_str().parse::<i64>().unwrap())
-        .collect::<Vec<i64>>();
-
-    let ways = join_all(
-        way_ids_i64
-            .iter()
-            .map(|way_id| async { Cycleway::get(way_id, &state.conn).await }),
-    )
-    .await;
-    let cycleways: Vec<&Cycleway> = ways
-        .iter()
-        .filter(|r| r.is_ok())
-        .map(|r| r.as_ref().unwrap())
-        .collect();
-    let all_same_score = cycleways.iter().all(|way| way.score == cycleways[0].score);
-    let mut way = cycleways[0].clone();
-    if !all_same_score {
-        way.score = Some(-1.);
     }
-    let segment_name = cycleways
-        .iter()
-        .fold("".to_string(), |acc, way| match way.name.as_ref() {
-            Some(name) => {
-                if acc.find(name) != None {
-                    return acc;
-                }
-                format!("{} {}", acc, name)
-            }
-            None => acc,
-        });
-
-    let geom_json = cycleways.iter().fold(vec![], |acc, way| {
-        acc.iter().chain(way.geom.iter()).cloned().collect()
-    });
-    let geom_json = serde_json::to_string(&geom_json).unwrap_or("".to_string());
-    let photo_ids = CyclabilityScore::get_photo_by_way_ids(&way_ids_i64, &state.conn).await;
-    let history = InfopanelContribution::get_history(&way_ids_i64, &state.conn).await;
+    
+    eprintln!("=== segment_panel_edit_post END ===");
+    eprintln!("geom_json final: {}", geom_json);
+    
+    // Récupérer les données existantes pour ce segment (historique, photos, etc.)
+    // Pour l'instant, on retourne une réponse avec edit=true et la géométrie
+    // fit_bounds: false pour ne pas bouger la carte en mode édition
     let json = Json(json!({
-        "way_ids": way_ids.clone(),
-        "score_circle": {
-            "score": way.score.unwrap_or(-1.),
-        },
-        "segment_name": segment_name,
-        "score_selector": ScoreSelector::get_score_selector(way.score.unwrap_or(-1.)),
+        "way_ids": "".to_string(),
+        "score_circle": { "score": -1. },
+        "segment_name": "Segment sélectionné".to_string(),
+        "score_selector": ScoreSelector::get_score_selector(-1.),
         "comment": "".to_string(),
         "edit": true,
-        "history": history,
-        "photo_ids": photo_ids,
-        "geom_json": geom_json,
+        "history": Vec::<InfopanelContribution>::new(),
+        "photo_ids": Vec::<i32>::new(),
+        "geom_json": &geom_json,
         "fit_bounds": false,
         "user_name": user_name,
         "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     }));
+    
+    eprintln!("Réponse JSON envoyée: {:?}", json);
     (jar, json)
 }
 
-pub async fn segment_panel_get(
-    State(state): State<VeloinfoState>,
-    Path(way_ids): Path<String>,
-) -> Json<JsonValue> {
-    segment_panel(state, way_ids).await
-}
-
-pub async fn segment_panel(state: VeloinfoState, way_ids: String) -> Json<JsonValue> {
-    let re = Regex::new(r"\d+").unwrap();
-    let way_ids_i64 = re
-        .find_iter(way_ids.as_str())
-        .map(|cap| cap.as_str().parse::<i64>().unwrap())
-        .collect::<Vec<i64>>();
-
-    let cycleways: Vec<Cycleway> = join_all(way_ids_i64.iter().map(|way_id| async {
-        match Cycleway::get(way_id, &state.conn).await {
-            Ok(way) => way,
-            Err(e) => {
-                eprintln!("Error while fetching way: {}", e);
-                Cycleway {
-                    way_id: 0,
-                    name: Some("".to_string()),
-                    score: None,
-                    geom: vec![],
-                    source: 0,
-                    target: 0,
-                }
-            }
-        }
-    }))
-    .await;
-    let all_same_score = cycleways.iter().all(|way| way.score == cycleways[0].score);
-    let segment_name = cycleways
-        .iter()
-        .fold("".to_string(), |acc, way| match way.name.as_ref() {
-            Some(name) => {
-                if acc.find(name) != None {
-                    return acc;
-                }
-                format!("{} {}", acc, name)
-            }
-            None => acc,
-        });
-    let geom: Vec<Vec<[f64; 2]>> = cycleways.iter().map(|way| way.geom.clone()).collect();
-
-    let history = InfopanelContribution::get_history(&way_ids_i64, &state.conn).await;
-    let photo_ids = CyclabilityScore::get_photo_by_way_ids(&way_ids_i64, &state.conn).await;
-    let json = json!({
-        "way_ids": way_ids.clone(),
-        "score_circle": {
-            "score": match cycleways.first() {
-                Some(way) => way.score.unwrap_or(-1.),
-                None => -1.,
-            },
-        },
-        "segment_name": segment_name,
-        "score_selector": ScoreSelector::get_score_selector(if all_same_score {
-            match cycleways.first() {
-                Some(way) => way.score.unwrap_or(-1.),
-                None => -1.,
-            }
-        } else {
-            -1.
-        }),
-        "comment": "".to_string(),
-        "edit": false,
-        "history": history,
-        "photo_ids": photo_ids,
-        "geom_json": serde_json::to_string(&geom).unwrap_or("".to_string()),
-        "fit_bounds": false,
-        "user_name": "".to_string(),
-        "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
-    });
-    Json(json)
-}
-
-pub async fn segment_panel_bigger_route(
-    State(state): State<VeloinfoState>,
-    Path((lng1, lat1, lng2, lat2)): Path<(f64, f64, f64, f64)>,
-) -> Json<JsonValue> {
-    let node1 = match Cycleway::find(&lng1, &lat1, &state.conn).await {
-        Ok(node) => node,
-        Err(e) => {
-            eprintln!("Error while fetching node1: {}", e);
-            Node {
-                way_id: 0,
-                geom: vec![],
-                node_id: 0,
-                lng: 0.,
-                lat: 0.,
-            }
-        }
-    };
-    let node2 = match Cycleway::find(&lng2, &lat2, &state.conn).await {
-        Ok(node) => node,
-        Err(e) => {
-            eprintln!("Error while fetching node2: {}", e);
-            Node {
-                way_id: 0,
-                geom: vec![],
-                node_id: 0,
-                lng: 0.,
-                lat: 0.,
-            }
-        }
-    };
-
-    let edges = Edge::a_star_bidirectional(
-        node1.node_id,
-        node2.node_id,
-        get_h_bigger_selection(),
-        &state.conn,
-        None,
-        true,
-    )
-    .await;
-
-    let ways = edges.iter().fold("".to_string(), |acc, edge| {
-        println!("edge {}", edge.way_id);
-        match acc.contains(&edge.way_id.to_string()) {
-            true => return acc,
-            false => format!("{} {}", acc, edge.way_id),
-        }
-    });
-    segment_panel(state, ways).await
-}
-
 async fn segment_panel_score_id(
-    conn: &sqlx::Pool<Postgres>,
+    conn: &sqlx::Pool<sqlx::Postgres>,
     id: i32,
     edit: bool,
 ) -> Json<JsonValue> {
@@ -460,7 +346,6 @@ async fn segment_panel_score_id(
                 name: Some(vec![]),
                 score: -1.,
                 comment: None,
-                way_ids: vec![],
                 created_at: chrono::DateTime::from_timestamp(0, 0).unwrap().into(),
                 photo_path_thumbnail: None,
                 geom: vec![],
@@ -468,32 +353,9 @@ async fn segment_panel_score_id(
             }
         }
     };
-    let (segment_name, way_ids) = join_all(score.way_ids.iter().map(|way_id| async {
-        let conn = conn.clone();
-        Cycleway::get(way_id, &conn).await
-    }))
-    .await
-    .iter()
-    .fold(("".to_string(), "".to_string()), |(names, ways), way| {
-        let way = match way {
-            Ok(way) => way,
-            _ => return (names, ways),
-        };
-        match way.name.as_ref() {
-            Some(name) => {
-                if names.find(name) != None {
-                    return (names, format!("{} {}", ways, way.way_id));
-                }
-                (
-                    format!("{} {}", names, name),
-                    format!("{} {}", ways, way.way_id),
-                )
-            }
-            None => (names, format!("{} {}", ways, way.way_id)),
-        }
-    });
 
-    let geom_json = match serde_json::to_string(&score.geom.clone()) {
+    let segment_name = score.name.as_ref().map(|n| n.iter().filter_map(|s| s.clone()).collect::<Vec<_>>().join(" ")).unwrap_or_default();
+    let geom_json = match serde_json::to_string(&score.geom) {
         Ok(geom) => geom,
         Err(e) => {
             eprintln!("Error while serializing geom: {}", e);
@@ -501,16 +363,19 @@ async fn segment_panel_score_id(
         }
     };
 
-    let history = InfopanelContribution::get_history(&score.way_ids, conn).await;
-    let photo_ids = CyclabilityScore::get_photo_by_way_ids(&score.way_ids, &conn).await;
+    // TODO: Implémenter get_history par geom
+    let history = Vec::<InfopanelContribution>::new();
+    // TODO: Implémenter get_photo_by_geom
+    let photo_ids = Vec::<i32>::new();
+    
     Json(json!({
-        "way_ids": way_ids.clone(),
+        "way_ids": "".to_string(),
         "score_circle": {
             "score": score.score,
         },
         "segment_name": segment_name,
         "score_selector": ScoreSelector::get_score_selector(score.score),
-        "comment": score.comment.unwrap_or("".to_string()),
+        "comment": score.comment.clone().unwrap_or("".to_string()),
         "edit": edit,
         "history": history,
         "photo_ids": photo_ids,
@@ -560,19 +425,105 @@ pub async fn segment_panel_lng_lat(
         None => "Inconnu".to_string(),
     };
     let history = InfopanelContribution::get_history_by_way_id(node.way_id, &state.conn).await;
-    let photo_ids = CyclabilityScore::get_photo_by_way_ids(&vec![node.way_id], &state.conn).await;
-    let json = serde_json::json!({
-        "way_ids": node.way_id.to_string(),
-        "score_circle": {
-            "score": way.score.unwrap_or(-1.0),
+    let photo_ids = Vec::<i32>::new();
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "application/json")],
+        serde_json::to_string(&serde_json::json!({
+            "way_ids": node.way_id.to_string(),
+            "score_circle": {
+                "score": way.score.unwrap_or(-1.0),
+            },
+            "segment_name": segment_name,
+            "score_selector": ScoreSelector::get_score_selector(way.score.unwrap_or(-1.0)),
+            "comment": "".to_string(),
+            "edit": false,
+            "history": history,
+            "photo_ids": photo_ids,
+            "geom_json": serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
+            "fit_bounds": false,
+            "user_name": "".to_string(),
+            "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
+        })).unwrap_or_default(),
+    )
+}
+
+pub async fn segment_between(
+    State(state): State<VeloinfoState>,
+    Path((start_lng, start_lat, end_lng, end_lat)): Path<(f64, f64, f64, f64)>,
+) -> Json<JsonValue> {
+    // Pour les segments personnalisés, on utilise directement les points de début et fin
+    // sans passer par le routage A* sur les ways OSM
+    
+    // Créer une LineString entre les deux points
+    let coords = vec![
+        [start_lng, start_lat],
+        [end_lng, end_lat]
+    ];
+    
+    // Créer une LineString GeoJSON
+    let line_string_json = serde_json::json!({
+        "type": "LineString",
+        "coordinates": coords
+    });
+
+    // Bufferiser la LineString à 10m en utilisant PostGIS
+    // On passe la LineString à PostGIS, il fait le buffer et retourne un Polygon
+    let buffer_query = r#"
+        WITH line AS (
+            SELECT ST_GeomFromGeoJSON($1) AS geom
+        ),
+        transformed AS (
+            SELECT ST_Transform(geom, 3857) AS geom FROM line
+        ),
+        buffered AS (
+            SELECT ST_Buffer(geom, 10) AS geom FROM transformed
+        ),
+        final AS (
+            SELECT ST_Transform(geom, 4326) AS geom FROM buffered
+        )
+        SELECT ST_AsGeoJSON(geom) FROM final;
+    "#;
+
+    let geom_json: String = match sqlx::query_scalar(buffer_query)
+        .bind(serde_json::to_string(&line_string_json).unwrap_or_default())
+        .fetch_optional(&state.conn)
+        .await
+    {
+        Ok(Some(geom)) => {
+            eprintln!("Buffer OK: {}", geom);
+            geom
         },
-        "segment_name": segment_name,
-        "score_selector": ScoreSelector::get_score_selector(way.score.unwrap_or(-1.0)),
+        Ok(None) => {
+            eprintln!("Buffer returned None - using LineString fallback");
+            // Fallback: retourner la LineString brute
+            serde_json::to_string(&line_string_json).unwrap_or_default()
+        },
+        Err(e) => {
+            eprintln!("Buffer SQL error: {}", e);
+            // Fallback: retourner la LineString brute
+            serde_json::to_string(&line_string_json).unwrap_or_default()
+        }
+    };
+
+    // Récupérer l'historique et les photos en utilisant la geom
+    // Pour l'instant, on retourne des tableaux vides pour les segments personnalisés
+    // L'historique par geom sera implémenté avec une comparaison spatiale
+    let history = Vec::<InfopanelContribution>::new();
+    let photo_ids = Vec::<i32>::new();
+
+    let json = json!({
+        "way_ids": "".to_string(),
+        "score_circle": {
+            "score": -1.,
+        },
+        "segment_name": "Segment sélectionné".to_string(),
+        "score_selector": ScoreSelector::get_score_selector(-1.),
         "comment": "".to_string(),
         "edit": false,
         "history": history,
         "photo_ids": photo_ids,
-        "geom_json": serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
+        "geom_json": geom_json,
         "fit_bounds": false,
         "user_name": "".to_string(),
         "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
@@ -585,4 +536,96 @@ pub async fn select_score_id(
     Path(id): Path<i32>,
 ) -> Json<JsonValue> {
     segment_panel_score_id(&state.conn, id, false).await
+}
+
+/// Endpoint MVT pour afficher les segments cyclability_score sur la carte
+#[axum::debug_handler]
+pub async fn cyclability_score_mvt(
+    State(state): State<VeloinfoState>,
+    Path((z, x, y)): Path<(u32, u32, u32)>,
+) -> impl IntoResponse {
+    let conn = &state.conn;
+
+    // Requête MVT - toutes les géométries sont en 4326, on transforme pour l'affichage
+    let query = r#"
+    WITH
+    bounds AS (
+        SELECT 
+            ((2 * $2::double precision / pow(2, $1)) - 1) * 20037508.34 as xmin,
+            ((1 - (2 * ($3 + 1)::double precision / pow(2, $1)))) * 20037508.34 as ymin,
+            ((2 * ($2 + 1)::double precision / pow(2, $1)) - 1) * 20037508.34 as xmax,
+            ((1 - (2 * $3::double precision / pow(2, $1)))) * 20037508.34 as ymax
+    ),
+    envelope AS (
+        SELECT ST_MakeEnvelope(xmin, ymin, xmax, ymax, 3857) as geom FROM bounds
+    ),
+    mvtgeom AS (
+        SELECT
+            ST_AsMVTGeom(
+                ST_Transform(cs.geom, 3857),
+                e.geom
+            ) AS geom,
+            cs.score,
+            cs.comment,
+            cs.created_at,
+            cs.user_id
+        FROM
+            cyclability_score cs, envelope e
+        WHERE
+            ST_Transform(cs.geom, 3857) && e.geom
+    )
+    SELECT ST_AsMVT(mvtgeom.*, 'cyclability_score', 4096, 'geom')
+    FROM mvtgeom;
+    "#;
+
+    let result = match sqlx::query(query)
+        .bind(z as i64)
+        .bind(x as i64)
+        .bind(y as i64)
+        .fetch_one(conn)
+        .await
+    {
+        Ok(row) => {
+            let mvt_data: Vec<u8> = row.get(0);
+            eprintln!("MVT query succeeded for z={}, x={}, y={} - tile size: {} bytes", z, x, y, mvt_data.len());
+            mvt_data
+        },
+        Err(e) => {
+            eprintln!("Error fetching cyclability_score MVT for z={}, x={}, y={}: {}", z, x, y, e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Error fetching MVT").into_response();
+        }
+    };
+
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/x-protobuf")
+        .header(header::CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+        .header(header::EXPIRES, "0")
+        .body(Body::from(result))
+        .unwrap()
+        .into_response()
+}
+
+/// Endpoint TileJSON pour cyclability_score
+pub async fn cyclability_score() -> Json<JsonValue> {
+    let tilejson = json!({
+        "tilejson": "3.0.0",
+        "name": "cyclability_score",
+        "tiles": [
+            format!("{}/cyclability_score/{{z}}/{{x}}/{{y}}", env::var("VELOINFO_URL").unwrap())
+        ],
+        "vector_layers": [
+            {
+                "id": "cyclability_score",
+                "fields": {
+                    "score": "Number",
+                    "comment": "String",
+                    "created_at": "String",
+                    "user_id": "Number"
+                },
+                "minzoom": 10,
+                "maxzoom": 22
+            }
+        ]
+    });
+    Json(tilejson)
 }

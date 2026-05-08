@@ -12,6 +12,10 @@
       "type": "vector",
       "url": "{{veloinfo_url}}/city_snow"
     },
+    "cyclability_score": {
+      "type": "vector",
+      "url": "{{veloinfo_url}}/cyclability_score"
+    },
     "landuse": {
       "type": "vector",
       "url": "{{veloinfo_url}}/martin/landuse"
@@ -3987,6 +3991,53 @@
         "shop",
         "bicycle"
       ]
+    },
+    {
+      "id": "cyclability_score_fill",
+      "type": "fill",
+      "source": "cyclability_score",
+      "source-layer": "cyclability_score",
+      "minzoom": 10,
+      "maxzoom": 22,
+      "paint": {
+        "fill-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "score"],
+          0, "#ff0000",
+          0.25, "#ffaa00",
+          0.5, "#ffff00",
+          0.75, "#88ff00",
+          1, "#00ff00"
+        ],
+        "fill-opacity": 0.3
+      }
+    },
+    {
+      "id": "cyclability_score",
+      "type": "line",
+      "source": "cyclability_score",
+      "source-layer": "cyclability_score",
+      "minzoom": 10,
+      "maxzoom": 22,
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "score"],
+          0, "#ff0000",
+          0.25, "#ffaa00",
+          0.5, "#ffff00",
+          0.75, "#88ff00",
+          1, "#00ff00"
+        ],
+        "line-width": 3,
+        "line-opacity": 1
+      }
     }
   ],
   "glyphs": "{{veloinfo_url}}/martin/font/{fontstack}/{range}",

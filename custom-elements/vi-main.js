@@ -46,6 +46,9 @@ class ViMain extends HTMLElement {
     constructor() {
         super();
         this._loadingImages = new Set();
+        this._isReporting = false;  // Mode "signaler" activé
+        this._reportingSegment = null;  // Segment en cours de signalement
+        this._segmentStart = null;  // Point de départ du segment actuel (pour modifier la fin)
         this.innerHTML = html`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
@@ -166,6 +169,8 @@ class ViMain extends HTMLElement {
             this.start_marker = new maplibregl.Marker({ color: "#00f" })
                 .setLngLat([pointLng, pointLat])
                 .addTo(this.map);
+            // Marquer ce marqueur comme temporaire (créé via URL params)
+            this.start_marker.getElement().setAttribute('data-temp', 'true');
 
             // Charger le segment panel autour de ce point
             const loadSegment = async () => {
@@ -265,6 +270,12 @@ class ViMain extends HTMLElement {
         });
 
         this.map.on("click", (event) => {
+            // Nettoyer le message temporaire si présent (pour le mode signalement)
+            if (this.temp_message) {
+                this.temp_message.remove();
+                this.temp_message = null;
+            }
+            
             if (
                 document.querySelector('vi-change-start') ||
                 document.getElementById("info_panel_up") ||
@@ -407,9 +418,9 @@ class ViMain extends HTMLElement {
      *   - ROUGE (#f00)     = départ d'itinéraire (GPS)
      *   - BLEU (#00f)      = destination / point cliqué
      * 
-     * FLUX DE LA MÉTHODE:
+     * NOUVEAU FONCTIONNEMENT SELECT (2 clics):
      * 
-     * 1. MODE "CHANGER LE DÉPART" (lignes ~471-478)
+     * 1. MODE "CHANGER LE DÉPART" (lignes ~474-480)
      *    Condition: vi-change-start présent && this.changeStartDestination existe
      *    Actions:
      *      - Crée start_marker (rouge) aux nouvelles coordonnées du clic
@@ -418,45 +429,31 @@ class ViMain extends HTMLElement {
      *      - Lance this.route() pour recalculer l'itinéraire
      *      - RETURN (fin prématurée)
      * 
-     * 2. DÉTECTION DE PISTE CYCLABLE (lignes ~483-489)
+     * 2. DÉTECTION DE PISTE CYCLABLE (lignes ~484-490)
      *    - queryRenderedFeatures avec boîte 20x20px
      *    - Couches: ['cycleway', 'designated', 'shared_lane']
      *    - Vérifie si segment_panel est déjà ouvert (existingSegmentPanel)
      * 
-     * 3. CLIC SUR PISTE CYCLABLE (lignes ~491-514)
-     *    3a. SI segment_panel déjà ouvert:
-     *        → this.selectBigger(event) — agrandit la sélection
-     *        → RETURN (fin prématurée)
-     *    3b. SINON (premier segment):
-     *        → start_marker (ORANGE) au début du segment (depuis geom_json)
-     *        → end_marker (BLEU) au point cliqué
-     *        → Requête HTTP: /segment_panel_lng_lat/{lng}/{lat}
+     * 3. CLIC SUR PISTE CYCLABLE - NOUVEAU FONCTIONNEMENT:
+     *    3a. SI _firstClick existe DÉJÀ (2ème clic):
+     *        → Appel à /segment_between/{startLng}/{startLat}/{endLng}/{endLat}
+     *        → Le serveur retourne un geom qui couvre les deux points
      *        → Affiche vi-segment-panel avec les données
-     *        → Met à jour l'URL: ?point_lng=...&point_lat=...
+     *        → Réinitialise _firstClick = null
+     *        → RETURN
+     *    3b. SINON (1er clic):
+     *        → Place end_marker (BLEU) au point cliqué
+     *        → Stocke _firstClick = { lng, lat }
+     *        → NE FAIT AUCUNE SÉLECTION DE WAY
      * 
-     * 4. CLIC DANS LE VIDE (lignes ~516-543)
+     * 4. CLIC DANS LE VIDE (lignes ~517-566)
      *    4a. SI segment_panel ouvert:
      *        → this.clear() — supprime les marqueurs de sélection
-     *    4b. Crée ou déplace end_marker (BLEU) au clic
-     *    4c. Vide la source "selected" (LineString vide)
-     *    4d. Recherche itérative d'un nom de lieu (1000px par 10px)
-     *        Couches: ['name', 'Road network', 'City labels',
-     *                 'Town labels', 'Village labels']
-     *        → S'arrête dès qu'un f.properties.name est trouvé
-     *    4e. Affiche vi-point-panel avec le nom trouvé (ou "" si rien)
-     * 
-     * RÉSUMÉ DES CAS D'USAGE:
-     * ┌──────────────────────────────────────────────────────────────────────┐
-     * │ Cas                    │ Action                                      │
-     * ├──────────────────────────────────────────────────────────────────────┤
-     * │ Changer point départ   │ vi-change-start + destination → route()     │
-     * │ 1er clic sur piste     → start_marker (ORANGE) + end_marker (BLEU)   │
-     * │                        → + segment_panel                             │
-     * │ 2ème clic sur piste      → selectBigger() (agrandir sélection)         │
-     * │ Clic dans le vide      → end_marker (BLEU) + point_panel             │
-     * │ Clic (segment ouvert)  → clear() + end_marker (BLEU) + point_panel   │
-     * │ Bouton Itinéraire      → start_marker (ORANGE→ROUGE GPS) + BLEU      │
-     * └──────────────────────────────────────────────────────────────────────┘
+     *    4b. Réinitialise _firstClick = null
+     *    4c. Crée ou déplace end_marker (BLEU) au clic
+     *    4d. Vide la source "selected" (LineString vide)
+     *    4e. Recherche itérative d'un nom de lieu
+     *    4f. Affiche vi-point-panel avec le nom trouvé
      * 
      * @param {Object} event - Événement de clic MapLibre
      * @param {Object} event.lngLat - Coordonnées géographiques du clic
@@ -470,6 +467,13 @@ class ViMain extends HTMLElement {
         this._isSelecting = true;
         
         try {
+            // Nettoyer le marqueur bleu temporaire (chargé via URL params) si présent
+            // Ce marqueur est temporaire et doit être supprimé au premier clic
+            if (this.start_marker && this.start_marker.getElement()?.getAttribute('data-temp') === 'true') {
+                this.start_marker.remove();
+                this.start_marker = null;
+            }
+            
             // Mode sélection du nouveau point de départ
             if (document.querySelector('vi-change-start') && this.changeStartDestination) {
                 // Créer les marqueurs avec les nouvelles coordonnées
@@ -480,108 +484,287 @@ class ViMain extends HTMLElement {
                 return;
             }
             
-            // Clic : créer ou déplacer le point d'arrivée (BLEU) SEULEMENT si pas sur une piste
-            // Vérifier d'abord si on clique sur une piste cyclable
-            const width = 20;
-            const features = this.map.queryRenderedFeatures(
-                [
-                    [event.point.x - width / 2, event.point.y - width / 2],
-                    [event.point.x + width / 2, event.point.y + width / 2]
-                ], { layers: ['cycleway', 'designated', 'shared_lane'] }
-            );
-            
-            // Vérifier si un segment_panel est déjà ouvert (pour agrandir la sélection)
+            // Vérifier si un segment_panel est déjà ouvert
             const existingSegmentPanel = document.getElementById("segment_panel");
             
-            if (features.length) {
-                // Sur une piste : afficher segment_panel + marqueur BLEU pour agrandir sélection
-                if (existingSegmentPanel) {
-                    // Déjà un segment de sélectionné → agrandir la sélection
-                    this.selectBigger(event);
+            // Vérifier si un point_panel est déjà ouvert
+            const existingPointPanel = document.getElementById("point_panel");
+            
+            // Mode signalement OU segment existant : un seul clic pour mettre à jour la fin du segment
+            if (existingSegmentPanel) {
+                // Déterminer le point de départ
+                let startLng, startLat;
+                if (this._isReporting && this._reportingSegment) {
+                    // Mode signalement : utiliser le point sauvegardé
+                    startLng = this._reportingSegment.startLng;
+                    startLat = this._reportingSegment.startLat;
+                } else if (this._segmentStart) {
+                    // Segment normal : utiliser le point de départ du segment actuel
+                    startLng = this._segmentStart.lng;
+                    startLat = this._segmentStart.lat;
+                } else {
+                    // Pas de point de départ connu, laisser le comportement normal
+                }
+                
+                if (startLng !== undefined && startLat !== undefined) {
+                    const endLng = event.lngLat.lng;
+                    const endLat = event.lngLat.lat;
+                    
+                    // Appel au serveur pour recalculer la géométrie du segment avec la nouvelle fin
+                    // Le serveur connaît la forme réelle de la rue (pas juste un buffer simplifié)
+                    const response = await fetch(`/segment_between/${startLng}/${startLat}/${endLng}/${endLat}`);
+                    const jsonData = await response.json();
+                    
+                    // Mettre à jour la source avec la nouvelle géométrie du serveur
+                    if (jsonData.geom_json && this.map.getSource("selected")) {
+                        this.map.getSource("selected").setData(JSON.parse(jsonData.geom_json));
+                    }
+                    
+                    // Mettre à jour l'URL
+                    this.updateSegmentUrl(endLng, endLat);
+                    
+                    // Réinitialiser le mode signalement si actif
+                    if (this._isReporting) {
+                        this._isReporting = false;
+                        this._reportingSegment = null;
+                    }
+                    
+                    // Mettre à jour le point de départ du segment pour les prochains clics
+                    this._segmentStart = { lng: startLng, lat: startLat };
+                    
+                    // Réinitialiser le premier clic
+                    this._firstClick = null;
                     return;
                 }
-                
-                // Premier segment sélectionné → récupérer le début du segment pour start_marker
-                const response = await fetch(`/segment_panel_lng_lat/${event.lngLat.lng}/${event.lngLat.lat}`);
-                const jsonData = await response.json();
-                
-                // Créer start_marker (ROUGE) au début du segment et end_marker (BLEU) au clic
-                if (jsonData.geom_json) {
-                    const geom = JSON.parse(jsonData.geom_json);
-                    if (geom && geom[0] && geom[0][0]) {
-                        // start_marker au début du segment (geom = [[[lng,lat],...]])
-                        const startCoord = geom[0][0];
-                        if (this.start_marker) {
-                            this.start_marker.setLngLat(startCoord);
-                        } else {
-                            this.start_marker = new maplibregl.Marker({ color: MARKER_COLORS.SEGMENT_START })
-                                .setLngLat(startCoord)
-                                .addTo(this.map);
-                        }
-                    }
-                }
-                
-                // end_marker au point cliqué
-                if (this.end_marker) {
-                    this.end_marker.setLngLat([event.lngLat.lng, event.lngLat.lat]);
-                } else {
-                    this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
-                        .setLngLat([event.lngLat.lng, event.lngLat.lat])
-                        .addTo(this.map);
-                }
-                
-                const segment_panel = new SegmentPanel(jsonData);
-                this.querySelector("#info").innerHTML = ``;
-                this.querySelector("#info").appendChild(segment_panel);
-                this.updateSegmentUrl(event.lngLat.lng, event.lngLat.lat);
-            } else {
-                // Dans le vide : si segment_panel ouvert, on enlève les marqueurs
-                if (existingSegmentPanel) {
-                    this.clear();
-                }
-                
-                // Créer ou déplacer le point BLEU
-                if (this.end_marker) {
-                    this.end_marker.setLngLat([event.lngLat.lng, event.lngLat.lat]);
-                } else {
-                    this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
-                        .setLngLat([event.lngLat.lng, event.lngLat.lat])
-                        .addTo(this.map);
-                }
-                
-                const selected = this.map.getSource("selected");
-                if (selected) {
-                    selected.setData({
-                        type: "Feature",
-                        properties: {},
-                        geometry: { type: "LineString", coordinates: [] }
-                    });
-                }
-                
-                // Recherche du nom le plus proche pour point_panel
-                let name = "";
-                for (let i = 0; i < 1000; i += 10) {
-                    const features = this.map.queryRenderedFeatures(
-                        [
-                            [event.point.x - i, event.point.y - i],
-                            [event.point.x + i, event.point.y + i]
-                        ], { layers: ['name', 'Road network', 'City labels', 'Town labels', 'Village labels'] }
-                    );
-                    for (const f of features) {
-                        if (f.properties.name) {
-                            name = f.properties.name;
-                            break;
-                        }
-                    }
-                    if (name) break;
-                }
-                
-                const point_panel = document.createElement("vi-point-panel");
-                point_panel.panel_id = "point_panel";
-                point_panel.coords = { lng: event.lngLat.lng, lat: event.lngLat.lat, name };
-                this.querySelector("#info").innerHTML = ``;
-                this.querySelector("#info").appendChild(point_panel);
             }
+            
+            // Si un point_panel est ouvert (et pas en mode signalement), on ne crée pas de segment
+            if (existingPointPanel && !this._isReporting) {
+                // Mettre à jour le marker bleu
+                if (this.end_marker) {
+                    this.end_marker.setLngLat([event.lngLat.lng, event.lngLat.lat]);
+                } else {
+                    this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
+                        .setLngLat([event.lngLat.lng, event.lngLat.lat])
+                        .addTo(this.map);
+                }
+                
+                // Mettre à jour l'URL
+                this.updateSegmentUrl(event.lngLat.lng, event.lngLat.lat);
+                
+                // Réinitialiser _firstClick pour éviter de créer un segment au prochain clic
+                this._firstClick = null;
+                return;
+            }
+            
+            // 2ème clic : on a déjà un premier point → créer un segment avec buffer 10m
+            if (this._firstClick) {
+                    // 2ème clic : on a déjà un premier point → créer un segment avec buffer 10m
+                    const startLng = this._firstClick.lng;
+                    const startLat = this._firstClick.lat;
+                    const endLng = event.lngLat.lng;
+                    const endLat = event.lngLat.lat;
+                    
+                    // Vérifier si les deux points sont identiques (ou très proches) → créer un cercle
+                    const distance = Math.sqrt(Math.pow(endLng - startLng, 2) + Math.pow(endLat - startLat, 2));
+                    const isSamePoint = distance < 0.0001; // ~10 mètres
+                    
+                    // Fonction pour créer un buffer avec extrémités arrondies
+                    // 10 mètres pour modifications (garde la largeur du segment existant)
+                    // 0.3 mètres pour le cercle initial en mode signalement (premier clic seulement)
+                    const bufferMeters = 10;
+                    const createBuffer = (lng1, lat1, lng2, lat2, bufferMeters = 10, isCircle = false) => {
+                        // Conversion mètres → degrés
+                        const avgLat = (lat1 + lat2) / 2;
+                        const latDeg = bufferMeters / 111320;
+                        const lngDeg = bufferMeters / (111320 * Math.cos(avgLat * Math.PI / 180));
+                        
+                        // Si c'est un cercle (points identiques), pas besoin de calculs de direction
+                        if (isCircle) {
+                            const points = 32;
+                            const coords = [];
+                            for (let i = 0; i < points; i++) {
+                                const angle = (2 * Math.PI * i) / points;
+                                coords.push([
+                                    lng1 + lngDeg * Math.cos(angle),
+                                    lat1 + latDeg * Math.sin(angle)
+                                ]);
+                            }
+                            coords.push(coords[0]); // Fermer
+                            return {
+                                type: "Polygon",
+                                coordinates: [coords]
+                            };
+                        }
+                        
+                        // Vecteurs de base
+                        const dx = lng2 - lng1;
+                        const dy = lat2 - lat1;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        
+                        // Vecteurs unitaires
+                        const dirX = dx / length;   // direction de la ligne
+                        const dirY = dy / length;
+                        const perpX = -dy / length; // perpendiculaire (90° gauche)
+                        const perpY = dx / length;
+                        
+                        const arcPoints = 8;
+                        const coords = [];
+                        
+                        // 1. Ligne droite côté supérieur (de start à end)
+                        coords.push([lng1 + perpX * lngDeg, lat1 + perpY * latDeg]);
+                        coords.push([lng2 + perpX * lngDeg, lat2 + perpY * latDeg]);
+                        
+                        // 2. Demi-cercle à la FIN (de +perp à -perp, dans le sens de la ligne)
+                        for (let i = 1; i < arcPoints; i++) {
+                            const angle = (Math.PI * i / arcPoints); // 0 à PI
+                            // cos(angle)*perp + sin(angle)*dir donne l'arc vers l'avant
+                            coords.push([
+                                lng2 + lngDeg * Math.cos(angle) * perpX + lngDeg * Math.sin(angle) * dirX,
+                                lat2 + latDeg * Math.cos(angle) * perpY + latDeg * Math.sin(angle) * dirY
+                            ]);
+                        }
+                        
+                        // 3. Ligne droite côté inférieur (de end à start)
+                        coords.push([lng2 - perpX * lngDeg, lat2 - perpY * latDeg]);
+                        coords.push([lng1 - perpX * lngDeg, lat1 - perpY * latDeg]);
+                        
+                        // 4. Demi-cercle au DÉPART (de -perp à +perp, sens opposé à la ligne)
+                        for (let i = 1; i < arcPoints; i++) {
+                            const angle = (Math.PI * i / arcPoints); // 0 à PI
+                            // -cos(angle)*perp - sin(angle)*dir donne l'arc vers l'arrière
+                            coords.push([
+                                lng1 - lngDeg * Math.cos(angle) * perpX - lngDeg * Math.sin(angle) * dirX,
+                                lat1 - lngDeg * Math.cos(angle) * perpY - lngDeg * Math.sin(angle) * dirY
+                            ]);
+                        }
+                        
+                        coords.push(coords[0]); // Fermer
+                        
+                        return {
+                            type: "Polygon",
+                            coordinates: [coords]
+                        };
+                    };
+                    
+                    const polygon = createBuffer(startLng, startLat, endLng, endLat, bufferMeters, isSamePoint);
+                    
+                    // Ajouter la source et le layer de sélection bleue avec extrémités arrondies
+                    if (this.map.getSource("selected")) {
+                        this.map.getSource("selected").setData(polygon);
+                    } else {
+                        this.map.addSource("selected", {
+                            type: "geojson",
+                            data: polygon
+                        });
+                    }
+                    
+                    // Layer de remplissage bleu
+                    if (!this.map.getLayer("selected")) {
+                        this.map.addLayer({
+                            id: "selected",
+                            type: "fill",
+                            source: "selected",
+                            paint: {
+                                "fill-color": "#0000ff",
+                                "fill-opacity": 0.3,
+                                "fill-antialias": true
+                            }
+                        });
+                    }
+                    
+                    // Layer de contour bleu
+                    if (!this.map.getLayer("selected-outline")) {
+                        this.map.addLayer({
+                            id: "selected-outline",
+                            type: "line",
+                            source: "selected",
+                            paint: {
+                                "line-color": "#0000ff",
+                                "line-width": 2
+                            }
+                        });
+                    }
+                    
+                    // Pas de zoom automatique - l'utilisateur garde le contrôle de la vue
+                    
+                    // Si on est en mode signalement et qu'un segment_panel existe déjà, le mettre à jour
+                    if (this._isReporting && existingSegmentPanel) {
+                        // Mettre à jour le segment_panel existant avec les nouvelles données
+                        existingSegmentPanel.updateSegment({
+                            geom_json: JSON.stringify(polygon),
+                            startLng, startLat, endLng, endLat
+                        });
+                        
+                        // Mettre à jour l'URL
+                        this.updateSegmentUrl(endLng, endLat);
+                        
+                        // Réinitialiser le mode signalement
+                        this._isReporting = false;
+                        this._reportingSegment = null;
+                        
+                        // Réinitialiser le premier clic
+                        this._firstClick = null;
+                        return;
+                    }
+                    
+                    // Données pour le segment panel
+                    const jsonData = {
+                        way_ids: "",
+                        score_circle: { score: -1 },
+                        segment_name: this._isReporting ? "Segment à signaler" : "Segment sélectionné",
+                        score_selector: "",
+                        comment: "",
+                        edit: this._isReporting,
+                        history: [],
+                        photo_ids: [],
+                        geom_json: JSON.stringify(polygon),
+                        fit_bounds: false,
+                        user_name: "",
+                        martin_url: `${window.location.origin}/martin`
+                    };
+                    
+                    const segment_panel = new SegmentPanel(jsonData);
+                    this.querySelector("#info").innerHTML = ``;
+                    this.querySelector("#info").appendChild(segment_panel);
+                    
+                    // Mettre à jour l'URL avec la destination choisie
+                    this.updateSegmentUrl(endLng, endLat);
+                    
+                    // Réinitialiser le mode signalement
+                    this._isReporting = false;
+                    this._reportingSegment = null;
+                    
+                    // Mettre à jour le point de départ du segment pour les prochains clics
+                    this._segmentStart = { lng: startLng, lat: startLat };
+                    
+                    // Réinitialiser le premier clic
+                    this._firstClick = null;
+                    return;
+            }
+            
+            // 1er clic : stocker le point et placer le marqueur BLEU (destination)
+            this._firstClick = { lng: event.lngLat.lng, lat: event.lngLat.lat };
+            
+            // end_marker au point cliqué
+            if (this.end_marker) {
+                this.end_marker.setLngLat([event.lngLat.lng, event.lngLat.lat]);
+            } else {
+                this.end_marker = new maplibregl.Marker({ color: MARKER_COLORS.END })
+                    .setLngLat([event.lngLat.lng, event.lngLat.lat])
+                    .addTo(this.map);
+            }
+            
+            // Afficher un point_panel
+            const point_panel = document.createElement("vi-point-panel");
+            point_panel.panel_id = "point_panel";
+            point_panel.coords = { lng: event.lngLat.lng, lat: event.lngLat.lat, name: "" };
+            point_panel.on_cycleway = false;
+            this.querySelector("#info").innerHTML = ``;
+            this.querySelector("#info").appendChild(point_panel);
+            
+            // Mettre à jour l'URL
+            this.updateSegmentUrl(event.lngLat.lng, event.lngLat.lat);
             
         } finally {
             // Délai basé sur le zoom pour éviter les conflits
@@ -593,7 +776,7 @@ class ViMain extends HTMLElement {
         }
     }
 
-    async selectBigger(event, destinationLngLat = null) {
+    async selectBigger(event, destinationLngLat = null, startLngLat = null) {
         if (this.end_marker) this.end_marker.remove();
 
         // Utiliser la destination fournie ou l'event
@@ -602,7 +785,16 @@ class ViMain extends HTMLElement {
 
         this.end_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([destLng, destLat]).addTo(this.map);
 
-        const r = await fetch(`/segment_panel_bigger/${this.start_marker.getLngLat().lng}/${this.start_marker.getLngLat().lat}/${destLng}/${destLat}`);
+        // Utiliser le point de départ fourni ou celui du start_marker
+        // Pour les segments personnalisés, start_marker peut être null
+        if (!startLngLat && !this.start_marker) {
+            console.warn("selectBigger: pas de start_marker ni de startLngLat fourni");
+            return;
+        }
+        const startLng = startLngLat ? startLngLat.lng : this.start_marker.getLngLat().lng;
+        const startLat = startLngLat ? startLngLat.lat : this.start_marker.getLngLat().lat;
+
+        const r = await fetch(`/segment_panel_bigger/${startLng}/${startLat}/${destLng}/${destLat}`);
         const jsonData = await r.json();
         const segment_panel = new SegmentPanel(jsonData);
         this.querySelector("#info").innerHTML = ``;
@@ -620,14 +812,27 @@ class ViMain extends HTMLElement {
             this.end_marker.remove();
             this.end_marker = null;
         }
+        this._firstClick = null;
+        this._segmentStart = null;
+        this._isReporting = false;
+        this._reportingSegment = null;
         [
             "selected_safe",
             "selected_fast",
             "searched_route",
-            "selected"
+            "selected",
+            "selected-outline"
         ].forEach(layer => {
             if (this.map.getLayer(layer)) this.map.removeLayer(layer);
-            if (this.map.getSource(layer)) this.map.removeSource(layer);
+        });
+        [
+            "selected_safe",
+            "selected_fast",
+            "searched_route",
+            "selected",
+            "selected-outline"
+        ].forEach(source => {
+            if (this.map.getSource(source)) this.map.removeSource(source);
         });
 
 

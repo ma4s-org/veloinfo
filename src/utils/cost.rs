@@ -30,6 +30,7 @@ pub fn get_h_moyen() -> Box<dyn H> {
     Box::new(HMoyen {})
 }
 
+#[allow(dead_code)]
 pub fn get_h_bigger_selection() -> Box<dyn H> {
     Box::new(HBiggerSelection {})
 }
@@ -50,6 +51,7 @@ impl H for HMoyen {
     }
 }
 
+#[allow(dead_code)]
 pub struct HBiggerSelection {}
 
 impl H for HBiggerSelection {

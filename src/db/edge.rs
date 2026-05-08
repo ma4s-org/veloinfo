@@ -1065,6 +1065,7 @@ impl Edge {
         Ok(edges)
     }
 
+    #[allow(dead_code)]
     pub async fn change_scores(node_ids: Vec<i64>, conn: &sqlx::Pool<Postgres>) {
         let conn = conn.clone();
         tokio::spawn(async move {
@@ -1085,6 +1086,7 @@ impl Edge {
             .unwrap();
 
             // 2. Réinsère les scores à jour
+            // Pour les segments personnalisés, on utilise ST_Intersects au lieu de way_ids
             sqlx::query(
                 r#"
                 INSERT INTO last_cycleway_score
@@ -1092,7 +1094,7 @@ impl Edge {
                     SELECT c.*, cs.score, cs.created_at,
                            ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
                     FROM public.cyclability_score cs 
-                    JOIN cycleway_way c ON c.way_id = ANY(cs.way_ids)
+                    JOIN cycleway_way c ON ST_Intersects(c.geom, cs.geom)
                     WHERE c.nodes && $1  -- array overlap
                 ) t WHERE t.rn = 1
                 "#,

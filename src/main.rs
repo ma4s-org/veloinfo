@@ -8,12 +8,13 @@ use crate::component::photo_scroll::photo_scroll;
 use crate::component::point_panel::point_panel_lng_lat;
 use crate::component::route_panel::recalculate_route;
 use crate::component::search;
-use crate::component::segment_panel::segment_panel_bigger_route;
-use crate::component::segment_panel::segment_panel_edit;
-use crate::component::segment_panel::segment_panel_get;
+use crate::component::segment_panel::segment_between;
+use crate::component::segment_panel::segment_panel_edit_post;
 use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_score_id;
+use crate::component::segment_panel::cyclability_score_mvt;
+use crate::component::segment_panel::cyclability_score;
 use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::score_bounds_controler;
 use crate::utils::mtl;
@@ -158,15 +159,11 @@ async fn main() {
             "/segment_panel_lng_lat/{lng}/{lat}",
             get(segment_panel_lng_lat),
         )
-        .route("/segment_panel/ways/{way_ids}", get(segment_panel_get))
-        .route(
-            "/segment_panel/edit/ways/{way_ids}",
-            get(segment_panel_edit),
-        )
         .route("/segment_panel", post(segment_panel_post))
+        .route("/segment_panel/edit", post(segment_panel_edit_post))
         .route(
-            "/segment_panel_bigger/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
-            get(segment_panel_bigger_route),
+            "/segment_between/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
+            get(segment_between),
         )
         // Gestion de la neige
         .route("/city_snow_edit", post(post_city_snow))
@@ -194,6 +191,9 @@ async fn main() {
         .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
         .route("/martin/{*path}", get(martin_proxy)) // Proxy pour le serveur de tuiles Martin
+        // Tuiles vectorielles cyclability_score
+        .route("/cyclability_score", get(cyclability_score))
+        .route("/cyclability_score/{z}/{x}/{y}", get(cyclability_score_mvt))
         .route("/pub/service-worker.js", get(service_worker_js))
         .route("/health-check", get(|| async { "ok" }))
         .route("/version", get(version))

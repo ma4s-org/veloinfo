@@ -9,7 +9,28 @@ class SegmentPanel extends HTMLElement {
         this.data = data;
     }
 
-    set data(data) {
+    connectedCallback() {
+        // Initialiser le panneau avec les données
+        console.log('SegmentPanel connectedCallback, data:', this.data);
+        if (this.data) {
+            this.render(this.data);
+        }
+    }
+    
+    // Mettre à jour le segment avec une nouvelle géométrie
+    updateSegment(newData) {
+        // Mettre à jour les données
+        if (newData.geom_json) {
+            this.data.geom_json = newData.geom_json;
+            // Mettre à jour l'input caché geom_json dans le formulaire
+            const geomInput = this.querySelector('input[name="geom_json"]');
+            if (geomInput) {
+                geomInput.value = newData.geom_json;
+            }
+        }
+    }
+
+    render(data) {
         let photo_ids = data.photo_ids;
         let html = String.raw;
         let photos = photo_ids ? photo_ids.map(id => html`
@@ -23,6 +44,7 @@ class SegmentPanel extends HTMLElement {
                 <form>
                     <score-selector score="${data.score_selector.score}" category="${data.score_selector.category}"></score-selector>
                     <input type="hidden" name="way_ids" value="${data.way_ids}">
+                    <input type="hidden" name="geom_json" value='${data.geom_json || ""}'>
                     <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
                     <textarea rows="4" cols="50" name="comment" style="border: 2px solid; border-color: #80808099;" placeholder="Commentaire"></textarea>
                     <div style="text-transform: uppercase; margin: 0.5rem;">
@@ -49,8 +71,6 @@ class SegmentPanel extends HTMLElement {
                             Choisissez un second point pour aggrandir la sélection ou
                         </div>
                         <div style="display: flex; flex-direction: row; justify-content: center;">
-                            <md-filled-button id="route_md"><img slot="icon"
-                                    src="/pub/directions.png" style="width: 1rem; height: 1rem; margin-right: 0.25rem;">itinéraire</md-filled-button>
                             <md-filled-button id="edit_md"><img slot="icon"
                                     src="/pub/edit.png" style="width: 1rem; height: 1rem; margin-right: 0.25rem;">
                                 Modifier</md-filled-button>
@@ -138,62 +158,130 @@ class SegmentPanel extends HTMLElement {
         });
 
         if (!data.edit) {
-            this.querySelector('#route_md').onclick = () => {
-                getViMain().route();
-            };
-            this.querySelector('#edit_md').onclick = async () => {
-                let r = await fetch(`/segment_panel/edit/ways/${data.way_ids}`);
-                let dataJson = await r.json();
-                let segment_panel = new SegmentPanel(dataJson);
-                document.querySelector('#info').innerHTML = '';
-                document.querySelector('#info').appendChild(segment_panel);
-            };
+            this.querySelector('#route_md')?.remove();
+            const editBtn = this.querySelector('#edit_md');
+            if (editBtn) {
+                editBtn.onclick = async () => {
+                    // Mode édition : recréer le panel avec edit=true, sans appel serveur
+                    const editData = {
+                        ...data,
+                        edit: true
+                    };
+                    let segment_panel = new SegmentPanel(editData);
+                    document.querySelector('#info').innerHTML = '';
+                    document.querySelector('#info').appendChild(segment_panel);
+                };
+            }
         }
 
         let map = getViMain().map;
+        console.log("SegmentPanel render, geom_json:", data.geom_json);
+        console.log("SegmentPanel render, fit_bounds:", data.fit_bounds);
+        
+        // Si geom_json est vide, on ne peut pas parser
+        if (!data.geom_json || data.geom_json.trim() === "") {
+            console.warn("SegmentPanel: geom_json est vide, affichage sans géométrie");
+            return;
+        }
+        
         var geom = JSON.parse(data.geom_json);
 
+        // Déterminer le type de géométrie et l'adapter
+        let geomType = "MultiLineString";
+        let geomCoords = geom;
+        
+        // Si le geom est déjà un objet GeoJSON complet (Polygon, MultiPolygon, etc.)
+        if (geom.type && geom.coordinates) {
+            geomType = geom.type;
+            geomCoords = geom.coordinates;
+        }
+
         if (data.fit_bounds) {
-            let flattened = geom.reduce((acc, val) => acc.concat(val), []);
-            map.fitBounds(getViMain().fitBounds(flattened), { padding: window.innerHeight * .12 });
+            // Adapter fitBounds selon le type de géométrie
+            let coordsToUse = geomCoords;
+            // Pour MultiPolygon: [[[[x,y],...],...],...], on prend le premier polygon's outer ring
+            if (geomType === "MultiPolygon" && Array.isArray(geomCoords[0])) {
+                coordsToUse = geomCoords[0][0];
+            }
+            // Pour Polygon: [[[x,y],...],...], on prend le outer ring (premier élément)
+            if (geomType === "Polygon" && Array.isArray(geomCoords[0])) {
+                coordsToUse = geomCoords[0];
+            }
+            // Pour LineString: [[lng,lat], [lng,lat], ...] - déjà dans le bon format
+            if (geomType === "LineString") {
+                coordsToUse = geomCoords;
+            }
+            // Pour MultiLineString: [[[lng,lat],...],...], on prend le premier linestring
+            if (geomType === "MultiLineString" && Array.isArray(geomCoords[0])) {
+                coordsToUse = geomCoords[0];
+            }
+            map.fitBounds(coordsToUse, { padding: window.innerHeight * .12 });
         }
         const viMain = getViMain();
         if (!data.edit) {
+            // Nettoyer les couches existantes (selected et selected-outline)
             if (map.getLayer("selected")) {
-                map.getSource("selected").setData({
+                map.removeLayer("selected");
+            }
+            if (map.getLayer("selected-outline")) {
+                map.removeLayer("selected-outline");
+            }
+            if (map.getSource("selected")) {
+                map.removeSource("selected");
+            }
+            
+            // Créer la nouvelle source
+            map.addSource("selected", {
+                "type": "geojson",
+                "data": {
                     "type": "Feature",
                     "properties": {},
                     "geometry": {
-                        "type": "MultiLineString",
-                        "coordinates": geom
+                        "type": geomType,
+                        "coordinates": geomCoords
                     }
-                });
+                }
+            });
+            
+            // Choisir le type de layer selon la géométrie
+            if (geomType === "Polygon" || geomType === "MultiPolygon") {
+                // Layer de remplissage pour les polygones
+                map.addLayer({
+                    "id": "selected",
+                    "type": "fill",
+                    "source": "selected",
+                    "paint": {
+                        "fill-color": "#0000ff",
+                        "fill-opacity": 0.3,
+                        "fill-antialias": true
+                    }
+                }, "Road labels");
+                
+                // Ajouter aussi un contour pour mieux voir les bords
+                map.addLayer({
+                    "id": "selected-outline",
+                    "type": "line",
+                    "source": "selected",
+                    "paint": {
+                        "line-width": 2,
+                        "line-color": "#0000ff",
+                        "line-opacity": 0.8
+                    }
+                }, "Road labels");
             } else {
-                map.addSource("selected", {
-                    "type": "geojson",
-                    "data": {
-                        "type": "Feature",
-                        "properties": {},
-                        "geometry": {
-                            "type": "MultiLineString",
-                            "coordinates": geom
-                        }
-                    }
-                })
+                // Layer de ligne pour LineString/MultiLineString
                 map.addLayer({
                     "id": "selected",
                     "type": "line",
                     "source": "selected",
                     "paint": {
-                        "line-width": 8,
+                        "line-width": 50,
                         "line-color": "hsl(205, 100%, 50%)",
                         "line-blur": 0,
                         "line-opacity": 0.50
                     }
-                },
-                    "Road labels")
+                }, "Road labels");
             }
-            map.getSource("bike_path").setUrl(`${window.location.origin}/bike_path?t=${Date.now()}`);
         }
     }
 }

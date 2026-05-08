@@ -1,10 +1,7 @@
 use chrono::{DateTime, Local};
-use itertools::Itertools;
 use regex::Regex;
 use sqlx::{Postgres, Row};
 use uuid::Uuid;
-
-use super::edge::Edge;
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct CyclabilityScore {
@@ -12,7 +9,6 @@ pub struct CyclabilityScore {
     pub name: Option<Vec<Option<String>>>,
     pub score: f64,
     pub comment: Option<String>,
-    pub way_ids: Vec<i64>,
     pub created_at: DateTime<Local>,
     pub photo_path_thumbnail: Option<String>,
     pub geom: Vec<Vec<[f64; 2]>>,
@@ -25,7 +21,6 @@ pub struct CyclabilityScoreDb {
     pub name: Option<Vec<Option<String>>>,
     pub score: f64,
     pub comment: Option<String>,
-    pub way_ids: Vec<i64>,
     pub created_at: DateTime<Local>,
     pub photo_path_thumbnail: Option<String>,
     pub geom: String,
@@ -45,7 +40,6 @@ impl CyclabilityScore {
                         cs.name,
                         cs.score, 
                         cs.comment, 
-                        cs.way_ids, 
                         cs.created_at, 
                         cs.photo_path, 
                         cs.photo_path_thumbnail,
@@ -66,8 +60,9 @@ impl CyclabilityScore {
         Ok(cs.iter().map(|c| c.into()).collect())
     }
 
+    #[allow(dead_code)]
     pub async fn get_history(
-        way_ids: &Vec<i64>,
+        geom: &str,
         conn: &sqlx::Pool<Postgres>,
     ) -> Vec<CyclabilityScore> {
         let cs: Vec<CyclabilityScoreDb> = match sqlx::query_as(
@@ -76,17 +71,16 @@ impl CyclabilityScore {
                       ST_AsText(ST_Transform(geom, 4326)) as geom,
                       score, 
                       comment, 
-                      way_ids, 
                       created_at, 
                       photo_path, 
                       photo_path_thumbnail,
                       user_id
                from cyclability_score
-               where way_ids = $1
+               where ST_Equals(geom, ST_GeomFromText($1, 4326))
                order by created_at desc
                limit 100"#,
         )
-        .bind(way_ids)
+        .bind(geom)
         .fetch_all(conn)
         .await
         {
@@ -110,13 +104,11 @@ impl CyclabilityScore {
                       ST_AsText(ST_Transform(s.geom, 4326)) as geom, 
                       score, 
                       comment, 
-                      way_ids, 
                       created_at, 
                       photo_path, 
                       photo_path_thumbnail,
                       user_id
                from cyclability_score s
-               join cycleway_way on way_id = any(way_ids)
                where id = $1"#,
         )
         .bind(id)
@@ -125,8 +117,9 @@ impl CyclabilityScore {
         Ok(cs.into())
     }
 
-    pub async fn get_by_way_ids(
-        way_ids: &Vec<i64>,
+    #[allow(dead_code)]
+    pub async fn get_by_geom(
+        geom_wkt: &str,
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<Vec<CyclabilityScore>, sqlx::Error> {
         let cs: Vec<CyclabilityScoreDb> = sqlx::query_as(
@@ -135,31 +128,31 @@ impl CyclabilityScore {
                     ST_AsText(ST_Transform(s.geom, 4326)) as geom, 
                     score, 
                     comment, 
-                    way_ids, 
                     created_at, 
                     photo_path, 
                     photo_path_thumbnail,
                     user_id
                from cyclability_score s
-               where way_ids = $1
+               where ST_Equals(s.geom, ST_GeomFromText($1, 4326))
                order by created_at desc"#,
         )
-        .bind(way_ids)
+        .bind(geom_wkt)
         .fetch_all(conn)
         .await?;
 
         Ok(cs.iter().map(|c| c.into()).collect())
     }
 
-    pub async fn get_photo_by_way_ids(way_ids: &Vec<i64>, conn: &sqlx::Pool<Postgres>) -> Vec<i32> {
+    #[allow(dead_code)]
+    pub async fn get_photo_by_geom(geom_wkt: &str, conn: &sqlx::Pool<Postgres>) -> Vec<i32> {
         let result = sqlx::query(
             r#"select id
                from cyclability_score
-               where way_ids && $1
+               where ST_Intersects(geom, ST_GeomFromText($1, 4326))
                and photo_path_thumbnail is not null
                order by created_at desc"#,
         )
-        .bind(way_ids)
+        .bind(geom_wkt)
         .fetch_all(conn)
         .await
         .unwrap();
@@ -170,7 +163,7 @@ impl CyclabilityScore {
     pub async fn insert(
         score: &f64,
         comment: &Option<String>,
-        way_ids: &Vec<i64>,
+        geom_wkt: &str,
         photo_path: &Option<String>,
         photo_path_thumbnail: &Option<String>,
         user_id: Option<Uuid>,
@@ -178,18 +171,15 @@ impl CyclabilityScore {
     ) -> Result<i32, sqlx::Error> {
         let id: i32 = sqlx::query(
             r#"INSERT INTO cyclability_score
-                    (way_ids, score, comment, photo_path, photo_path_thumbnail, name, geom, user_id)
-                    SELECT array_agg(cw.way_id), $2, $3, $4, $5, array_agg(cw.name), ST_Union(cw.geom), $6
-                    from cycleway_way cw
-                    where cw.way_id = any($1)
-                    group by $2, $3, $4, $5, $6
+                    (score, comment, photo_path, photo_path_thumbnail, geom, user_id)
+                    VALUES ($1, $2, $3, $4, ST_GeomFromText($5, 4326), $6)
                     RETURNING id"#,
         )
-        .bind(way_ids)
         .bind(score)
         .bind(comment)
         .bind(&photo_path)
         .bind(&photo_path_thumbnail)
+        .bind(geom_wkt)
         .bind(&user_id)
         .fetch_one(conn)
         .await?
@@ -212,31 +202,6 @@ impl CyclabilityScore {
             .await?;
         };
 
-        let conn = conn.clone();
-        let way_ids = way_ids.clone();
-        let node_ids = sqlx::query(
-            r#"select source, target
-                   from edge
-                   where way_id = any($1)"#,
-        )
-        .bind(way_ids)
-        .fetch_all(&conn)
-        .await
-        .unwrap()
-        .iter()
-        .map(|row| {
-            let source: i64 = row.get(0);
-            let target: i64 = row.get(1);
-            vec![source, target]
-        })
-        .flatten()
-        .sorted()
-        .dedup()
-        .collect::<Vec<i64>>();
-
-        tokio::spawn(async move {
-            Edge::change_scores(node_ids, &conn).await;
-        });
         Ok(id)
     }
 
@@ -285,7 +250,6 @@ impl From<&CyclabilityScoreDb> for CyclabilityScore {
             name: response.name.clone(),
             score: response.score,
             comment: response.comment.clone(),
-            way_ids: response.way_ids.clone(),
             created_at: response.created_at,
             photo_path_thumbnail: response.photo_path_thumbnail.clone(),
             geom: points,

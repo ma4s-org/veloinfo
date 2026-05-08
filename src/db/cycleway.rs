@@ -78,27 +78,12 @@ impl Cycleway {
     }
 
     pub async fn get_by_score_id(
-        score_id: &i32,
-        conn: &sqlx::Pool<Postgres>,
+        _score_id: &i32,
+        _conn: &sqlx::Pool<Postgres>,
     ) -> Result<Vec<Cycleway>> {
-        let responses: Vec<CyclewayDb> = sqlx::query_as(
-            r#"select
-                c.name,  
-                c.way_id,
-                c.source,
-                c.target,
-                ST_AsText(ST_Transform(c.geom, 4326)) as geom,  
-                score,
-                cs.id as score_id
-               from cycleway_way c
-               join cyclability_score cs on c.way_id = any(cs.way_ids)
-               where cs.id = $1
-               "#,
-        )
-        .bind(score_id)
-        .fetch_all(conn)
-        .await?;
-        Ok(responses.iter().map(|response| response.into()).collect())
+        // Pour les segments personnalisés (cercle/capsule), il n'y a pas de cycleway_way associé
+        // Retourne un tableau vide
+        Ok(vec![])
     }
 
     pub async fn find(
@@ -106,26 +91,26 @@ impl Cycleway {
         lat: &f64,
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<Node, sqlx::Error> {
-        let response: NodeDb = match sqlx::query_as(
-            r#"        
-            SELECT
-                way_id,
-                geom,
-                name,
-                nodes as node_id,
-                ST_X(st_transform((dp).geom, 4326)) as lng,
-                ST_Y(st_transform((dp).geom, 4326)) as lat
-            FROM (  
-                SELECT (ST_DumpPoints(geom)) as dp, 
-                        name,
-                        way_id,
-                        ST_AsText(ST_Transform(geom, 4326)) as geom,
-                        unnest(nodes) as nodes
-                FROM cycleway_way
-                WHERE ST_DWithin(geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000)
-            ) as subquery
-            ORDER BY (dp).geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
-            LIMIT 1"#,
+        let response: NodeDb = match sqlx::query_as::<_, NodeDb>(
+            r#"WITH dumped AS (
+                    SELECT (ST_DumpPoints(cw.geom)).geom as dp_geom,
+                           cw.name,
+                           cw.way_id,
+                           unnest(cw.nodes) as nodes
+                    FROM cycleway_way cw
+                    JOIN edge e ON cw.way_id = e.way_id
+                    WHERE ST_DWithin(cw.geom, ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857), 1000)
+                    AND e.tags->>'highway' NOT IN ('motorway', 'trunk', 'motorway_link', 'trunk_link')
+                )
+                SELECT ST_AsText(dp_geom) as geom,
+                       name,
+                       way_id,
+                       nodes as node_id,
+                       ST_X(ST_Transform(dp_geom, 4326)) as lng,
+                       ST_Y(ST_Transform(dp_geom, 4326)) as lat
+                FROM dumped
+                ORDER BY dp_geom <-> ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857)
+                LIMIT 1"#,
         )
         .bind(lng)
         .bind(lat)

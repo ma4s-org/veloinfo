@@ -1,4 +1,3 @@
-use crate::db::cyclability_score::CyclabilityScore;
 use crate::VeloinfoState;
 use axum::{
     debug_handler,
@@ -23,31 +22,15 @@ lazy_static! {
 
 #[debug_handler]
 pub async fn photo_scroll(
-    State(state): State<VeloinfoState>,
-    Path((photo, way_ids)): Path<(String, String)>,
+    State(_state): State<VeloinfoState>,
+    Path((photo, _way_ids)): Path<(String, String)>,
 ) -> Json<PhotoScroll> {
-    let way_ids_i64 = INT_REGEX
-        .find_iter(&way_ids)
-        .map(|m| m.as_str().parse::<i64>().unwrap())
-        .collect();
-    let scores = CyclabilityScore::get_photo_by_way_ids(&way_ids_i64, &state.conn).await;
-    let mut next = None;
-    let mut previous = None;
-    for (i, score) in scores.iter().enumerate() {
-        if score == &photo.parse::<i32>().unwrap() {
-            if i > 0 {
-                previous = Some(scores[i - 1].to_string());
-            }
-            if i < scores.len() - 1 {
-                next = Some(scores[i + 1].to_string());
-            }
-        }
-    }
-    PhotoScroll {
+    // TODO: Implémenter photo_scroll par geom pour les segments personnalisés
+    // Pour l'instant, retourne une réponse vide
+    Json(PhotoScroll {
         photo,
-        next,
-        previous,
-        way_ids,
-    }
-    .into()
+        next: None,
+        previous: None,
+        way_ids: _way_ids,
+    })
 }

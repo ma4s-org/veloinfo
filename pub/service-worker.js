@@ -1,9 +1,9 @@
 // SW veloinfo: Cache offline-first pour tuiles Martin + ressources statiques
-// Intercepte /martin/*, /bike_path, et ressources statiques
+// Intercepte /martin/*, /cyclability_score/*, /bike_path, et ressources statiques
 // Retourne depuis cache immédiatement, refresh en background, 204 en cas d'erreur
 
-const CACHE_NAME = 'veloinfo-v1';
-const STATIC_CACHE = 'veloinfo-static-v1';
+const CACHE_NAME = 'veloinfo-v2';
+const STATIC_CACHE = 'veloinfo-static-v2';
 
 // Ressources à precacher à l'installation
 const PRECACHE_ASSETS = [
