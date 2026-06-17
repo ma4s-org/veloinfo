@@ -23,6 +23,11 @@ class FollowPanel extends HTMLElement {
             }
         }
 
+        // Set to track already used coordinate indices (old ones that shouldn't be reused)
+        this.usedCoordinates = new Set();
+        // Track the last returned coordinate index (allowed to be reused)
+        this.lastCoordinateIndex = null;
+
         let totalDistance = getViMain().calculateTotalDistance(this.routeCoordinates, 0).toFixed(1);
         let innerHTML = html`
             <div class="vi-panel">
@@ -103,6 +108,9 @@ class FollowPanel extends HTMLElement {
                             }
                         });
                         this.routeCoordinates = data.coordinates;
+                        // Reset used coordinates when route is recalculated
+                        this.usedCoordinates.clear();
+                        this.lastCoordinateIndex = null;
                         this.updating = false;
                         return;
                     } else {
@@ -123,6 +131,10 @@ class FollowPanel extends HTMLElement {
         let closestCoordinate = 0;
         let closestDistance = Infinity;
         for (let i = 0; i < coordinates.length; i++) {
+            // Skip already used coordinates, except the last one which can be reused
+            if (this.usedCoordinates.has(i) && i !== this.lastCoordinateIndex) {
+                continue;
+            }
             let distance = Math.sqrt(
                 Math.pow(longitude - coordinates[i][0], 2) +
                 Math.pow(latitude - coordinates[i][1], 2));
@@ -131,6 +143,12 @@ class FollowPanel extends HTMLElement {
                 closestDistance = distance;
             }
         }
+        // Mark previous coordinate as used (if different from current)
+        if (this.lastCoordinateIndex !== null && this.lastCoordinateIndex !== closestCoordinate) {
+            this.usedCoordinates.add(this.lastCoordinateIndex);
+        }
+        // Update last coordinate index
+        this.lastCoordinateIndex = closestCoordinate;
         return closestCoordinate;
     }
 
