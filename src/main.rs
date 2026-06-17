@@ -12,11 +12,13 @@ use crate::component::segment_panel::segment_between;
 use crate::component::segment_panel::segment_panel_edit_post;
 use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
-use crate::component::segment_panel::select_score_id;
-use crate::component::segment_panel::cyclability_score_mvt;
-use crate::component::segment_panel::cyclability_score;
+use crate::component::segment_panel::select_report_id;
+use crate::component::segment_panel::get_user_name_endpoint;
+use crate::component::segment_panel::report_mvt;
+use crate::component::segment_panel::report;
+use crate::component::segment_panel::report_reply_post;
 use crate::db::city_snow::city_snow;
-use crate::score_selector_controler::score_bounds_controler;
+use crate::score_selector_controler::report_bounds_controler;
 use crate::utils::mtl;
 use crate::utils::proxy::martin_proxy;
 use askama::Template;
@@ -154,13 +156,15 @@ async fn main() {
             "/info_panel/up/{lng1}/{lat1}/{lng2}/{lat2}",
             get(info_panel_up),
         )
-        .route("/segment_panel/id/{id}", get(select_score_id))
+        .route("/segment_panel/id/{id}", get(select_report_id))
+        .route("/user_name", get(get_user_name_endpoint))
         .route(
             "/segment_panel_lng_lat/{lng}/{lat}",
             get(segment_panel_lng_lat),
         )
         .route("/segment_panel", post(segment_panel_post))
         .route("/segment_panel/edit", post(segment_panel_edit_post))
+        .route("/report/reply", post(report_reply_post))
         .route(
             "/segment_between/{start_lng}/{start_lat}/{end_lng}/{end_lat}",
             get(segment_between),
@@ -185,15 +189,15 @@ async fn main() {
         )
         // Divers (scores, photos, style mapbox)
         .route(
-            "/cyclability_score/geom/{cyclability_score_id}",
-            get(score_bounds_controler),
+            "/report/geom/{report_id}",
+            get(report_bounds_controler),
         )
         .route("/photo_scroll/{photo}/{way_ids}", get(photo_scroll))
         .route("/style.json", get(style))
         .route("/martin/{*path}", get(martin_proxy)) // Proxy pour le serveur de tuiles Martin
-        // Tuiles vectorielles cyclability_score
-        .route("/cyclability_score", get(cyclability_score))
-        .route("/cyclability_score/{z}/{x}/{y}", get(cyclability_score_mvt))
+        // Tuiles vectorielles report
+        .route("/report", get(report))
+        .route("/report/{z}/{x}/{y}", get(report_mvt))
         .route("/pub/service-worker.js", get(service_worker_js))
         .route("/health-check", get(|| async { "ok" }))
         .route("/version", get(version))

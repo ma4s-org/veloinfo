@@ -4,11 +4,10 @@ use sqlx::{Postgres, Row};
 use uuid::Uuid;
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct CyclabilityScore {
+pub struct Report {
     pub id: i32,
     pub name: Option<Vec<Option<String>>>,
     pub score: f64,
-    pub comment: Option<String>,
     pub created_at: DateTime<Local>,
     pub photo_path_thumbnail: Option<String>,
     pub geom: Vec<Vec<[f64; 2]>>,
@@ -16,38 +15,36 @@ pub struct CyclabilityScore {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct CyclabilityScoreDb {
+pub struct ReportDb {
     pub id: i32,
     pub name: Option<Vec<Option<String>>>,
     pub score: f64,
-    pub comment: Option<String>,
     pub created_at: DateTime<Local>,
     pub photo_path_thumbnail: Option<String>,
     pub geom: String,
     pub user_id: Option<Uuid>,
 }
 
-impl CyclabilityScore {
+impl Report {
     pub async fn get_recents(
         lng1: f64,
         lat1: f64,
         lng2: f64,
         lat2: f64,
         conn: &sqlx::Pool<Postgres>,
-    ) -> Result<Vec<CyclabilityScore>, sqlx::Error> {
-        let cs: Vec<CyclabilityScoreDb> = sqlx::query_as(
-            r#"select DISTINCT ON (cs.created_at) cs.id, 
-                        cs.name,
-                        cs.score, 
-                        cs.comment, 
-                        cs.created_at, 
-                        cs.photo_path, 
-                        cs.photo_path_thumbnail,
-                        ST_AsText(ST_Transform(geom, 4326)) as geom,
-                        cs.user_id
-               from cyclability_score cs
-               where geom && ST_Transform(st_makeenvelope($1, $2, $3, $4, 4326), 3857)
-               order by cs.created_at desc
+    ) -> Result<Vec<Report>, sqlx::Error> {
+        let cs: Vec<ReportDb> = sqlx::query_as(
+            r#"select r.id, 
+                        r.name,
+                        r.score, 
+                        r.created_at, 
+                        r.photo_path, 
+                        r.photo_path_thumbnail,
+                        ST_AsText(geom) as geom,
+                        r.user_id
+               from report r
+               where geom && st_makeenvelope($1, $2, $3, $4, 4326)
+               order by r.created_at desc
                limit 100"#,
         )
         .bind(lng1)
@@ -64,18 +61,17 @@ impl CyclabilityScore {
     pub async fn get_history(
         geom: &str,
         conn: &sqlx::Pool<Postgres>,
-    ) -> Vec<CyclabilityScore> {
-        let cs: Vec<CyclabilityScoreDb> = match sqlx::query_as(
+    ) -> Vec<Report> {
+        let cs: Vec<ReportDb> = match sqlx::query_as(
             r#"select id, 
                       name,
                       ST_AsText(ST_Transform(geom, 4326)) as geom,
                       score, 
-                      comment, 
                       created_at, 
                       photo_path, 
                       photo_path_thumbnail,
                       user_id
-               from cyclability_score
+               from report
                where ST_Equals(geom, ST_GeomFromText($1, 4326))
                order by created_at desc
                limit 100"#,
@@ -97,18 +93,17 @@ impl CyclabilityScore {
     pub async fn get_by_id(
         id: i32,
         conn: &sqlx::Pool<Postgres>,
-    ) -> Result<CyclabilityScore, sqlx::Error> {
-        let cs: CyclabilityScoreDb = sqlx::query_as(
+    ) -> Result<Report, sqlx::Error> {
+        let cs: ReportDb = sqlx::query_as(
             r#"select id, 
-                      s.name,
-                      ST_AsText(ST_Transform(s.geom, 4326)) as geom, 
+                      r.name,
+                      ST_AsText(geom) as geom, 
                       score, 
-                      comment, 
                       created_at, 
                       photo_path, 
                       photo_path_thumbnail,
                       user_id
-               from cyclability_score s
+               from report r
                where id = $1"#,
         )
         .bind(id)
@@ -117,23 +112,41 @@ impl CyclabilityScore {
         Ok(cs.into())
     }
 
+    pub async fn get_comment_by_report_id(
+        report_id: i32,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<Option<(i32, String)>, sqlx::Error> {
+        let row: Option<(i32, String)> = sqlx::query_as(
+            r#"select id, comment
+               from report_comment
+               where report_id = $1
+               and parent_comment_id is null
+               order by created_at asc
+               limit 1"#,
+        )
+        .bind(report_id)
+        .fetch_optional(conn)
+        .await?;
+
+        Ok(row)
+    }
+
     #[allow(dead_code)]
     pub async fn get_by_geom(
         geom_wkt: &str,
         conn: &sqlx::Pool<Postgres>,
-    ) -> Result<Vec<CyclabilityScore>, sqlx::Error> {
-        let cs: Vec<CyclabilityScoreDb> = sqlx::query_as(
+    ) -> Result<Vec<Report>, sqlx::Error> {
+        let cs: Vec<ReportDb> = sqlx::query_as(
             r#"select id, 
-                    s.name,
-                    ST_AsText(ST_Transform(s.geom, 4326)) as geom, 
+                    r.name,
+                    ST_AsText(ST_Transform(r.geom, 4326)) as geom, 
                     score, 
-                    comment, 
                     created_at, 
                     photo_path, 
                     photo_path_thumbnail,
                     user_id
-               from cyclability_score s
-               where ST_Equals(s.geom, ST_GeomFromText($1, 4326))
+               from report r
+               where ST_Equals(r.geom, ST_GeomFromText($1, 4326))
                order by created_at desc"#,
         )
         .bind(geom_wkt)
@@ -147,7 +160,7 @@ impl CyclabilityScore {
     pub async fn get_photo_by_geom(geom_wkt: &str, conn: &sqlx::Pool<Postgres>) -> Vec<i32> {
         let result = sqlx::query(
             r#"select id
-               from cyclability_score
+               from report
                where ST_Intersects(geom, ST_GeomFromText($1, 4326))
                and photo_path_thumbnail is not null
                order by created_at desc"#,
@@ -162,7 +175,6 @@ impl CyclabilityScore {
 
     pub async fn insert(
         score: &f64,
-        comment: &Option<String>,
         geom_wkt: &str,
         photo_path: &Option<String>,
         photo_path_thumbnail: &Option<String>,
@@ -170,13 +182,12 @@ impl CyclabilityScore {
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<i32, sqlx::Error> {
         let id: i32 = sqlx::query(
-            r#"INSERT INTO cyclability_score
-                    (score, comment, photo_path, photo_path_thumbnail, geom, user_id)
-                    VALUES ($1, $2, $3, $4, ST_GeomFromText($5, 4326), $6)
+            r#"INSERT INTO report
+                    (score, photo_path, photo_path_thumbnail, geom, user_id)
+                    VALUES ($1, $2, $3, ST_GeomFromText($4, 4326), $5)
                     RETURNING id"#,
         )
         .bind(score)
-        .bind(comment)
         .bind(&photo_path)
         .bind(&photo_path_thumbnail)
         .bind(geom_wkt)
@@ -187,7 +198,7 @@ impl CyclabilityScore {
 
         if let Some(photo_path) = photo_path {
             sqlx::query(
-                r#"UPDATE cyclability_score 
+                r#"UPDATE report 
                         SET photo_path = $1,
                         photo_path_thumbnail = $2
                         WHERE id = $3"#,
@@ -205,6 +216,29 @@ impl CyclabilityScore {
         Ok(id)
     }
 
+    pub async fn insert_comment(
+        report_id: i32,
+        comment: &str,
+        parent_comment_id: Option<i32>,
+        user_name: &str,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<i32, sqlx::Error> {
+        let id: i32 = sqlx::query(
+            r#"INSERT INTO report_comment (report_id, comment, parent_comment_id, user_name)
+               VALUES ($1, $2, $3, $4)
+               RETURNING id"#,
+        )
+        .bind(report_id)
+        .bind(comment)
+        .bind(parent_comment_id)
+        .bind(user_name)
+        .fetch_one(conn)
+        .await?
+        .get(0);
+
+        Ok(id)
+    }
+
     pub async fn update_photo_paths(
         id: i32,
         photo_path: &Option<String>,
@@ -212,7 +246,7 @@ impl CyclabilityScore {
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query(
-            r#"UPDATE cyclability_score
+            r#"UPDATE report
                SET photo_path = $1,
                    photo_path_thumbnail = $2
                WHERE id = $3"#,
@@ -226,30 +260,27 @@ impl CyclabilityScore {
     }
 }
 
-impl From<&CyclabilityScoreDb> for CyclabilityScore {
-    fn from(response: &CyclabilityScoreDb) -> Self {
+impl From<&ReportDb> for Report {
+    fn from(response: &ReportDb) -> Self {
         let re = Regex::new(r"(-?\d+\.\d+) (-?\d+\.\d+)").unwrap();
         let mut points = Vec::new();
 
-        println!("geom {}", response.geom);
         for line in response.geom.split("),(") {
             let line_points = re
                 .captures_iter(line)
                 .map(|cap| {
-                    let x = cap[1].parse::<f64>().unwrap();
-                    let y = cap[2].parse::<f64>().unwrap();
-                    [x, y]
+                    let lng = cap[1].parse::<f64>().unwrap();
+                    let lat = cap[2].parse::<f64>().unwrap();
+                    [lng, lat]  // GeoJSON expects [longitude, latitude]
                 })
                 .collect::<Vec<[f64; 2]>>();
             points.push(line_points);
         }
-        println!("points {:?}", points);
 
-        CyclabilityScore {
+        Report {
             id: response.id,
             name: response.name.clone(),
             score: response.score,
-            comment: response.comment.clone(),
             created_at: response.created_at,
             photo_path_thumbnail: response.photo_path_thumbnail.clone(),
             geom: points,
@@ -257,8 +288,8 @@ impl From<&CyclabilityScoreDb> for CyclabilityScore {
         }
     }
 }
-impl From<CyclabilityScoreDb> for CyclabilityScore {
-    fn from(response: CyclabilityScoreDb) -> Self {
-        CyclabilityScore::from(&response)
+impl From<ReportDb> for Report {
+    fn from(response: ReportDb) -> Self {
+        Report::from(&response)
     }
 }

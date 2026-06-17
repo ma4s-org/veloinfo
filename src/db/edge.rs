@@ -1093,7 +1093,7 @@ impl Edge {
                 SELECT * FROM (
                     SELECT c.*, cs.score, cs.created_at,
                            ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
-                    FROM public.cyclability_score cs 
+                    FROM public.report cs 
                     JOIN cycleway_way c ON ST_Intersects(c.geom, cs.geom)
                     WHERE c.nodes && $1  -- array overlap
                 ) t WHERE t.rn = 1

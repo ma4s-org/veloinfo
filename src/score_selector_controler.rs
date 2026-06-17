@@ -4,11 +4,11 @@ use axum::Json;
 use crate::db::cycleway::Cycleway;
 use crate::VeloinfoState;
 
-pub async fn score_bounds_controler(
+pub async fn report_bounds_controler(
     State(state): State<VeloinfoState>,
-    Path(score): Path<i32>,
+    Path(report_id): Path<i32>,
 ) -> Json<Vec<Cycleway>> {
-    let geom = match Cycleway::get_by_score_id(&score, &state.conn).await {
+    let geom = match Cycleway::get_by_report_id(&report_id, &state.conn).await {
         Ok(response) => response,
         Err(e) => {
             eprintln!("Error while fetching cycleways: {}", e);

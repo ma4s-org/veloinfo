@@ -1,5 +1,6 @@
 use super::{info_panel::InfopanelContribution, score_selector::ScoreSelector};
-use crate::db::cyclability_score::CyclabilityScore;
+use crate::db::report::Report;
+use crate::db::report_comment::ReportComment;
 use crate::db::cycleway::{Cycleway, Node};
 use crate::db::user::User;
 use crate::VeloinfoState;
@@ -115,10 +116,7 @@ pub async fn segment_panel_post(
 
     // Convertir GeoJSON en WKT pour PostGIS
     let geom_wkt = match geojson_to_wkt(&geom_json) {
-        Ok(wkt) => {
-            eprintln!("GeoJSON converti en WKT: {}", wkt);
-            wkt
-        },
+        Ok(wkt) => wkt,
         Err(e) => {
             eprintln!("Erreur conversion GeoJSON -> WKT: {}", e);
             return (
@@ -141,9 +139,8 @@ pub async fn segment_panel_post(
         }
     };
 
-    let id = match CyclabilityScore::insert(
+    let id = match Report::insert(
         &score,
-        &Some(comment.clone()),
         &geom_wkt,
         &None,
         &None,
@@ -174,10 +171,16 @@ pub async fn segment_panel_post(
             );
         }
     };
+
+    // Insert comment separately if provided
+    if !comment.is_empty() {
+        if let Err(e) = Report::insert_comment(id, &comment, None, &user_name, &state.conn).await {
+            eprintln!("Error while inserting comment: {}", e);
+        }
+    }
     // Traiter la photo seulement si elle a du contenu (pas vide)
     if let Some(photo) = photo.as_ref() {
         if photo.is_empty() {
-            eprintln!("Photo vide ignorée");
         } else {
             let img = (|| -> Result<DynamicImage, Box<dyn std::error::Error>> {
             // Try to read EXIF orientation first
@@ -261,7 +264,7 @@ pub async fn segment_panel_post(
 
     // Update the record with photo paths
     if let Err(e) =
-        CyclabilityScore::update_photo_paths(id, &photo_path, &photo_path_thumbnail, &state.conn)
+        Report::update_photo_paths(id, &photo_path, &photo_path_thumbnail, &state.conn)
             .await
     {
         eprintln!("Error updating photo paths: {}", e);
@@ -290,7 +293,6 @@ pub async fn segment_panel_edit_post(
     jar: CookieJar,
     mut multipart: Multipart,
 ) -> (CookieJar, Json<JsonValue>) {
-    eprintln!("=== segment_panel_edit_post START ===");
     let mut geom_json = "".to_string();
     let mut user_name = "".to_string();
     let mut _edit = "".to_string();
@@ -298,17 +300,14 @@ pub async fn segment_panel_edit_post(
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_string();
         let value = field.text().await.unwrap_or("".to_string());
-        eprintln!("Champ reçu: {} = {}", name, value);
         match name.as_str() {
             "geom_json" => geom_json = value,
             "user_name" => user_name = value,
             "edit" => _edit = value,
-            _ => eprintln!("Champ inconnu: {}", name),
+            _ => {}
         }
     }
     
-    eprintln!("=== segment_panel_edit_post END ===");
-    eprintln!("geom_json final: {}", geom_json);
     
     // Récupérer les données existantes pour ce segment (historique, photos, etc.)
     // Pour l'instant, on retourne une réponse avec edit=true et la géométrie
@@ -328,30 +327,51 @@ pub async fn segment_panel_edit_post(
         "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     }));
     
-    eprintln!("Réponse JSON envoyée: {:?}", json);
     (jar, json)
 }
 
-async fn segment_panel_score_id(
+/// Récupère le nom utilisateur depuis le cookie uuid.
+/// Utilisé par les handlers qui n'ont pas de score.user_id (nouveau segment, pas de report en DB).
+async fn get_user_name(jar: &CookieJar, conn: &sqlx::Pool<sqlx::Postgres>) -> String {
+    match jar.get("uuid") {
+        Some(uuid_cookie) => {
+            match Uuid::parse_str(uuid_cookie.value().to_string().as_str()) {
+                Ok(uuid) => match User::get(&uuid, conn).await {
+                    Some(user) => user.name,
+                    None => "".to_string(),
+                },
+                Err(_) => "".to_string(),
+            }
+        }
+        None => "".to_string(),
+    }
+}
+
+async fn segment_panel_report_id(
     conn: &sqlx::Pool<sqlx::Postgres>,
     id: i32,
     edit: bool,
 ) -> Json<JsonValue> {
-    let score = match CyclabilityScore::get_by_id(id, &conn).await {
+    let score = match Report::get_by_id(id, &conn).await {
         Ok(score) => score,
         Err(e) => {
             eprintln!("Error while fetching score: {}", e);
-            CyclabilityScore {
+            Report {
                 id: 0,
                 name: Some(vec![]),
                 score: -1.,
-                comment: None,
                 created_at: chrono::DateTime::from_timestamp(0, 0).unwrap().into(),
                 photo_path_thumbnail: None,
                 geom: vec![],
                 user_id: None,
             }
         }
+    };
+
+    // Fetch comment separately
+    let comment = match Report::get_comment_by_report_id(id, &conn).await {
+        Ok(Some((_, c))) => c,
+        _ => "".to_string(),
     };
 
     let segment_name = score.name.as_ref().map(|n| n.iter().filter_map(|s| s.clone()).collect::<Vec<_>>().join(" ")).unwrap_or_default();
@@ -368,6 +388,14 @@ async fn segment_panel_score_id(
     // TODO: Implémenter get_photo_by_geom
     let photo_ids = Vec::<i32>::new();
     
+    let user_name = match score.user_id {
+        Some(uid) => match User::get(&uid, conn).await {
+            Some(user) => user.name,
+            None => "".to_string(),
+        },
+        None => "".to_string(),
+    };
+
     Json(json!({
         "way_ids": "".to_string(),
         "score_circle": {
@@ -375,19 +403,20 @@ async fn segment_panel_score_id(
         },
         "segment_name": segment_name,
         "score_selector": ScoreSelector::get_score_selector(score.score),
-        "comment": score.comment.clone().unwrap_or("".to_string()),
+        "comment": comment,
         "edit": edit,
         "history": history,
         "photo_ids": photo_ids,
         "geom_json": geom_json,
         "fit_bounds": true,
-        "user_name": "".to_string(),
+        "user_name": user_name,
         "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     }))
 }
 
 pub async fn segment_panel_lng_lat(
     State(state): State<VeloinfoState>,
+    jar: CookieJar,
     Path((lng, lat)): Path<(f64, f64)>,
 ) -> impl IntoResponse {
     let conn = state.clone().conn;
@@ -442,7 +471,7 @@ pub async fn segment_panel_lng_lat(
             "photo_ids": photo_ids,
             "geom_json": serde_json::to_string(&vec![node.geom]).unwrap_or("".to_string()),
             "fit_bounds": false,
-            "user_name": "".to_string(),
+            "user_name": get_user_name(&jar, &state.conn).await,
             "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
         })).unwrap_or_default(),
     )
@@ -450,6 +479,7 @@ pub async fn segment_panel_lng_lat(
 
 pub async fn segment_between(
     State(state): State<VeloinfoState>,
+    jar: CookieJar,
     Path((start_lng, start_lat, end_lng, end_lat)): Path<(f64, f64, f64, f64)>,
 ) -> Json<JsonValue> {
     // Pour les segments personnalisés, on utilise directement les points de début et fin
@@ -491,11 +521,9 @@ pub async fn segment_between(
         .await
     {
         Ok(Some(geom)) => {
-            eprintln!("Buffer OK: {}", geom);
             geom
         },
         Ok(None) => {
-            eprintln!("Buffer returned None - using LineString fallback");
             // Fallback: retourner la LineString brute
             serde_json::to_string(&line_string_json).unwrap_or_default()
         },
@@ -525,22 +553,31 @@ pub async fn segment_between(
         "photo_ids": photo_ids,
         "geom_json": geom_json,
         "fit_bounds": false,
-        "user_name": "".to_string(),
+        "user_name": get_user_name(&jar, &state.conn).await,
         "martin_url": format!("{}/martin", env::var("VELOINFO_URL").unwrap()),
     });
     Json(json)
 }
 
-pub async fn select_score_id(
+pub async fn select_report_id(
     State(state): State<VeloinfoState>,
     Path(id): Path<i32>,
 ) -> Json<JsonValue> {
-    segment_panel_score_id(&state.conn, id, false).await
+    segment_panel_report_id(&state.conn, id, false).await
 }
 
-/// Endpoint MVT pour afficher les segments cyclability_score sur la carte
+/// Endpoint léger pour récupérer le nom utilisateur depuis le cookie uuid.
+/// Utilisé par le frontend quand un panel est créé client-side (mode "signaler").
+pub async fn get_user_name_endpoint(
+    State(state): State<VeloinfoState>,
+    jar: CookieJar,
+) -> Json<JsonValue> {
+    Json(json!({ "user_name": get_user_name(&jar, &state.conn).await }))
+}
+
+/// Endpoint MVT pour afficher les segments report sur la carte
 #[axum::debug_handler]
-pub async fn cyclability_score_mvt(
+pub async fn report_mvt(
     State(state): State<VeloinfoState>,
     Path((z, x, y)): Path<(u32, u32, u32)>,
 ) -> impl IntoResponse {
@@ -562,19 +599,26 @@ pub async fn cyclability_score_mvt(
     mvtgeom AS (
         SELECT
             ST_AsMVTGeom(
-                ST_Transform(cs.geom, 3857),
+                ST_Transform(r.geom, 3857),
                 e.geom
             ) AS geom,
-            cs.score,
-            cs.comment,
-            cs.created_at,
-            cs.user_id
+            r.score,
+            r.created_at,
+            r.user_id,
+            rc.comment
         FROM
-            cyclability_score cs, envelope e
+            report r, envelope e
+        LEFT JOIN LATERAL (
+            SELECT comment
+            FROM report_comment
+            WHERE report_id = r.id
+            ORDER BY created_at DESC
+            LIMIT 1
+        ) rc ON true
         WHERE
-            ST_Transform(cs.geom, 3857) && e.geom
+            ST_Transform(r.geom, 3857) && e.geom
     )
-    SELECT ST_AsMVT(mvtgeom.*, 'cyclability_score', 4096, 'geom')
+    SELECT ST_AsMVT(mvtgeom.*, 'report', 4096, 'geom')
     FROM mvtgeom;
     "#;
 
@@ -587,11 +631,10 @@ pub async fn cyclability_score_mvt(
     {
         Ok(row) => {
             let mvt_data: Vec<u8> = row.get(0);
-            eprintln!("MVT query succeeded for z={}, x={}, y={} - tile size: {} bytes", z, x, y, mvt_data.len());
             mvt_data
         },
         Err(e) => {
-            eprintln!("Error fetching cyclability_score MVT for z={}, x={}, y={}: {}", z, x, y, e);
+            eprintln!("Error fetching report MVT for z={}, x={}, y={}: {}", z, x, y, e);
             return (StatusCode::INTERNAL_SERVER_ERROR, "Error fetching MVT").into_response();
         }
     };
@@ -605,17 +648,17 @@ pub async fn cyclability_score_mvt(
         .into_response()
 }
 
-/// Endpoint TileJSON pour cyclability_score
-pub async fn cyclability_score() -> Json<JsonValue> {
+/// Endpoint TileJSON pour report
+pub async fn report() -> Json<JsonValue> {
     let tilejson = json!({
         "tilejson": "3.0.0",
-        "name": "cyclability_score",
+        "name": "report",
         "tiles": [
-            format!("{}/cyclability_score/{{z}}/{{x}}/{{y}}", env::var("VELOINFO_URL").unwrap())
+            format!("{}/report/{{z}}/{{x}}/{{y}}", env::var("VELOINFO_URL").unwrap())
         ],
         "vector_layers": [
             {
-                "id": "cyclability_score",
+                "id": "report",
                 "fields": {
                     "score": "Number",
                     "comment": "String",
@@ -628,4 +671,123 @@ pub async fn cyclability_score() -> Json<JsonValue> {
         ]
     });
     Json(tilejson)
+}
+
+/// Endpoint pour répondre à un commentaire existant
+pub async fn report_reply_post(
+    State(state): State<VeloinfoState>,
+    jar: CookieJar,
+    mut multipart: Multipart,
+) -> (CookieJar, Json<JsonValue>) {
+    
+    let user_id = match jar.get("uuid") {
+        Some(uuid) => {
+            let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
+                Ok(uuid) => {
+                    let user = User::get(&uuid, &state.conn).await;
+                    if let None = user {
+                        User::insert(&uuid, &"".to_string(), &state.conn).await;
+                    }
+                    Some(uuid)
+                }
+                Err(e) => {
+                    eprintln!("Error while parsing uuid: {}", e);
+                    None
+                }
+            };
+            uuid
+        }
+        None => None,
+    };
+
+    let mut report_id = 0;
+    let mut parent_comment_id: Option<i32> = None;
+    let mut user_name = "".to_string();
+    let mut comment = "".to_string();
+    let mut photo = None;
+    
+    while let Some(field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap();
+        match name {
+            "report_id" => {
+                report_id = field.text().await.unwrap_or("0".to_string()).parse::<i32>().unwrap_or(0)
+            }
+            "parent_comment_id" => {
+                let val = field.text().await.unwrap_or("".to_string());
+                parent_comment_id = if val.is_empty() { None } else { val.parse::<i32>().ok() };
+            }
+            "user_name" => user_name = field.text().await.unwrap_or("".to_string()),
+            "comment" => comment = field.text().await.unwrap_or("".to_string()),
+            "photo" => {
+                photo = match field.bytes().await {
+                    Ok(b) if !b.is_empty() => Some(b),
+                    _ => None,
+                }
+            }
+            _ => (),
+        }
+    }
+    
+    if let Some(user_id) = user_id {
+        User::update(&user_id, &user_name, &state.conn).await;
+    }
+    
+    // Insérer le commentaire de réponse
+    let new_comment_id = match Report::insert_comment(report_id, &comment, parent_comment_id, &user_name, &state.conn).await {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Error inserting reply comment: {}", e);
+            return (
+                jar,
+                Json(json!({
+                    "success": false,
+                    "error": "Erreur d'insertion du commentaire"
+                })),
+            );
+        }
+    };
+    
+    // Traiter la photo si présente (optionnel pour les réponses)
+    let photo_path_thumbnail = if let Some(photo_bytes) = photo {
+        match process_and_save_photo(new_comment_id, &photo_bytes) {
+            Ok(path) => Some(path),
+            Err(e) => {
+                eprintln!("Error processing photo: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+    
+    // Mettre à jour le chemin de la photo si traitée
+    if let Some(ref path) = photo_path_thumbnail {
+        if let Err(e) = ReportComment::update_photo_thumbnail(new_comment_id, path, &state.conn).await {
+            eprintln!("Error updating comment photo: {}", e);
+        }
+    }
+    
+    
+    (
+        jar,
+        Json(json!({
+            "success": true,
+            "comment_id": new_comment_id,
+            "report_id": report_id
+        })),
+    )
+}
+
+/// Helper pour traiter et sauver une photo
+fn process_and_save_photo(_report_id: i32, photo_bytes: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
+    let img = image::load_from_memory(photo_bytes)?;
+    let thumbnail = img.thumbnail(100, 100);
+    
+    let uuid = Uuid::new_v4();
+    let photo_filename = format!("{}_thumbnail.jpeg", uuid);
+    let photo_path = format!("{}/{}", *IMAGE_DIR, photo_filename);
+    
+    thumbnail.save(&photo_path)?;
+    
+    Ok(photo_filename)
 }

@@ -108,9 +108,9 @@ pub async fn bike_path_mvt(
                 filtered_ways fw
             LEFT JOIN LATERAL (
                 SELECT score
-                FROM cyclability_score
-                WHERE ST_Intersects(fw.geom, cyclability_score.geom)
-                ORDER BY cyclability_score.created_at DESC
+                FROM report
+                WHERE ST_Intersects(ST_Transform(fw.geom, 4326), report.geom)
+                ORDER BY report.created_at DESC
                 LIMIT 1
             ) cscore ON true
             LEFT JOIN city ON ST_Intersects(fw.geom, city.geom)

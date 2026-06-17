@@ -1,6 +1,7 @@
 import ViPhotoScroll from "./vi-photo-scroll.js";
 import { getViMain } from '/custom-elements/vi-context.js';
 import ViInfo from "./vi-info.js";
+import { showReplyForm } from '/custom-elements/vi-reply-form.js';
 let html = String.raw;
 
 class SegmentPanel extends HTMLElement {
@@ -11,7 +12,6 @@ class SegmentPanel extends HTMLElement {
 
     connectedCallback() {
         // Initialiser le panneau avec les données
-        console.log('SegmentPanel connectedCallback, data:', this.data);
         if (this.data) {
             this.render(this.data);
         }
@@ -42,7 +42,6 @@ class SegmentPanel extends HTMLElement {
         if (data.edit) {
             inner = html`
                 <form>
-                    <score-selector score="${data.score_selector.score}" category="${data.score_selector.category}"></score-selector>
                     <input type="hidden" name="way_ids" value="${data.way_ids}">
                     <input type="hidden" name="geom_json" value='${data.geom_json || ""}'>
                     <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
@@ -99,15 +98,15 @@ class SegmentPanel extends HTMLElement {
                     <div style="text-transform: uppercase; margin: 0.5rem;">historique</div>
                     <div style="overflow: auto; max-height: 12rem; md:height: 500px;">
                         <hr>
-                        ${data.history.map(contribution => html`
+                        ${(data.contributions || data.history || []).map(contribution => html`
                             <div style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">
                                 <infopanel-contribution
+                                    comment-id="${contribution.id || ''}"
                                     created_at="${contribution.created_at}"
                                     timeago="${contribution.timeago}"
                                     name="${contribution.name}"
                                     photo_path_thumbnail="${contribution.photo_path_thumbnail}"
-                                    score_id="${contribution.score_id}"
-                                    score="${contribution.score_circle.score}"
+                                    report_id="${contribution.report_id}"
                                     user_name="${contribution.user_name}"
                                     timestamp="${contribution.timestamp}"
                                     comment="${contribution.comment}">
@@ -142,15 +141,13 @@ class SegmentPanel extends HTMLElement {
             Promise.all(
                 cacheNames.map(name => caches.delete(name))
             );
-            let response = await fetch('/segment_panel', {
+            await fetch('/segment_panel', {
                 method: 'POST',
                 body: new FormData(this.querySelector('form'))
             });
             event.preventDefault();
-            let data = await response.json();
-            let segment_panel = new SegmentPanel(data);
-            document.querySelector('#info').innerHTML = "";
-            document.querySelector('#info').appendChild(segment_panel);
+            // Après un nouveau report, basculer vers le panel de contributions
+            getViMain().infoPanelUp();
         });
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
             getViMain().clear();
@@ -175,8 +172,6 @@ class SegmentPanel extends HTMLElement {
         }
 
         let map = getViMain().map;
-        console.log("SegmentPanel render, geom_json:", data.geom_json);
-        console.log("SegmentPanel render, fit_bounds:", data.fit_bounds);
         
         // Si geom_json est vide, on ne peut pas parser
         if (!data.geom_json || data.geom_json.trim() === "") {
@@ -215,7 +210,22 @@ class SegmentPanel extends HTMLElement {
             if (geomType === "MultiLineString" && Array.isArray(geomCoords[0])) {
                 coordsToUse = geomCoords[0];
             }
-            map.fitBounds(coordsToUse, { padding: window.innerHeight * .12 });
+            // Pour Polygon dans le cas de report (géométrie fermée), on utilise tous les points
+            if (geomType === "Polygon") {
+                coordsToUse = geomCoords[0];
+            }
+            
+            // Calculer les bounds à partir des coordonnées
+            const bounds = coordsToUse.reduce(
+                (bounds, coord) => {
+                    return [
+                        [Math.min(coord[0], bounds[0][0]), Math.min(coord[1], bounds[0][1])],
+                        [Math.max(coord[0], bounds[1][0]), Math.max(coord[1], bounds[1][1])]
+                    ];
+                },
+                [[Infinity, Infinity], [-Infinity, -Infinity]]
+            );
+            map.fitBounds(bounds, { padding: window.innerHeight * .12 });
         }
         const viMain = getViMain();
         if (!data.edit) {
@@ -288,47 +298,14 @@ class SegmentPanel extends HTMLElement {
 export default SegmentPanel;
 customElements.define('vi-segment-panel', SegmentPanel);
 
-class ScoreCircle extends HTMLElement {
-    constructor() {
-        super();
-    }
-
-    connectedCallback() {
-        const score = parseFloat(this.getAttribute('score'));
-        if (score === 1.0) {
-            this.innerHTML = html` 
-                <div style="border-radius: 9999px; background-color: #064e3b; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
-                `;
-        } else if (score >= 0.60) {
-            this.innerHTML = html` 
-                <div style="border-radius: 9999px; background-color: #fbbf24; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
-                `;
-        } else if (score >= 0.30) {
-            this.innerHTML = html` 
-                <div style="border-radius: 9999px; background-color: #ea580c; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
-                `;
-        } else if (score === 0.0) {
-            this.innerHTML = html` 
-                <div style="border-radius: 9999px; background-color: #b91c1c; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
-                `;
-        } else {
-            this.innerHTML = html` 
-                <div style="border-radius: 9999px; background-color: #9ca3af; height: 2rem; width: 2rem; margin: 0.25rem;"></div>
-                `;
-        }
-    }
-}
-
-customElements.define('score-circle', ScoreCircle);
-
 class InfopanelContribution extends HTMLElement {
     constructor() {
         super();
     }
 
     connectedCallback() {
-        const score = this.getAttribute('score');
-        const score_id = this.getAttribute('score_id');
+        const comment_id = this.getAttribute('comment-id');
+        const report_id = this.getAttribute('report_id');
         const created_at = this.getAttribute('created_at');
         const timeago = this.getAttribute('timeago');
         const name = this.getAttribute('name');
@@ -337,170 +314,41 @@ class InfopanelContribution extends HTMLElement {
         const user_name = this.getAttribute('user_name');
         const comment = this.getAttribute('comment');
         this.innerHTML = html`
-            <div id="contribution_${score_id}" style="cursor: pointer; display: flex; margin: 0.25rem 0;">
-                <score-circle score="${score}"></score-circle>
-                <div  style="align-content: start; width: 100%;">
+            <div id="contribution_${report_id}" style="display: flex; margin: 0.25rem 0;">
+                <div style="align-content: start; width: 100%;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between;">
                         <div style="display: flex;">
-                                <div style="font-size: small;"> ${created_at} </div>
-                                <div style="font-size: small; margin-left: 0.25rem;"> ( ${user_name} ) </div>
+                            <div style="font-size: small;">${created_at}</div>
+                            <div style="font-size: small; margin-left: 0.25rem;">(${user_name})</div>
                         </div>
-                        <div style="font-size: small; margin-right: 0.5rem;"> ${timeago} </div>
+                        <div style="font-size: small; margin-right: 0.5rem;">${timeago}</div>
                     </div>
                     <div style="font-weight: bold; font-size: small;">${name}</div>
-                    <div style="display: flex; flex-direction: row; align-items: center;">
-                        ${photo_path_thumbnail && photo_path_thumbnail !== "null" ? `<img style="width: 2rem; height: 2rem; margin: 0 0.5rem; border-radius: 0.125rem;" src="${photo_path_thumbnail}" alt="photo">` : ''}    
-                        <div  style="font-size: small; color: #4b5563;">${comment}</div>
+                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: row; align-items: center;">
+                            ${photo_path_thumbnail && photo_path_thumbnail !== "null" ? `<img style="width: 2rem; height: 2rem; margin: 0 0.5rem; border-radius: 0.125rem;" src="${photo_path_thumbnail}" alt="photo">` : ''}
+                            <div style="font-size: small; color: #4b5563;">${comment}</div>
+                        </div>
+                        <md-icon-button id="reply_${report_id}_${comment_id || ''}" style="margin-left: 0.5rem; --md-icon-button-icon-size: 1.25rem;">
+                            <span class="material-icons" style="font-size: 1.25rem;">reply</span>
+                        </md-icon-button>
                     </div>
                 </div>
             </div>
             <hr style="border: none; border-bottom: 1px solid #e5e7eb; margin: 0.5rem 0;">
         `;
 
-        this.querySelector(`#contribution_${score_id}`)?.addEventListener('click', async () => {
-            let r = await fetch(`/segment_panel/id/${score_id}`);
-            let data = await r.json();
-            let segment_panel = new SegmentPanel(data);
-            document.querySelector('#info').innerHTML = '';
-            document.querySelector('#info').appendChild(segment_panel);
-        })
-
+        // Le bouton Reply a pour ID "reply_{report_id}_{comment_id}" ou "reply_{report_id}" si pas de comment_id
+        const replyBtn = this.querySelector(`[id^="reply_${report_id}"]`);
+        replyBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const parts = replyBtn.id.replace('reply_', '').split('_');
+            const report_id = parts[0];
+            const comment_id = parts[1] || null;
+            const parentCommentId = comment_id ? parseInt(comment_id) : null;
+            await showReplyForm(report_id, parentCommentId);
+        });
     }
 }
 
 customElements.define('infopanel-contribution', InfopanelContribution);
-
-class ScoreSelector extends HTMLElement {
-    constructor() {
-        super();
-    }
-    connectedCallback() {
-        let category = this.getAttribute('category');
-        let score = this.getAttribute('score');
-
-        let categoryDiv = '';
-        if (category == 'Good') {
-            categoryDiv = html`<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(20,83,45);
-                            border-color: black;
-                            border-style: solid;
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border-width: 4px;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    État normal
-                </div>
-            </div>`;
-        } else {
-            categoryDiv = html`<div id="good" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(20,83,45);
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border: 1px solid #d1d5db;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    État normal
-                </div>
-            </div>`;
-        }
-        if (category == 'Problems') {
-            categoryDiv += html`<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234, 179, 8);
-                            border-color: black;
-                            border-style: solid;
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border-width: 4px;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    Problème mineur (ex: cohabitation avec voitures problématique)
-                </div>
-            </div>`;
-        } else {
-            categoryDiv += html`<div id="problems" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234, 179, 8);
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border: 1px solid #d1d5db;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    Problème mineur (ex: cohabitation avec voitures problématique)
-                </div>
-            </div>`;
-        }
-        if (category == 'MajorProblems') {
-            categoryDiv += html`<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234,88,12);
-                            border-color: black;
-                            border-style: solid;
-                            width: 2rem;
-                            height: 2rem;
-                            border-width: 4px;
-                            border-radius: 9999px;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    Piste dangeureuse (ex: piste cyclable en très mauvais état)
-                </div>
-            </div>`;
-        } else {
-            categoryDiv += html`<div id="major-problems" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(234,88,12);
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border: 1px solid #d1d5db;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    Problème majeur (ex: cohabitation avec voitures problématique)
-                </div>
-            </div>`;
-        }
-        if (category == 'Closed') {
-            categoryDiv += html`<div style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(153,27,27);
-                            border-color: black;
-                            border-style: solid;
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border-width: 4px;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    Fermé (ex: travaux ou neige)
-                </div>
-            </div>`;
-        } else {
-            categoryDiv += html`<div id="closed" style="display: flex; flex-direction: row; cursor: pointer;">
-                <div style="background-color: rgb(153,27,27);
-                            width: 2rem;
-                            height: 2rem;
-                            border-radius: 9999px;
-                            border: 1px solid #d1d5db;"></div>
-                <div style="margin: 0.5rem; align-self: center;">
-                    Fermé (ex: travaux ou neige)
-                </div>
-            </div>`;
-        }
-
-
-        this.innerHTML = html`
-        <div id="score_selector"  style="margin: 0.5rem;">
-        <div style="font-weight: bold;">Confort :</div>
-        ${categoryDiv}
-        <input type="hidden" name="score" value="${score}">
-        </div>`;
-
-        this.querySelector('#good')?.addEventListener('click', () => {
-            this.innerHTML = '<score-selector category="Good" score="1.0"></score-selector>';
-        });
-        this.querySelector('#problems')?.addEventListener('click', () => {
-            this.innerHTML = '<score-selector category="Problems" score="0.6"></score-selector>';
-        });
-        this.querySelector('#major-problems')?.addEventListener('click', () => {
-            this.innerHTML = '<score-selector category="MajorProblems" score="0.3"></score-selector>';
-        });
-        this.querySelector('#closed')?.addEventListener('click', () => {
-            this.innerHTML = '<score-selector category="Closed" score="0.0"></score-selector>';
-        });
-    }
-}
-
-customElements.define('score-selector', ScoreSelector);     

@@ -198,7 +198,7 @@ CREATE TABLE import.last_cycleway_score AS
     SELECT * FROM (
         SELECT c.*, cs.score, cs.created_at,
                ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
-        FROM public.cyclability_score cs 
+        FROM public.report cs 
         JOIN import.cycleway_way c ON c.way_id = ANY(cs.way_ids)
     ) t WHERE t.rn = 1;
 CREATE UNIQUE INDEX ON import.last_cycleway_score(way_id);

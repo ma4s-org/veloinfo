@@ -43,7 +43,7 @@ impl User {
     pub async fn get(id: &Uuid, conn: &PgPool) -> Option<User> {
         match sqlx::query_as(
             r#"
-            SELECT id, name
+            SELECT name
             FROM users
             WHERE id = $1"#,
         )
@@ -58,4 +58,5 @@ impl User {
             }
         }
     }
+    
 }

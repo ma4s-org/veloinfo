@@ -708,6 +708,10 @@ class ViMain extends HTMLElement {
                         return;
                     }
                     
+                    // Récupérer le nom utilisateur depuis le cookie uuid
+                    let userNameResp = await fetch('/user_name', { credentials: 'same-origin' });
+                    let userNameData = await userNameResp.json();
+
                     // Données pour le segment panel
                     const jsonData = {
                         way_ids: "",
@@ -720,7 +724,7 @@ class ViMain extends HTMLElement {
                         photo_ids: [],
                         geom_json: JSON.stringify(polygon),
                         fit_bounds: false,
-                        user_name: "",
+                        user_name: userNameData.user_name || "",
                         martin_url: `${window.location.origin}/martin`
                     };
                     

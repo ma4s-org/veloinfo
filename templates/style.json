@@ -12,9 +12,9 @@
       "type": "vector",
       "url": "{{veloinfo_url}}/city_snow"
     },
-    "cyclability_score": {
+    "report": {
       "type": "vector",
-      "url": "{{veloinfo_url}}/cyclability_score"
+      "url": "{{veloinfo_url}}/report"
     },
     "landuse": {
       "type": "vector",
@@ -3993,10 +3993,10 @@
       ]
     },
     {
-      "id": "cyclability_score_fill",
+      "id": "report_fill",
       "type": "fill",
-      "source": "cyclability_score",
-      "source-layer": "cyclability_score",
+      "source": "report",
+      "source-layer": "report",
       "minzoom": 10,
       "maxzoom": 22,
       "paint": {
@@ -4014,10 +4014,10 @@
       }
     },
     {
-      "id": "cyclability_score",
+      "id": "report",
       "type": "line",
-      "source": "cyclability_score",
-      "source-layer": "cyclability_score",
+      "source": "report",
+      "source-layer": "report",
       "minzoom": 10,
       "maxzoom": 22,
       "layout": {

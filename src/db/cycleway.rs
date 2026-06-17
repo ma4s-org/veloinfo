@@ -77,8 +77,8 @@ impl Cycleway {
         }
     }
 
-    pub async fn get_by_score_id(
-        _score_id: &i32,
+    pub async fn get_by_report_id(
+        _report_id: &i32,
         _conn: &sqlx::Pool<Postgres>,
     ) -> Result<Vec<Cycleway>> {
         // Pour les segments personnalisés (cercle/capsule), il n'y a pas de cycleway_way associé
