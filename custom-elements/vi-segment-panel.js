@@ -38,50 +38,26 @@ class SegmentPanel extends HTMLElement {
                 hx-get="/photo_scroll/${id}/${this.getAttribute('way_ids')}" hx-target="#photo_scroll">
         `).join('') : '';
 
-        let inner = '';
-        if (data.edit) {
-            inner = html`
-                <form>
-                    <input type="hidden" name="way_ids" value="${data.way_ids}">
-                    <input type="hidden" name="geom_json" value='${data.geom_json || ""}'>
-                    <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
-                    <textarea rows="4" cols="50" name="comment" style="border: 2px solid; border-color: #80808099;" placeholder="Commentaire"></textarea>
-                    <div style="text-transform: uppercase; margin: 0.5rem;">
-                        <label for="photo">Choisissez une photo :</label>
-                        <input type="file" id="photo" name="photo">
-                    </div>
-                    <div style="display: flex; justify-content: center;">
-                        <md-filled-button id="save" type="button">Enregistrer</md-filled-button>
-                        <md-filled-button id="cancel" type="button">annuler</md-filled-button>  
-                    </div>
-                </form>
-            `;
-        } else {
-            inner = html`
-                <div>
-                    <div style="display: flex; margin-bottom: 0.5rem; margin-top: 0.5rem;">
-                        <div>
-                            <div style="font-size: small; font-weight: bold;">${data.segment_name}</div>
-                            <div style="font-size: small; color: gray;">${data.comment}</div>
-                        </div>
-                    </div>
-                    <div class="">
-                        <div style="display: flex; flex-direction: row; justify-content: center;">
-                            Choisissez un second point pour aggrandir la sélection ou
-                        </div>
-                        <div style="display: flex; flex-direction: row; justify-content: center;">
-                            <md-filled-button id="edit_md"><img slot="icon"
-                                    src="/pub/edit.png" style="width: 1rem; height: 1rem; margin-right: 0.25rem;">
-                                Modifier</md-filled-button>
-                        </div>
-                        <div style="display: flex; flex-direction: row; justify-content: center; padding: 0.5rem;">
-                            <md-filled-button
-                                id="cancel">annuler</md-filled-button>
-                        </div>
-                    </div>
+        let inner = html`
+            <form>
+                ${data.is_reporting ? html`
+                <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 0.375rem; padding: 0.5rem; margin-bottom: 0.5rem; font-size: small; color: #92400e;">
+                    Cliquez sur la carte pour étendre en ligne, puis enregistrez.
+                </div>` : ''}
+                <input type="hidden" name="way_ids" value="${data.way_ids}">
+                <input type="hidden" name="geom_json" value='${data.geom_json || ""}'>
+                <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
+                <textarea rows="4" cols="50" name="comment" style="border: 2px solid; border-color: #80808099;" placeholder="Commentaire"></textarea>
+                <div style="text-transform: uppercase; margin: 0.5rem;">
+                    <label for="photo">Choisissez une photo :</label>
+                    <input type="file" id="photo" name="photo" accept="image/*">
                 </div>
-            `;
-        }
+                <div style="display: flex; justify-content: center;">
+                    <md-filled-button id="save" type="button">Enregistrer</md-filled-button>
+                    <md-filled-button id="cancel" type="button">annuler</md-filled-button>
+                </div>
+            </form>
+        `;
 
         let innerHTML = html`
             <div id="segment_panel" style="position: absolute; width: 100%; max-height: 50%; overflow: auto; max-width: 500px; background-color: white; z-index: 20; bottom: 0; border-radius: 0.5rem;">
@@ -95,25 +71,6 @@ class SegmentPanel extends HTMLElement {
                         `).join('')}
                     </div>
                     <div id="photo_scroll"></div>
-                    <div style="text-transform: uppercase; margin: 0.5rem;">historique</div>
-                    <div style="overflow: auto; max-height: 12rem; md:height: 500px;">
-                        <hr>
-                        ${(data.contributions || data.history || []).map(contribution => html`
-                            <div style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">
-                                <infopanel-contribution
-                                    comment-id="${contribution.id || ''}"
-                                    created_at="${contribution.created_at}"
-                                    timeago="${contribution.timeago}"
-                                    name="${contribution.name}"
-                                    photo_path_thumbnail="${contribution.photo_path_thumbnail}"
-                                    report_id="${contribution.report_id}"
-                                    user_name="${contribution.user_name}"
-                                    timestamp="${contribution.timestamp}"
-                                    comment="${contribution.comment}">
-                                </infopanel-contribution>
-                            </div>
-                        `).join('')}
-                    </div>
                 </div>
             </div>
         `;
@@ -153,23 +110,6 @@ class SegmentPanel extends HTMLElement {
             getViMain().clear();
             event.preventDefault();
         });
-
-        if (!data.edit) {
-            this.querySelector('#route_md')?.remove();
-            const editBtn = this.querySelector('#edit_md');
-            if (editBtn) {
-                editBtn.onclick = async () => {
-                    // Mode édition : recréer le panel avec edit=true, sans appel serveur
-                    const editData = {
-                        ...data,
-                        edit: true
-                    };
-                    let segment_panel = new SegmentPanel(editData);
-                    document.querySelector('#info').innerHTML = '';
-                    document.querySelector('#info').appendChild(segment_panel);
-                };
-            }
-        }
 
         let map = getViMain().map;
         
@@ -311,10 +251,11 @@ class InfopanelContribution extends HTMLElement {
         const name = this.getAttribute('name');
         const photo_path_thumbnail = this.getAttribute('photo_path_thumbnail');
 
+        const enabled = this.getAttribute('enabled') !== 'false';
         const user_name = this.getAttribute('user_name');
         const comment = this.getAttribute('comment');
         this.innerHTML = html`
-            <div id="contribution_${report_id}" style="display: flex; margin: 0.25rem 0;">
+            <div id="contribution_${report_id}" style="display: flex; margin: 0.25rem 0; cursor: pointer; ${enabled ? '' : 'opacity: 0.5;'}">
                 <div style="align-content: start; width: 100%;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between;">
                         <div style="display: flex;">
@@ -329,9 +270,14 @@ class InfopanelContribution extends HTMLElement {
                             ${photo_path_thumbnail && photo_path_thumbnail !== "null" ? `<img style="width: 2rem; height: 2rem; margin: 0 0.5rem; border-radius: 0.125rem;" src="${photo_path_thumbnail}" alt="photo">` : ''}
                             <div style="font-size: small; color: #4b5563;">${comment}</div>
                         </div>
-                        <md-icon-button id="reply_${report_id}_${comment_id || ''}" style="margin-left: 0.5rem; --md-icon-button-icon-size: 1.25rem;">
-                            <span class="material-icons" style="font-size: 1.25rem;">reply</span>
-                        </md-icon-button>
+                        <div style="display: flex; flex-direction: row; align-items: center;">
+                            <md-icon-button id="toggle_${report_id}" style="--md-icon-button-icon-size: 1.25rem;" title="${enabled ? 'Effacer' : 'Réactiver'}">
+                                <span class="material-icons" style="font-size: 1.25rem;">${enabled ? 'visibility_off' : 'visibility'}</span>
+                            </md-icon-button>
+                            <md-icon-button id="reply_${report_id}_${comment_id || ''}" style="margin-left: 0.5rem; --md-icon-button-icon-size: 1.25rem;">
+                                <span class="material-icons" style="font-size: 1.25rem;">reply</span>
+                            </md-icon-button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -347,6 +293,69 @@ class InfopanelContribution extends HTMLElement {
             const comment_id = parts[1] || null;
             const parentCommentId = comment_id ? parseInt(comment_id) : null;
             await showReplyForm(report_id, parentCommentId);
+        });
+
+        // Bouton toggle (effacer/réactiver le report)
+        const toggleBtn = this.querySelector(`#toggle_${report_id}`);
+        toggleBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const response = await fetch(`/report/toggle/${report_id}`, { method: 'POST', credentials: 'same-origin' });
+            const result = await response.json();
+            if (result.success) {
+                // Forcer le rechargement des tuiles report sur la carte
+                const map = getViMain().map;
+                const reportSource = map.getSource('report');
+                if (reportSource) {
+                    reportSource.setUrl(`${window.location.origin}/report?t=${Date.now()}`);
+                }
+
+                // Recharger les contributions
+                let bounds = map.getBounds();
+                let r = await fetch(`/info_panel/up/${bounds._sw.lng}/${bounds._sw.lat}/${bounds._ne.lng}/${bounds._ne.lat}`);
+                let json = await r.json();
+                let viInfo = document.querySelector('vi-info');
+                if (viInfo) viInfo.data = json;
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        });
+
+        // Zoomer sur le geom de la contribution au clic (sauf sur les boutons)
+        this.addEventListener('click', async (e) => {
+            if (e.target.closest('md-icon-button')) return;
+            const r = await fetch(`/segment_panel/id/${report_id}`, { credentials: 'same-origin' });
+            const data = await r.json();
+            if (!data.geom_json || data.geom_json.trim() === "") return;
+            const geom = JSON.parse(data.geom_json);
+            const map = getViMain().map;
+
+            // geom_json peut être soit un objet GeoJSON ({type, coordinates}) soit un tableau brut Vec<Vec<[f64;2]>>
+            let coordsToUse;
+            if (geom.type && geom.coordinates) {
+                if (geom.type === "Polygon") {
+                    coordsToUse = geom.coordinates[0];
+                } else if (geom.type === "MultiPolygon") {
+                    coordsToUse = geom.coordinates[0][0];
+                } else if (geom.type === "LineString") {
+                    coordsToUse = geom.coordinates;
+                } else if (geom.type === "MultiLineString") {
+                    coordsToUse = geom.coordinates[0];
+                } else {
+                    coordsToUse = geom.coordinates;
+                }
+            } else {
+                // Format brut Vec<Vec<[f64;2]>> — le premier élément est l'anneau extérieur
+                coordsToUse = Array.isArray(geom[0]) && Array.isArray(geom[0][0]) ? geom[0] : geom;
+            }
+
+            const bounds = coordsToUse.reduce(
+                ([min, max], coord) => [
+                    [Math.min(coord[0], min[0]), Math.min(coord[1], min[1])],
+                    [Math.max(coord[0], max[0]), Math.max(coord[1], max[1])],
+                ],
+                [[Infinity, Infinity], [-Infinity, -Infinity]]
+            );
+            map.fitBounds(bounds, { padding: window.innerHeight * .12 });
         });
     }
 }

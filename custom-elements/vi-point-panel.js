@@ -15,7 +15,6 @@ class PointPanel extends HTMLElement {
             <div id="point_panel" class="vi-panel">
                 <div>
                     <div style="font-size: small; font-weight: bold;">${this.name || "Point de départ"}</div>
-                    <div style="font-size: small; color: gray; margin-bottom: 0.5rem;">Choisissez un second point pour sélectionner un segment à évaluer</div>
                 </div>
 
                 <div style="display: flex; flex-direction: row; justify-content: center; margin-top: 0.5rem;">

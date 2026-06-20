@@ -14,6 +14,7 @@ use crate::component::segment_panel::segment_panel_lng_lat;
 use crate::component::segment_panel::segment_panel_post;
 use crate::component::segment_panel::select_report_id;
 use crate::component::segment_panel::get_user_name_endpoint;
+use crate::component::segment_panel::toggle_report;
 use crate::component::segment_panel::report_mvt;
 use crate::component::segment_panel::report;
 use crate::component::segment_panel::report_reply_post;
@@ -158,6 +159,7 @@ async fn main() {
         )
         .route("/segment_panel/id/{id}", get(select_report_id))
         .route("/user_name", get(get_user_name_endpoint))
+        .route("/report/toggle/{id}", post(toggle_report))
         .route(
             "/segment_panel_lng_lat/{lng}/{lat}",
             get(segment_panel_lng_lat),

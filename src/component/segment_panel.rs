@@ -179,6 +179,7 @@ pub async fn segment_panel_post(
         }
     }
     // Traiter la photo seulement si elle a du contenu (pas vide)
+    let mut photo_saved = false;
     if let Some(photo) = photo.as_ref() {
         if photo.is_empty() {
         } else {
@@ -243,6 +244,8 @@ pub async fn segment_panel_post(
                         IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg";
                     if let Err(e) = img.save(&thumb_path) {
                         eprintln!("Error while saving thumbnail: {}", e);
+                    } else {
+                        photo_saved = true;
                     }
                 }
             }
@@ -251,15 +254,17 @@ pub async fn segment_panel_post(
         } // Fermer le else de photo.is_empty()
     }
 
-    // Update photo paths after successful save
-    let photo_path = match photo {
-        Some(_) => Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg"),
-        None => None,
+    // Update photo paths only if the image was actually saved
+    let photo_path = if photo_saved {
+        Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + ".jpeg")
+    } else {
+        None
     };
 
-    let photo_path_thumbnail = match photo {
-        Some(_) => Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg"),
-        None => None,
+    let photo_path_thumbnail = if photo_saved {
+        Some(IMAGE_DIR.to_string() + "/" + id.to_string().as_str() + "_thumbnail.jpeg")
+    } else {
+        None
     };
 
     // Update the record with photo paths
@@ -364,6 +369,7 @@ async fn segment_panel_report_id(
                 photo_path_thumbnail: None,
                 geom: vec![],
                 user_id: None,
+                enabled: true,
             }
         }
     };
@@ -575,6 +581,29 @@ pub async fn get_user_name_endpoint(
     Json(json!({ "user_name": get_user_name(&jar, &state.conn).await }))
 }
 
+/// Activer ou désactiver un report (toggle enabled)
+pub async fn toggle_report(
+    State(state): State<VeloinfoState>,
+    Path(id): Path<i32>,
+) -> Json<JsonValue> {
+    match Report::get_by_id(id, &state.conn).await {
+        Ok(report) => {
+            let new_enabled = !report.enabled;
+            match Report::set_enabled(id, new_enabled, &state.conn).await {
+                Ok(()) => Json(json!({ "success": true, "enabled": new_enabled })),
+                Err(e) => {
+                    eprintln!("Error toggling report enabled: {}", e);
+                    Json(json!({ "success": false, "error": "Erreur de base de données" }))
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error fetching report for toggle: {}", e);
+            Json(json!({ "success": false, "error": "Report introuvable" }))
+        }
+    }
+}
+
 /// Endpoint MVT pour afficher les segments report sur la carte
 #[axum::debug_handler]
 pub async fn report_mvt(
@@ -617,6 +646,7 @@ pub async fn report_mvt(
         ) rc ON true
         WHERE
             ST_Transform(r.geom, 3857) && e.geom
+            and r.enabled = true
     )
     SELECT ST_AsMVT(mvtgeom.*, 'report', 4096, 'geom')
     FROM mvtgeom;

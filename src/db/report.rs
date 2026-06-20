@@ -12,6 +12,7 @@ pub struct Report {
     pub photo_path_thumbnail: Option<String>,
     pub geom: Vec<Vec<[f64; 2]>>,
     pub user_id: Option<Uuid>,
+    pub enabled: bool,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -23,6 +24,7 @@ pub struct ReportDb {
     pub photo_path_thumbnail: Option<String>,
     pub geom: String,
     pub user_id: Option<Uuid>,
+    pub enabled: bool,
 }
 
 impl Report {
@@ -41,7 +43,8 @@ impl Report {
                         r.photo_path, 
                         r.photo_path_thumbnail,
                         ST_AsText(geom) as geom,
-                        r.user_id
+                        r.user_id,
+                        r.enabled
                from report r
                where geom && st_makeenvelope($1, $2, $3, $4, 4326)
                order by r.created_at desc
@@ -70,7 +73,8 @@ impl Report {
                       created_at, 
                       photo_path, 
                       photo_path_thumbnail,
-                      user_id
+                      user_id,
+                      enabled
                from report
                where ST_Equals(geom, ST_GeomFromText($1, 4326))
                order by created_at desc
@@ -102,7 +106,8 @@ impl Report {
                       created_at, 
                       photo_path, 
                       photo_path_thumbnail,
-                      user_id
+                      user_id,
+                      enabled
                from report r
                where id = $1"#,
         )
@@ -144,7 +149,8 @@ impl Report {
                     created_at, 
                     photo_path, 
                     photo_path_thumbnail,
-                    user_id
+                    user_id,
+                    enabled
                from report r
                where ST_Equals(r.geom, ST_GeomFromText($1, 4326))
                order by created_at desc"#,
@@ -258,6 +264,19 @@ impl Report {
         .await?;
         Ok(())
     }
+
+    pub async fn set_enabled(
+        id: i32,
+        enabled: bool,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE report SET enabled = $1 WHERE id = $2")
+            .bind(enabled)
+            .bind(id)
+            .execute(conn)
+            .await?;
+        Ok(())
+    }
 }
 
 impl From<&ReportDb> for Report {
@@ -285,6 +304,7 @@ impl From<&ReportDb> for Report {
             photo_path_thumbnail: response.photo_path_thumbnail.clone(),
             geom: points,
             user_id: response.user_id,
+            enabled: response.enabled,
         }
     }
 }

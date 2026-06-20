@@ -66,6 +66,7 @@ export default class ViInfo extends HTMLElement {
                   score="${contribution.score_circle.score}"
                   user_name="${contribution.user_name}"
                   timestamp="${contribution.timestamp}"
+                  enabled="${contribution.enabled}"
                   comment="${contribution.comment}">
               </infopanel-contribution>
               ${contribution.replies?.length > 0 ? html`

@@ -31,6 +31,7 @@ pub struct InfopanelContribution {
     report_id: i32,
     photo_path_thumbnail: Option<String>,
     user_name: String,
+    enabled: bool,
     replies: Vec<InfopanelContributionReply>,
 }
 
@@ -108,6 +109,7 @@ impl InfopanelContribution {
                     None => "".to_string(),
                 },
                 replies: replies,
+                enabled: score.enabled,
             }
         }))
         .await

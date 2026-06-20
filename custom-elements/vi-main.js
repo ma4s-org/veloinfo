@@ -172,18 +172,18 @@ class ViMain extends HTMLElement {
             // Marquer ce marqueur comme temporaire (créé via URL params)
             this.start_marker.getElement().setAttribute('data-temp', 'true');
 
-            // Charger le segment panel autour de ce point
-            const loadSegment = async () => {
-                const response = await fetch(`/segment_panel_lng_lat/${pointLng}/${pointLat}`);
-                const jsonData = await response.json();
-                const segment_panel = new SegmentPanel(jsonData);
+            // Afficher le point panel (itinéraire, signaler, annuler)
+            const loadPointPanel = async () => {
+                const response = await fetch(`/point_panel_lng_lat/${pointLng}/${pointLat}`);
+                const json = await response.json();
+                const pointPanel = new PointPanel(json.name, { lng: pointLng, lat: pointLat });
                 this.querySelector("#info").innerHTML = ``;
-                this.querySelector("#info").appendChild(segment_panel);
+                this.querySelector("#info").appendChild(pointPanel);
             };
             if (this.map.loaded()) {
-                loadSegment();
+                loadPointPanel();
             } else {
-                this.map.once('load', () => loadSegment());
+                this.map.once('load', () => loadPointPanel());
             }
         }
     }
@@ -280,7 +280,7 @@ class ViMain extends HTMLElement {
                 document.querySelector('vi-change-start') ||
                 document.getElementById("info_panel_up") ||
                 document.getElementById("info_panel_down") ||
-                document.getElementById("segment_panel") ||
+                document.querySelector('vi-segment-panel') ||
                 document.getElementById("layers") ||
                 document.getElementById("point_panel")
             ) {
@@ -401,6 +401,10 @@ class ViMain extends HTMLElement {
         const bounds = this.map.getBounds();
         const r = await fetch(`/info_panel/up/${bounds._sw.lng}/${bounds._sw.lat}/${bounds._ne.lng}/${bounds._ne.lat}`);
         const json = await r.json();
+        // Si pas de contributions, afficher info_panel_down (replié)
+        if (!json.contributions || json.contributions.length === 0) {
+            json.arrow = null;
+        }
         let viInfo = new ViInfo(json);
         this.querySelector("#info").innerHTML = ``;
         this.querySelector('#info').appendChild(viInfo);
@@ -485,7 +489,7 @@ class ViMain extends HTMLElement {
             }
             
             // Vérifier si un segment_panel est déjà ouvert
-            const existingSegmentPanel = document.getElementById("segment_panel");
+            const existingSegmentPanel = document.querySelector('vi-segment-panel');
             
             // Vérifier si un point_panel est déjà ouvert
             const existingPointPanel = document.getElementById("point_panel");
@@ -518,6 +522,14 @@ class ViMain extends HTMLElement {
                     // Mettre à jour la source avec la nouvelle géométrie du serveur
                     if (jsonData.geom_json && this.map.getSource("selected")) {
                         this.map.getSource("selected").setData(JSON.parse(jsonData.geom_json));
+                    }
+                    
+                    // Mettre à jour le segment-panel avec la nouvelle géométrie
+                    if (existingSegmentPanel && jsonData.geom_json) {
+                        existingSegmentPanel.updateSegment({
+                            geom_json: jsonData.geom_json,
+                            startLng, startLat, endLng, endLat
+                        });
                     }
                     
                     // Mettre à jour l'URL
@@ -649,7 +661,9 @@ class ViMain extends HTMLElement {
                     
                     const polygon = createBuffer(startLng, startLat, endLng, endLat, bufferMeters, isSamePoint);
                     
-                    // Ajouter la source et le layer de sélection bleue avec extrémités arrondies
+                    // Ajouter la source et le layer de sélection avec extrémités arrondies
+                    // En mode signalement, utiliser le rouge (couleur des reports), sinon le bleu (sélection)
+                    const selectedColor = this._isReporting ? "#ff0000" : "#0000ff";
                     if (this.map.getSource("selected")) {
                         this.map.getSource("selected").setData(polygon);
                     } else {
@@ -659,54 +673,38 @@ class ViMain extends HTMLElement {
                         });
                     }
                     
-                    // Layer de remplissage bleu
+                    // Layer de remplissage
                     if (!this.map.getLayer("selected")) {
                         this.map.addLayer({
                             id: "selected",
                             type: "fill",
                             source: "selected",
                             paint: {
-                                "fill-color": "#0000ff",
+                                "fill-color": selectedColor,
                                 "fill-opacity": 0.3,
                                 "fill-antialias": true
                             }
                         });
+                    } else {
+                        this.map.setPaintProperty("selected", "fill-color", selectedColor);
                     }
                     
-                    // Layer de contour bleu
+                    // Layer de contour
                     if (!this.map.getLayer("selected-outline")) {
                         this.map.addLayer({
                             id: "selected-outline",
                             type: "line",
                             source: "selected",
                             paint: {
-                                "line-color": "#0000ff",
+                                "line-color": selectedColor,
                                 "line-width": 2
                             }
                         });
+                    } else {
+                        this.map.setPaintProperty("selected-outline", "line-color", selectedColor);
                     }
                     
                     // Pas de zoom automatique - l'utilisateur garde le contrôle de la vue
-                    
-                    // Si on est en mode signalement et qu'un segment_panel existe déjà, le mettre à jour
-                    if (this._isReporting && existingSegmentPanel) {
-                        // Mettre à jour le segment_panel existant avec les nouvelles données
-                        existingSegmentPanel.updateSegment({
-                            geom_json: JSON.stringify(polygon),
-                            startLng, startLat, endLng, endLat
-                        });
-                        
-                        // Mettre à jour l'URL
-                        this.updateSegmentUrl(endLng, endLat);
-                        
-                        // Réinitialiser le mode signalement
-                        this._isReporting = false;
-                        this._reportingSegment = null;
-                        
-                        // Réinitialiser le premier clic
-                        this._firstClick = null;
-                        return;
-                    }
                     
                     // Récupérer le nom utilisateur depuis le cookie uuid
                     let userNameResp = await fetch('/user_name', { credentials: 'same-origin' });
@@ -720,7 +718,7 @@ class ViMain extends HTMLElement {
                         score_selector: "",
                         comment: "",
                         edit: this._isReporting,
-                        history: [],
+                        is_reporting: this._isReporting,
                         photo_ids: [],
                         geom_json: JSON.stringify(polygon),
                         fit_bounds: false,
@@ -778,33 +776,6 @@ class ViMain extends HTMLElement {
                 this._isSelecting = false;
             }, delay);
         }
-    }
-
-    async selectBigger(event, destinationLngLat = null, startLngLat = null) {
-        if (this.end_marker) this.end_marker.remove();
-
-        // Utiliser la destination fournie ou l'event
-        const destLng = destinationLngLat ? destinationLngLat.lng : event.lngLat.lng;
-        const destLat = destinationLngLat ? destinationLngLat.lat : event.lngLat.lat;
-
-        this.end_marker = new maplibregl.Marker({ color: "#00f" }).setLngLat([destLng, destLat]).addTo(this.map);
-
-        // Utiliser le point de départ fourni ou celui du start_marker
-        // Pour les segments personnalisés, start_marker peut être null
-        if (!startLngLat && !this.start_marker) {
-            console.warn("selectBigger: pas de start_marker ni de startLngLat fourni");
-            return;
-        }
-        const startLng = startLngLat ? startLngLat.lng : this.start_marker.getLngLat().lng;
-        const startLat = startLngLat ? startLngLat.lat : this.start_marker.getLngLat().lat;
-
-        const r = await fetch(`/segment_panel_bigger/${startLng}/${startLat}/${destLng}/${destLat}`);
-        const jsonData = await r.json();
-        const segment_panel = new SegmentPanel(jsonData);
-        this.querySelector("#info").innerHTML = ``;
-        this.querySelector("#info").appendChild(segment_panel);
-        // Mettre à jour l'URL avec la destination choisie
-        this.updateSegmentUrl(destLng, destLat);
     }
 
     async clear() {
