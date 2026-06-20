@@ -14,7 +14,7 @@ class PointPanel extends HTMLElement {
         let innerHTML = html`
             <div id="point_panel" class="vi-panel">
                 <div>
-                    <div style="font-size: small; font-weight: bold;">${this.name || "Point de départ"}</div>
+                    <div style="font-size: small; font-weight: bold;">${this.name || ""}</div>
                 </div>
 
                 <div style="display: flex; flex-direction: row; justify-content: center; margin-top: 0.5rem;">
@@ -22,6 +22,8 @@ class PointPanel extends HTMLElement {
                     <img slot="icon" src="/pub/directions.png" style="width: 1rem; height: 1rem; margin-right: 0.25rem;">itinéraire</md-filled-button>
                     <md-filled-button id="report_button">
                     <span slot="icon" style="font-size: 1rem; margin-right: 0.25rem;">⚠️</span>signaler</md-filled-button>
+                </div>
+                <div style="display: flex; flex-direction: row; justify-content: center; margin-top: 0.5rem;">
                     <md-filled-button id="cancel_button">annuler</md-filled-button>
                 </div>
             </div>
