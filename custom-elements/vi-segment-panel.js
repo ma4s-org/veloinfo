@@ -48,9 +48,12 @@ class SegmentPanel extends HTMLElement {
                 <input type="hidden" name="geom_json" value='${data.geom_json || ""}'>
                 <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
                 <textarea rows="4" cols="50" name="comment" style="border: 2px solid; border-color: #80808099;" placeholder="Commentaire"></textarea>
-                <div style="text-transform: uppercase; margin: 0.5rem;">
-                    <label for="photo">Choisissez une photo :</label>
-                    <input type="file" id="photo" name="photo" accept="image/*">
+                <div style="display: flex; align-items: center; margin: 0.5rem;">
+                    <md-icon-button id="photo_btn" type="button" style="--md-icon-button-icon-size: 1.5rem;">
+                        <span class="material-icons">add_a_photo</span>
+                    </md-icon-button>
+                    <input type="file" id="photo" name="photo" accept="image/*" style="display: none;">
+                    <span id="photo_label" style="font-size: small; color: #6b7280;">Choisissez une photo</span>
                 </div>
                 <div style="display: flex; justify-content: center;">
                     <md-filled-button id="save" type="button">Enregistrer</md-filled-button>
@@ -109,6 +112,16 @@ class SegmentPanel extends HTMLElement {
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
             getViMain().clear();
             event.preventDefault();
+        });
+
+        // Bouton photo : déclencher l'input file caché
+        this.querySelector('#photo_btn')?.addEventListener('click', () => {
+            this.querySelector('#photo')?.click();
+        });
+        this.querySelector('#photo')?.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            const label = this.querySelector('#photo_label');
+            if (label) label.textContent = file ? file.name : 'Choisissez une photo';
         });
 
         let map = getViMain().map;
