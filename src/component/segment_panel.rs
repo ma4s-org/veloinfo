@@ -2,6 +2,7 @@ use super::{info_panel::InfopanelContribution, score_selector::ScoreSelector};
 use crate::db::report::Report;
 use crate::db::report_comment::ReportComment;
 use crate::db::cycleway::{Cycleway, Node};
+use crate::db::edge::Edge;
 use crate::db::user::User;
 use crate::VeloinfoState;
 use axum::body::Body;
@@ -275,6 +276,10 @@ pub async fn segment_panel_post(
         eprintln!("Error updating photo paths: {}", e);
     }
 
+    // Vider le cache des EdgePoint pour les nodes intersectant ce report
+    let nodes = Report::get_intersecting_nodes(id, &state.conn).await.unwrap_or_default();
+    Edge::clear_nodes_cache(nodes).await;
+
     // Retourner le segment avec la géométrie sauvegardée
     let geom_json_for_response = geom_json.clone();
     (jar, Json(json!({
@@ -447,7 +452,6 @@ pub async fn segment_panel_lng_lat(
             Cycleway {
                 way_id: 0,
                 name: None,
-                score: None,
                 geom: vec![],
                 source: 0,
                 target: 0,
@@ -467,10 +471,10 @@ pub async fn segment_panel_lng_lat(
         serde_json::to_string(&serde_json::json!({
             "way_ids": node.way_id.to_string(),
             "score_circle": {
-                "score": way.score.unwrap_or(-1.0),
+                "score": -1.0,
             },
             "segment_name": segment_name,
-            "score_selector": ScoreSelector::get_score_selector(way.score.unwrap_or(-1.0)),
+            "score_selector": ScoreSelector::get_score_selector(-1.0),
             "comment": "".to_string(),
             "edit": false,
             "history": history,
@@ -590,7 +594,12 @@ pub async fn toggle_report(
         Ok(report) => {
             let new_enabled = !report.enabled;
             match Report::set_enabled(id, new_enabled, &state.conn).await {
-                Ok(()) => Json(json!({ "success": true, "enabled": new_enabled })),
+                Ok(()) => {
+                    // Vider le cache des EdgePoint pour les nodes intersectant ce report
+                    let nodes = Report::get_intersecting_nodes(id, &state.conn).await.unwrap_or_default();
+                    Edge::clear_nodes_cache(nodes).await;
+                    Json(json!({ "success": true, "enabled": new_enabled }))
+                }
                 Err(e) => {
                     eprintln!("Error toggling report enabled: {}", e);
                     Json(json!({ "success": false, "error": "Erreur de base de données" }))
@@ -628,7 +637,7 @@ pub async fn report_mvt(
     mvtgeom AS (
         SELECT
             ST_AsMVTGeom(
-                ST_Transform(r.geom, 3857),
+                r.geom,
                 e.geom
             ) AS geom,
             r.score,

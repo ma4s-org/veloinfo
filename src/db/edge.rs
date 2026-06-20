@@ -47,7 +47,7 @@ pub struct Edge {
     pub lat1: f64,
     pub lon2: f64,
     pub lat2: f64,
-    pub score: Option<f64>,
+    pub reported: bool,
     pub way_id: i64,
     pub length: f64,
     pub tags: sqlx::types::Json<HashMap<String, String>>,
@@ -88,7 +88,7 @@ pub struct EdgePoint {
     pub snow: bool,
     pub winter_service_no: bool,
     pub abandoned: bool,
-    pub score: Option<f64>,
+    pub reported: bool,
     pub direction: SourceOrTarget,
     pub cycleway: Option<Cycleway>,
     pub cycleway_left: Option<Cycleway>,
@@ -131,7 +131,7 @@ impl Default for EdgePoint {
             snow: false,
             winter_service_no: false,
             abandoned: false,
-            score: None,
+            reported: false,
             direction: SourceOrTarget::Target,
             cycleway: None,
             cycleway_left: None,
@@ -478,7 +478,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             in_bicycle_route: edge.in_bicycle_route,
             road_work: edge.road_work,
             snow: edge.snow,
-            score: edge.score,
+            reported: edge.reported,
             direction,
             cycleway: if edge.snow && cycleway_conditional_no_snow {
                 Some(Cycleway::Snow)
@@ -562,13 +562,13 @@ impl EdgePoint {
             e.tags->>'name' as name,
             st_length(ST_Transform(e.geom, 4326)::geography) as length,
             rw.geom is not null as road_work,
-            cs.score,
+            r.geom is not null as reported,
             case when csnow.city_name is not null then true else false end as snow,
             e.elevation_start,
             e.elevation_end
         FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
-            left join last_cycleway_score cs on cs.way_id = e.way_id
+            left join report r on ST_Intersects(e.geom, r.geom) and r.enabled = true
             left join city_snow csnow on csnow.city_name = e.city_name
         WHERE (e.source = $1 or e.target = $1)
         "#;
@@ -1002,13 +1002,13 @@ impl Edge {
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
                 in_bicycle_route,
-                cs.score,
+                r.geom is not null as reported,
                 case when csnow.city_name is not null then true else false end as snow,
                 e.elevation_start,
                 e.elevation_end
             FROM edge e
                 left join road_work rw on ST_Intersects(e.geom, rw.geom)
-                left join  last_cycleway_score cs on cs.way_id = e.way_id
+                left join report r on ST_Intersects(e.geom, r.geom) and r.enabled = true
                 left join city_snow csnow on csnow.city_name = e.city_name
             WHERE e.source = $1 or e.target = $1"#,
         )
@@ -1048,13 +1048,13 @@ impl Edge {
                 st_length(e.geom) as length,
                 rw.geom is not null as road_work,
                 in_bicycle_route,
-                cs.score,
+                r.geom is not null as reported,
                 case when csnow.city_name is not null then true else false end as snow,
                 e.elevation_start,
                 e.elevation_end
             FROM edge e
             left join road_work rw on ST_Intersects(e.geom, rw.geom)
-            left join last_cycleway_score cs on cs.way_id = e.way_id
+            left join report r on ST_Intersects(e.geom, r.geom) and r.enabled = true
             left join city_snow csnow on csnow.city_name = e.city_name
             WHERE e.city_name = $1"#,
         )

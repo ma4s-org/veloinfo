@@ -35,7 +35,6 @@ pub async fn bike_path_mvt(
                     b.geom
                 ) AS geom,
                 aw.tags,
-                1 as score,
                 'cycleway' as kind,
                 false as snow
             FROM
@@ -66,7 +65,6 @@ pub async fn bike_path_mvt(
             SELECT
                 fw.geom,
                 fw.tags,
-                COALESCE(cscore.score, 1) as score,
                 cs.city_name IS NOT NULL as snow,
                 CASE
                     -- 1. Ferry
@@ -106,13 +104,6 @@ pub async fn bike_path_mvt(
                 END as kind
             FROM
                 filtered_ways fw
-            LEFT JOIN LATERAL (
-                SELECT score
-                FROM report
-                WHERE ST_Intersects(ST_Transform(fw.geom, 4326), report.geom)
-                ORDER BY report.created_at DESC
-                LIMIT 1
-            ) cscore ON true
             LEFT JOIN city ON ST_Intersects(fw.geom, city.geom)
             LEFT JOIN city_snow cs ON city.name = cs.city_name
         ),
@@ -123,7 +114,6 @@ pub async fn bike_path_mvt(
                 b.geom
             ) AS geom,
             abp.tags,
-            abp.score,
             abp.kind,
             abp.snow
         FROM
@@ -209,7 +199,6 @@ pub async fn bike_path() -> Json<JsonValue> {
                 "id": "bike_path",
                 "fields": {
                     "tags": "String",
-                    "score": "Number",
                     "kind": "String",
                     "snow": "Boolean"
                 },

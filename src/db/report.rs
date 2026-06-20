@@ -42,11 +42,11 @@ impl Report {
                         r.created_at, 
                         r.photo_path, 
                         r.photo_path_thumbnail,
-                        ST_AsText(geom) as geom,
+                        ST_AsText(ST_Transform(geom, 4326)) as geom,
                         r.user_id,
                         r.enabled
                from report r
-               where geom && st_makeenvelope($1, $2, $3, $4, 4326)
+               where geom && ST_Transform(st_makeenvelope($1, $2, $3, $4, 4326), 3857)
                order by r.created_at desc
                limit 100"#,
         )
@@ -190,7 +190,7 @@ impl Report {
         let id: i32 = sqlx::query(
             r#"INSERT INTO report
                     (score, photo_path, photo_path_thumbnail, geom, user_id)
-                    VALUES ($1, $2, $3, ST_GeomFromText($4, 4326), $5)
+                    VALUES ($1, $2, $3, ST_Transform(ST_GeomFromText($4, 4326), 3857), $5)
                     RETURNING id"#,
         )
         .bind(score)
@@ -276,6 +276,22 @@ impl Report {
             .execute(conn)
             .await?;
         Ok(())
+    }
+
+    /// Récupère les node_ids des edges qui intersectent le geom d'un report
+    pub async fn get_intersecting_nodes(
+        id: i32,
+        conn: &sqlx::Pool<Postgres>,
+    ) -> Result<Vec<i64>, sqlx::Error> {
+        let rows: Vec<(i64,)> = sqlx::query_as(
+            r#"SELECT DISTINCT e.source FROM edge e JOIN report r ON ST_Intersects(e.geom, r.geom) WHERE r.id = $1
+               UNION
+               SELECT DISTINCT e.target FROM edge e JOIN report r ON ST_Intersects(e.geom, r.geom) WHERE r.id = $1"#,
+        )
+        .bind(id)
+        .fetch_all(conn)
+        .await?;
+        Ok(rows.into_iter().map(|(n,)| n).collect())
     }
 }
 

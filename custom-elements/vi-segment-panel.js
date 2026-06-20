@@ -271,8 +271,9 @@ class InfopanelContribution extends HTMLElement {
                             <div style="font-size: small; color: #4b5563;">${comment}</div>
                         </div>
                         <div style="display: flex; flex-direction: row; align-items: center;">
-                            <md-icon-button id="toggle_${report_id}" style="--md-icon-button-icon-size: 1.25rem;" title="${enabled ? 'Effacer' : 'Réactiver'}">
-                                <span class="material-icons" style="font-size: 1.25rem;">${enabled ? 'visibility_off' : 'visibility'}</span>
+                            <md-icon-button id="toggle_${report_id}" style="--md-icon-button-icon-size: 1.25rem; position: relative;" title="${enabled ? 'Effacer de la carte' : 'Réactiver'}">
+                                <span class="material-icons" style="font-size: 1.25rem;">map</span>
+                                ${enabled ? '' : '<span class="material-icons" style="font-size: 1.25rem; position: absolute; left: 0; top: 0;">block</span>'}
                             </md-icon-button>
                             <md-icon-button id="reply_${report_id}_${comment_id || ''}" style="margin-left: 0.5rem; --md-icon-button-icon-size: 1.25rem;">
                                 <span class="material-icons" style="font-size: 1.25rem;">reply</span>

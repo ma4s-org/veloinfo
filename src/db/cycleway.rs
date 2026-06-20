@@ -10,7 +10,6 @@ pub struct Cycleway {
     pub geom: Vec<[f64; 2]>,
     pub source: i64,
     pub target: i64,
-    pub score: Option<f64>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -20,7 +19,6 @@ struct CyclewayDb {
     geom: String,
     source: i64,
     target: i64,
-    score: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
@@ -57,10 +55,8 @@ impl Cycleway {
                     c.way_id,
                     c.source,
                     c.target,
-                    ST_AsText(ST_Transform(c.geom, 4326)) as geom,  
-                    cs.score
+                    ST_AsText(ST_Transform(c.geom, 4326)) as geom
                 from cycleway_way c 
-                left join last_cycleway_score cs on c.way_id = cs.way_id
                 where 
                 c.way_id = $1"#,
         )
@@ -148,7 +144,6 @@ impl From<&CyclewayDb> for Cycleway {
             geom: points,
             source: response.source,
             target: response.target,
-            score: response.score,
         }
     }
 }

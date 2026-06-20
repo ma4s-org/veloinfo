@@ -335,19 +335,11 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
         }
     };
 
-    let score = match edge.score {
-        Some(score) => {
-            if score == -1.00 {
-                1.0
-            } else if score == 0.0 {
-                0.00001
-            } else {
-                score
-            }
-        }
-        None => 1.0,
-    };
-    cost / score
+    if edge.reported {
+        cost * 1000.0
+    } else {
+        cost
+    }
 }
 
 #[cfg(test)]
