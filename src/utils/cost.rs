@@ -336,7 +336,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
     };
 
     if edge.reported {
-        cost * 1000.0
+        cost * 10.0
     } else {
         cost
     }

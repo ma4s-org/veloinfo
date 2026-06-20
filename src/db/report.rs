@@ -101,7 +101,7 @@ impl Report {
         let cs: ReportDb = sqlx::query_as(
             r#"select id, 
                       r.name,
-                      ST_AsText(geom) as geom, 
+                      ST_AsText(ST_Transform(geom, 4326)) as geom,
                       score, 
                       created_at, 
                       photo_path, 
