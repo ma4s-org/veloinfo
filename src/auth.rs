@@ -2,6 +2,7 @@ use axum::{extract::Query, response::Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 lazy_static! {
     static ref KEYCLOAK_SERVER_URL: String =
@@ -100,14 +101,24 @@ pub async fn auth(auth: Query<Auth>, jar: CookieJar) -> (CookieJar, Redirect) {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-struct Userinfo {
-    sub: String,
-    email: String,
-    email_verified: bool,
-    name: String,
-    preferred_username: String,
-    given_name: String,
-    family_name: String,
+pub struct Userinfo {
+    pub sub: String,
+    pub email: String,
+    pub email_verified: bool,
+    pub name: String,
+    pub preferred_username: String,
+    pub given_name: String,
+    pub family_name: String,
+}
+
+/// Extrait l'UUID utilisateur depuis le cookie `userinfo` (Keycloak).
+/// Retourne None si l'utilisateur n'est pas connecté ou si le cookie est invalide.
+pub fn get_user_id_from_jar(jar: &CookieJar) -> Option<Uuid> {
+    jar.get("userinfo").and_then(|cookie| {
+        serde_json::from_str::<Userinfo>(cookie.value())
+            .ok()
+            .and_then(|info| Uuid::parse_str(&info.sub).ok())
+    })
 }
 
 pub async fn logout(jar: CookieJar) -> (CookieJar, Redirect) {

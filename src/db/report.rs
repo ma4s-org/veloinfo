@@ -226,18 +226,18 @@ impl Report {
         report_id: i32,
         comment: &str,
         parent_comment_id: Option<i32>,
-        user_name: &str,
+        user_id: Option<&Uuid>,
         conn: &sqlx::Pool<Postgres>,
     ) -> Result<i32, sqlx::Error> {
         let id: i32 = sqlx::query(
-            r#"INSERT INTO report_comment (report_id, comment, parent_comment_id, user_name)
+            r#"INSERT INTO report_comment (report_id, comment, parent_comment_id, user_id)
                VALUES ($1, $2, $3, $4)
                RETURNING id"#,
         )
         .bind(report_id)
         .bind(comment)
         .bind(parent_comment_id)
-        .bind(user_name)
+        .bind(user_id)
         .fetch_one(conn)
         .await?
         .get(0);

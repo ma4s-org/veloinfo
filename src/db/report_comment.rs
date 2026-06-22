@@ -1,5 +1,6 @@
 use chrono::{DateTime, Local};
 use sqlx::FromRow;
+use uuid::Uuid;
 
 #[derive(FromRow, Debug)]
 pub struct ReportCommentDb {
@@ -7,6 +8,8 @@ pub struct ReportCommentDb {
     pub comment: String,
     pub parent_comment_id: Option<i32>,
     pub created_at: DateTime<Local>,
+    #[allow(dead_code)]
+    pub user_id: Option<Uuid>,
     pub user_name: Option<String>,
     pub photo_path_thumbnail: Option<String>,
 }
@@ -33,9 +36,11 @@ impl ReportComment {
                 rc.comment,
                 rc.parent_comment_id,
                 rc.created_at,
-                rc.user_name,
+                rc.user_id,
+                u.name AS user_name,
                 rc.photo_path_thumbnail
             FROM report_comment rc
+            LEFT JOIN users u ON rc.user_id = u.id
             WHERE rc.report_id = $1
             ORDER BY rc.created_at ASC"#,
         )

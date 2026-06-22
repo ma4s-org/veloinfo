@@ -1,4 +1,5 @@
 use super::{info_panel::InfopanelContribution, score_selector::ScoreSelector};
+use crate::auth::get_user_id_from_jar;
 use crate::db::report::Report;
 use crate::db::report_comment::ReportComment;
 use crate::db::cycleway::{Cycleway, Node};
@@ -11,6 +12,7 @@ use axum::extract::{Path, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use geojson::JsonValue;
 use image::DynamicImage;
@@ -60,24 +62,21 @@ pub async fn segment_panel_post(
     jar: CookieJar,
     mut multipart: Multipart,
 ) -> (CookieJar, Json<JsonValue>) {
-    let user_id = match jar.get("uuid") {
+    // Récupérer l'UUID depuis le cookie userinfo (Keycloak) ou en créer un nouveau
+    let (user_id, jar) = match get_user_id_from_jar(&jar) {
         Some(uuid) => {
-            let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
-                Ok(uuid) => {
-                    let user = User::get(&uuid, &state.conn).await;
-                    if let None = user {
-                        User::insert(&uuid, &"".to_string(), &state.conn).await;
-                    }
-                    Some(uuid)
-                }
-                Err(e) => {
-                    eprintln!("Error while parsing uuid: {}", e);
-                    None
-                }
-            };
-            uuid
+            let user = User::get(&uuid, &state.conn).await;
+            if user.is_none() {
+                User::insert(&uuid, &"".to_string(), &state.conn).await;
+            }
+            (Some(uuid), jar)
         }
-        None => None,
+        None => {
+            // Utilisateur non connecté : créer un UUID anonyme et le stocker dans un cookie
+            let new_uuid = Uuid::new_v4();
+            User::insert(&new_uuid, &"".to_string(), &state.conn).await;
+            (Some(new_uuid), jar.add(Cookie::new("uuid", new_uuid.to_string())))
+        }
     };
 
     let mut score = -1.;
@@ -175,7 +174,7 @@ pub async fn segment_panel_post(
 
     // Insert comment separately if provided
     if !comment.is_empty() {
-        if let Err(e) = Report::insert_comment(id, &comment, None, &user_name, &state.conn).await {
+        if let Err(e) = Report::insert_comment(id, &comment, None, user_id.as_ref(), &state.conn).await {
             eprintln!("Error while inserting comment: {}", e);
         }
     }
@@ -340,19 +339,18 @@ pub async fn segment_panel_edit_post(
     (jar, json)
 }
 
-/// Récupère le nom utilisateur depuis le cookie uuid.
+/// Récupère le nom utilisateur depuis le cookie userinfo (Keycloak) ou le cookie uuid (anonyme).
 /// Utilisé par les handlers qui n'ont pas de score.user_id (nouveau segment, pas de report en DB).
 async fn get_user_name(jar: &CookieJar, conn: &sqlx::Pool<sqlx::Postgres>) -> String {
-    match jar.get("uuid") {
-        Some(uuid_cookie) => {
-            match Uuid::parse_str(uuid_cookie.value().to_string().as_str()) {
-                Ok(uuid) => match User::get(&uuid, conn).await {
-                    Some(user) => user.name,
-                    None => "".to_string(),
-                },
-                Err(_) => "".to_string(),
-            }
-        }
+    let uuid = get_user_id_from_jar(jar)
+        .or_else(|| {
+            jar.get("uuid").and_then(|c| Uuid::parse_str(c.value()).ok())
+        });
+    match uuid {
+        Some(uuid) => match User::get(&uuid, conn).await {
+            Some(user) => user.name,
+            None => "".to_string(),
+        },
         None => "".to_string(),
     }
 }
@@ -719,24 +717,21 @@ pub async fn report_reply_post(
     mut multipart: Multipart,
 ) -> (CookieJar, Json<JsonValue>) {
     
-    let user_id = match jar.get("uuid") {
+    // Récupérer l'UUID depuis le cookie userinfo (Keycloak) ou en créer un nouveau
+    let (user_id, jar) = match get_user_id_from_jar(&jar) {
         Some(uuid) => {
-            let uuid = match Uuid::parse_str(uuid.value().to_string().as_str()) {
-                Ok(uuid) => {
-                    let user = User::get(&uuid, &state.conn).await;
-                    if let None = user {
-                        User::insert(&uuid, &"".to_string(), &state.conn).await;
-                    }
-                    Some(uuid)
-                }
-                Err(e) => {
-                    eprintln!("Error while parsing uuid: {}", e);
-                    None
-                }
-            };
-            uuid
+            let user = User::get(&uuid, &state.conn).await;
+            if user.is_none() {
+                User::insert(&uuid, &"".to_string(), &state.conn).await;
+            }
+            (Some(uuid), jar)
         }
-        None => None,
+        None => {
+            // Utilisateur non connecté : créer un UUID anonyme et le stocker dans un cookie
+            let new_uuid = Uuid::new_v4();
+            User::insert(&new_uuid, &"".to_string(), &state.conn).await;
+            (Some(new_uuid), jar.add(Cookie::new("uuid", new_uuid.to_string())))
+        }
     };
 
     let mut report_id = 0;
@@ -772,7 +767,7 @@ pub async fn report_reply_post(
     }
     
     // Insérer le commentaire de réponse
-    let new_comment_id = match Report::insert_comment(report_id, &comment, parent_comment_id, &user_name, &state.conn).await {
+    let new_comment_id = match Report::insert_comment(report_id, &comment, parent_comment_id, user_id.as_ref(), &state.conn).await {
         Ok(id) => id,
         Err(e) => {
             eprintln!("Error inserting reply comment: {}", e);
