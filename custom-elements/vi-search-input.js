@@ -154,7 +154,6 @@ class SearchInput extends HTMLElement {
                         searchResults.appendChild(searchResult);
                     }
                 }
-                htmx.process(searchResults);
             }
         }
     }

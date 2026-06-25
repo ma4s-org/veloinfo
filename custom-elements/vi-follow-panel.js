@@ -50,7 +50,6 @@ class FollowPanel extends HTMLElement {
         this.querySelector('#cancel-follow-btn').addEventListener('click', () => {
             getViMain().clear();
         });
-        htmx.process(this);
 
     }
 

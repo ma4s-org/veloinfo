@@ -43,7 +43,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Ressources statiques: cache-first, fallback réseau
+    // Ressources statiques: network-first avec fallback cache (offline support)
     const isStatic = PRECACHE_ASSETS.some(asset => 
         url.pathname === asset || url.pathname.startsWith('/custom-elements/') ||
         url.pathname.startsWith('/pub/') || url.pathname.startsWith('/node_modules/')
@@ -52,20 +52,17 @@ self.addEventListener('fetch', (event) => {
     if (isStatic) {
         event.respondWith(
             caches.open(STATIC_CACHE).then(async (cache) => {
-                const cached = await cache.match(event.request);
-                
-                if (cached) {
-                    return cached;
-                }
-                
                 try {
+                    // Network first: toujours récupérer la dernière version
                     const response = await fetch(event.request);
                     if (response.ok) {
                         cache.put(event.request, response.clone());
                     }
                     return response;
                 } catch (err) {
-                    // Hors ligne: retourne une réponse vide
+                    // Hors ligne: fallback sur le cache
+                    const cached = await cache.match(event.request);
+                    if (cached) return cached;
                     return new Response(null, { status: 404, statusText: 'Not Found' });
                 }
             })

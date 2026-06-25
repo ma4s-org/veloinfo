@@ -40,9 +40,6 @@ export default class RouteSearching extends HTMLElement {
         }
         try {
             this.init();
-            if (typeof htmx !== 'undefined' && htmx.process) {
-                htmx.process(this);
-            }
         } catch (err) {
             console.error('Error in connectedCallback:', err);
         }
@@ -223,14 +220,6 @@ export default class RouteSearching extends HTMLElement {
                 const infoContainer = this.viMain.querySelector("#info");
                 infoContainer.textContent = '';
                 infoContainer.insertAdjacentHTML('beforeend', panelHtml);
-                
-                try {
-                    if (typeof htmx !== 'undefined' && htmx.process) {
-                        htmx.process(infoContainer);
-                    }
-                } catch (htmxErr) {
-                    console.error('htmx.process error:', htmxErr);
-                }
 
                 // Mettre à jour l'URL après que le RoutePanel soit créé
                 // Attendre un court instant pour que le custom element soit complètement initialisé

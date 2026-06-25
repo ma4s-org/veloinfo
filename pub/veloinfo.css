@@ -42,25 +42,6 @@ h3 {
     text-decoration: underline;
 }
 
-/* HTMX Indicator Styles */
-.spinner {
-    opacity: 0;
-    transition: opacity 0.5s ease-in;
-}
-
-.html-indicator .htmx-request {
-    opacity: 1;
-}
-
-.html-indicator.htmx-request {
-    opacity: 1;
-}
-
-.htmx-request {
-    cursor: not-allowed;
-    opacity: 50%;
-}
-
 /* Panel Style - Used for many panels in the app */
 .vi-panel {
     position: absolute;

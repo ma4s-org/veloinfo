@@ -27,7 +27,7 @@ use askama_web::WebTemplate;
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderMap;
 use axum::http::HeaderValue;
-use axum::http::Request;
+
 use axum::routing::post;
 use axum::routing::{get, Router};
 use component::route_panel::route;
@@ -218,17 +218,12 @@ async fn main() {
     // Activation du rechargement à chaud en mode dev
     if dev {
         let livereload = LiveReloadLayer::new();
-        app = app.layer(livereload.request_predicate(not_htmx_predicate));
+        app = app.layer(livereload);
     }
 
     // Lancement du serveur sur le port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-/// Prédicat pour éviter de recharger la page lors de requêtes HTMX
-fn not_htmx_predicate<T>(req: &Request<T>) -> bool {
-    !req.headers().contains_key("hx-request")
 }
 
 /// Structure du template pour la page d'accueil (index.html)

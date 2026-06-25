@@ -33,10 +33,7 @@ class SegmentPanel extends HTMLElement {
     render(data) {
         let photo_ids = data.photo_ids;
         let html = String.raw;
-        let photos = photo_ids ? photo_ids.map(id => html`
-            <img  style="height: 6rem; border-radius: 0.375rem; padding: 0.5rem; cursor: pointer;" src="/images/${id}_thumbnail.jpeg" alt="photo"
-                hx-get="/photo_scroll/${id}/${this.getAttribute('way_ids')}" hx-target="#photo_scroll">
-        `).join('') : '';
+        let photos = '';
 
         let inner = html`
             <form>
@@ -48,13 +45,18 @@ class SegmentPanel extends HTMLElement {
                 <input type="hidden" name="geom_json" value='${data.geom_json || ""}'>
                 <input type="text" name="user_name" style="border: 2px solid; border-color: #80808099;" placeholder="Nom" value="${data.user_name}">
                 <textarea rows="4" cols="50" name="comment" style="border: 2px solid; border-color: #80808099;" placeholder="Commentaire"></textarea>
-                <div style="display: flex; align-items: center; margin: 0.5rem;">
-                    <md-icon-button id="photo_btn" type="button" style="--md-icon-button-icon-size: 1.5rem;">
-                        <span class="material-icons">add_a_photo</span>
-                    </md-icon-button>
-                    <input type="file" id="photo" name="photo" accept="image/*" style="display: none;">
-                    <span id="photo_label" style="font-size: small; color: #6b7280;">Choisissez une photo</span>
+                <div style="margin: 0.5rem; display: flex; align-items: center;">
+                    <span class="material-icons" id="photo_icon" style="font-size: 1.5rem; cursor: pointer;">add_a_photo</span>
+                    <span id="photo_label" style="font-size: small; color: #6b7280; margin-left: 0.5rem;">Choisissez une photo</span>
                 </div>
+                <input type="file" id="photo" name="photo" accept="image/*" style="display: none;">
+                <md-dialog id="photo_source_dialog">
+                    <div slot="headline">Ajouter une photo</div>
+                    <div slot="actions" style="display: flex; gap: 8px; justify-content: center;">
+                        <md-filled-button id="photo_source_camera">📷 Appareil photo</md-filled-button>
+                        <md-filled-button id="photo_source_file">📁 Fichier</md-filled-button>
+                    </div>
+                </md-dialog>
                 <div style="display: flex; justify-content: center;">
                     <md-filled-button id="save" type="button">Enregistrer</md-filled-button>
                     <md-filled-button id="cancel" type="button">annuler</md-filled-button>
@@ -64,7 +66,7 @@ class SegmentPanel extends HTMLElement {
 
         let innerHTML = html`
             <div id="segment_panel" style="position: absolute; width: 100%; max-height: 50%; overflow: auto; max-width: 500px; background-color: white; z-index: 20; bottom: 0; border-radius: 0.5rem;">
-                <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0;" class="htmx-indicator" src="/pub/bars.svg" />
+                <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0; display: none;" src="/pub/bars.svg" />
                 <div  style="padding: 0.5rem; margin: 0.25rem;">
                     ${inner}
                     <div style="display: flex; flex-direction: row; overflow: auto;">
@@ -78,7 +80,6 @@ class SegmentPanel extends HTMLElement {
             </div>
         `;
         this.innerHTML = innerHTML;
-        htmx.process(this);
 
         let that = this;
 
@@ -106,23 +107,65 @@ class SegmentPanel extends HTMLElement {
                 body: new FormData(this.querySelector('form'))
             });
             event.preventDefault();
+            // Nettoyer la géométrie locale de la carte (layers et sources "selected")
+            const viMain = getViMain();
+            const map = viMain.map;
+            if (map.getLayer("selected")) map.removeLayer("selected");
+            if (map.getLayer("selected-outline")) map.removeLayer("selected-outline");
+            if (map.getSource("selected")) map.removeSource("selected");
+            // Nettoyer les marqueurs
+            if (viMain.start_marker) { viMain.start_marker.remove(); viMain.start_marker = null; }
+            if (viMain.end_marker) { viMain.end_marker.remove(); viMain.end_marker = null; }
+            viMain._segmentStart = null;
+            viMain._firstClick = null;
+            // Forcer le rechargement des tuiles report pour afficher le nouveau report
+            const reportSource = map.getSource('report');
+            if (reportSource) {
+                reportSource.setUrl(`${window.location.origin}/report?t=${Date.now()}`);
+            }
             // Après un nouveau report, basculer vers le panel de contributions
-            getViMain().infoPanelUp();
+            viMain.infoPanelUp();
         });
         this.querySelector('#cancel')?.addEventListener('click', async (event) => {
             getViMain().clear();
             event.preventDefault();
         });
 
-        // Bouton photo : déclencher l'input file caché
-        this.querySelector('#photo_btn')?.addEventListener('click', () => {
-            this.querySelector('#photo')?.click();
-        });
-        this.querySelector('#photo')?.addEventListener('change', (e) => {
+        // Bouton photo : menu de choix entre caméra et fichier sur mobile
+        // Firefox propose nativement le choix caméra/fichiers avec accept="image/*" seul,
+        // les autres navigateurs (Chrome, Safari) nécessitent un dialogue personnalisé.
+        const photoIcon = this.querySelector('#photo_icon');
+        const photoDialog = this.querySelector('#photo_source_dialog');
+        const photoInput = this.querySelector('#photo');
+        const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isFirefox = /firefox/i.test(navigator.userAgent);
+        const needDialog = isMobile && !isFirefox;
+
+        const updatePhotoLabel = (e) => {
             const file = e.target.files?.[0];
             const label = this.querySelector('#photo_label');
-            if (label) label.textContent = file ? file.name : 'Choisissez une photo';
-        });
+            if (label && file) label.textContent = file.name;
+        };
+        photoInput?.addEventListener('change', updatePhotoLabel);
+
+        if (needDialog && photoDialog) {
+            // Chrome / Safari mobile : dialogue avec choix caméra / fichier
+            photoIcon?.addEventListener('click', () => photoDialog.show());
+            this.querySelector('#photo_source_camera')?.addEventListener('click', () => {
+                photoDialog.close();
+                photoInput.setAttribute('capture', 'environment');
+                photoInput.click();
+            });
+            this.querySelector('#photo_source_file')?.addEventListener('click', () => {
+                photoDialog.close();
+                photoInput.removeAttribute('capture');
+                photoInput.click();
+            });
+        } else {
+            // Firefox mobile / desktop : input direct sans capture
+            // (Firefox propose nativement caméra + fichiers avec accept="image/*")
+            photoIcon?.addEventListener('click', () => photoInput.click());
+        }
 
         let map = getViMain().map;
         

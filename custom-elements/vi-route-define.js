@@ -42,11 +42,14 @@ class RouteDefine extends HTMLElement {
                 Vous partez de votre position actuelle ou vous pouvez entrer le point de départ : <br>
                 <vi-search-input></vi-search-input>
                 <div style="display: flex; justify-content: center;">
-                    <md-filled-button hx-on:click="defineRoute()" hx-target="#info">définir l'itinéraire</md-filled-button>
+                    <md-filled-button id="define_route_btn">définir l'itinéraire</md-filled-button>
                 </div>
             </div>
         `;
         this.innerHTML = innerHTML;
+        this.querySelector('#define_route_btn')?.addEventListener('click', () => {
+            getViMain().route();
+        });
     }
 }
 

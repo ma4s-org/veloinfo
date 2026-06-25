@@ -34,7 +34,7 @@ class ViMenu extends HTMLElement {
 
             <md-menu anchor="vi-menu">
                 <md-menu-item id="ios" style="display: none;">
-                    <div style="display: flex;" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
+                    <div style="display: flex;">
                         <img src="/pub/install/apple.png">
                         <div style="font-size: 1.125rem;">
                             Installer sur IOS
@@ -42,7 +42,7 @@ class ViMenu extends HTMLElement {
                     </div>
                 </md-menu-item>
                 <md-menu-item id="android" style="display: none;">
-                    <div style="display: flex;" hx-get="/menu/closed" hx-target="#menu" hx-swap="outerHTML">
+                    <div style="display: flex;">
                         <img src="/pub/install/android.png">
                         <div style="font-size: 1.125rem;">
                             Installer sur Android
