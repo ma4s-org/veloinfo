@@ -7,11 +7,8 @@ pub async fn martin_proxy(
 ) -> impl axum::response::IntoResponse {
     let martin_url = env::var("MARTIN_URL").unwrap();
     let url = format!("{}/{}", martin_url, path);
-    let max_age = if path.starts_with("road_work") {
-        86400 // 1 jour
-    } else {
-        604800 // 7 jours
-    };
+    let is_road_work = path.starts_with("road_work");
+    let max_age = 604800; // 7 jours
 
     match reqwest::get(&url).await {
         Ok(response) => {
@@ -39,7 +36,11 @@ pub async fn martin_proxy(
                     (axum::http::header::CONTENT_TYPE, content_type),
                     (
                         axum::http::header::CACHE_CONTROL,
-                        format!("public, max-age={max_age}, stale-while-revalidate=15768000"),
+                        if is_road_work {
+                            "no-store".to_string()
+                        } else {
+                            format!("public, max-age={max_age}, stale-while-revalidate=15768000")
+                        },
                     ),
                 ],
                 body,

@@ -6,6 +6,7 @@ pkgs.mkShell {
     pkg-config
     cargo
     rustc
+    ripgrep
   ];
 
   # buildInputs contient les bibliothèques à lier (linker)
