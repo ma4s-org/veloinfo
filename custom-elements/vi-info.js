@@ -44,7 +44,9 @@ export default class ViInfo extends HTMLElement {
 
   render(data) {
     const that = this;
-    this.innerHTML = data?.arrow === "▼" ?
+    const allDisabled = data?.contributions?.length > 0 && data.contributions.every(c => c.enabled === false || c.enabled === "false");
+    const showUp = data?.arrow === "▼" && (!allDisabled || data?.forceUp);
+    this.innerHTML = showUp ?
       html`<div id="info_panel_up" style="position: absolute; width: 100%; height: 40%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem; display: flex; flex-direction: column;">
         <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0; display: none;" src="/pub/bars.svg">
         <div id="info_panel_up_header" style="width: 100%; height: 1.75rem; flex-shrink: 0; display: flex; justify-content: center; cursor: pointer;">
@@ -112,7 +114,7 @@ export default class ViInfo extends HTMLElement {
       let bounds = getViMain().map.getBounds();
       let r = await fetch("/info_panel/up/" + bounds._sw.lng + "/" + bounds._sw.lat + "/" + bounds._ne.lng + "/" + bounds._ne.lat);
       let json = await r.json();
-      this.data = json;
+      this.data = { ...json, forceUp: true };
     });
 
   }
