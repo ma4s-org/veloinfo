@@ -4,8 +4,6 @@ let html = String.raw;
 class RouteDefine extends HTMLElement {
     constructor() {
         super();
-        const viMain = getViMain();
-        var destination = viMain.start_marker.getLngLat();
     }
 
     connectedCallback() {

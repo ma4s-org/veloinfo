@@ -30,12 +30,21 @@ pub struct Point {
     pub node_id: i64,
     pub length: f64,
     pub ferry: bool,
+    pub name: Option<String>,
 }
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[{},{}]", self.lng, self.lat)
     }
+}
+
+/// Extrait le nom depuis les tags OSM. Essaie `name`, puis `name:fr`, puis `ref`.
+pub fn extract_name(tags: &HashMap<String, String>) -> Option<String> {
+    tags.get("name")
+        .or_else(|| tags.get("name:fr"))
+        .or_else(|| tags.get("ref"))
+        .cloned()
 }
 
 #[derive(Debug, sqlx::FromRow, Clone)]
@@ -112,6 +121,7 @@ pub struct EdgePoint {
     pub routing_bicycle_use_sidepath: bool,
     pub elevation_start: Option<i16>,
     pub elevation_end: Option<i16>,
+    pub name: Option<String>,
 }
 
 impl Default for EdgePoint {
@@ -156,6 +166,7 @@ impl Default for EdgePoint {
             routing_bicycle_use_sidepath: false,
             elevation_start: None,
             elevation_end: None,
+            name: None,
         }
     }
 }
@@ -518,6 +529,7 @@ impl From<(ARc<Edge>, SourceOrTarget)> for EdgePoint {
             abandoned: get("abandoned") == Some(&"yes".to_string()),
             elevation_start: edge.elevation_start,
             elevation_end: edge.elevation_end,
+            name: extract_name(&edge.tags.0),
         };
 
         ep
@@ -888,6 +900,7 @@ impl Edge {
                                 Some(Route::Ferry) => true,
                                 _ => false,
                             },
+                            name: edge.name.clone(),
                         },
                         SourceOrTarget::Target => Point {
                             lng: edge.lon2,
@@ -899,6 +912,7 @@ impl Edge {
                                 Some(Route::Ferry) => true,
                                 _ => false,
                             },
+                            name: edge.name.clone(),
                         },
                     }
                 })

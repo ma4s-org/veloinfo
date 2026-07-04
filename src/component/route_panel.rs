@@ -19,6 +19,7 @@ pub struct RoutePanel {
     pub coordinates: String,
     pub error: String,
     pub ferry: bool,
+    pub names: String,
 }
 
 impl RoutePanel {
@@ -27,6 +28,7 @@ impl RoutePanel {
             coordinates: "[]".to_string(),
             error,
             ferry: false,
+            names: "[]".to_string(),
         }
     }
 }
@@ -112,6 +114,7 @@ pub async fn route(
                 way_id: 0,
                 node_id: 0,
                 ferry: false,
+                name: None,
             },
         );
         points.push(Point {
@@ -121,6 +124,7 @@ pub async fn route(
             way_id: 0,
             node_id: 0,
             ferry: false,
+            name: None,
         });
         points_rapide.insert(
             0,
@@ -131,6 +135,7 @@ pub async fn route(
                 way_id: 0,
                 node_id: 0,
                 ferry: false,
+                name: None,
             },
         );
         points_rapide.push(Point {
@@ -140,6 +145,7 @@ pub async fn route(
             way_id: 0,
             node_id: 0,
             ferry: false,
+            name: None,
         });
 
         let edges_coordinate_safe: Vec<(f64, f64)> =
@@ -148,9 +154,24 @@ pub async fn route(
             .iter()
             .map(|point| (point.lng, point.lat))
             .collect();
+        let names_safe: Vec<Option<String>> =
+            points.iter().map(|point| point.name.clone()).collect();
+        let names_fast: Vec<Option<String>> =
+            points_rapide.iter().map(|point| point.name.clone()).collect();
+        let names_json = serde_json::to_string(&[names_safe, names_fast])
+            .unwrap_or_else(|e| format!("Error serializing names: {}", e));
+        // HTML-encode the JSON so quotes don't break the HTML attribute.
+        // The browser automatically decodes &quot; &#39; etc. when reading getAttribute().
+        let names_html = names_json
+            .replace('&', "&amp;")
+            .replace('"', "&quot;")
+            .replace('\'', "&#39;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;");
         let panel = RoutePanel {
             coordinates: serde_json::to_string(&[edges_coordinate_safe, edges_coordinate_fast])
                 .unwrap_or_else(|e| format!("Error serializing edges: {}", e)),
+            names: names_html,
             error: "".to_string(),
             ferry: points.iter().any(|point| point.ferry),
         }
@@ -242,6 +263,7 @@ pub async fn recalculate_route(
                 way_id: 0,
                 node_id: 0,
                 ferry: false,
+                name: None,
             },
         );
         points.push(Point {
@@ -251,10 +273,16 @@ pub async fn recalculate_route(
             way_id: 0,
             node_id: 0,
             ferry: false,
+            name: None,
         });
         let edges_coordinate: Vec<(f64, f64)> =
             points.iter().map(|point| (point.lng, point.lat)).collect();
-        let json = match serde_json::to_string(&edges_coordinate) {
+        let names: Vec<Option<String>> =
+            points.iter().map(|point| point.name.clone()).collect();
+        let json = match serde_json::to_string(&serde_json::json!({
+            "coordinates": edges_coordinate,
+            "names": names,
+        })) {
             Ok(json) => json,
             Err(e) => {
                 socket
@@ -265,7 +293,7 @@ pub async fn recalculate_route(
             }
         };
         socket
-            .send(format!("{{\"coordinates\": {}}}", json).into())
+            .send(json.into())
             .await
             .unwrap();
     })

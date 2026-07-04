@@ -35,7 +35,11 @@ function renderReplies(replies, report_id, depth, parentId) {
 export default class ViInfo extends HTMLElement {
   constructor(data) {
     super();
-    this.render(data);
+    this._data = data;
+  }
+
+  connectedCallback() {
+    this.render(this._data);
   }
 
   set data(data) {

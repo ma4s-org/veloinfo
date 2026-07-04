@@ -17,6 +17,17 @@ class RoutePanel extends HTMLElement {
         }
         const ferry = this.getAttribute("ferry");
         const hasFerry = ferry === "true";
+        // Les noms de routes sont transmis via l'attribut HTML "names"
+        // Le JSON est HTML-encodé côté serveur (&quot; etc.), le navigateur
+        // décode automatiquement lors de getAttribute()
+        const viMain = getViMain();
+        const namesAttr = this.getAttribute('names');
+        try {
+            this.routeNames = namesAttr ? JSON.parse(namesAttr) : null;
+        } catch (e) {
+            console.error('RoutePanel: invalid names JSON:', namesAttr, e);
+            this.routeNames = null;
+        }
         if (!coordinates || !coordinates[0]) {
             console.error("RoutePanel: coordinates not found");
             return;
@@ -24,7 +35,6 @@ class RoutePanel extends HTMLElement {
 
         const safeCoordinates = coordinates[0];
         const fastCoordinates = coordinates[1] || null; // Peut être undefined si une seule route
-        const viMain = getViMain();
         let map = viMain.map;
 
         // Créer le marqueur de destination (bleu) à la fin de la route si pas déjà présent
@@ -199,13 +209,21 @@ class RoutePanel extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector('#safe-route-btn').addEventListener('click', () => {
-            let innerHTML = '<vi-follow-panel route="safe" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
-            document.getElementById("info").innerHTML = innerHTML;
+            const panel = document.createElement('vi-follow-panel');
+            panel.setAttribute('route', 'safe');
+            panel.setAttribute('coordinates', JSON.stringify(coordinates));
+            panel.setAttribute('route_names', JSON.stringify(this.routeNames));
+            document.getElementById("info").textContent = '';
+            document.getElementById("info").appendChild(panel);
         });
         if (this.querySelector('#fast-route-btn')) {
             this.querySelector('#fast-route-btn').addEventListener('click', () => {
-                let innerHTML = '<vi-follow-panel route="fast" coordinates="' + JSON.stringify(coordinates) + '"></vi-follow-panel>'
-                document.getElementById("info").innerHTML = innerHTML;
+                const panel = document.createElement('vi-follow-panel');
+                panel.setAttribute('route', 'fast');
+                panel.setAttribute('coordinates', JSON.stringify(coordinates));
+                panel.routeNames = this.routeNames;
+                document.getElementById("info").textContent = '';
+                document.getElementById("info").appendChild(panel);
             });
         }
         this.querySelector('#change-start-btn').addEventListener('click', () => {

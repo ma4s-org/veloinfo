@@ -10,3 +10,4 @@
 .direnv
 nodes.bin
 *.tmp
+.aider*
