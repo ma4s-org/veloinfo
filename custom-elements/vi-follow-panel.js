@@ -89,7 +89,7 @@ class FollowPanel extends HTMLElement {
                 this.routeCoordinates[closestCoordinate][0]
             );
 
-            if (distanceToClosest > 0.2) { // 200 meters
+            if (distanceToClosest > 0.1) { // 100 meters
                 // we are too far from the route. We calculate it again.
                 this.updating = true;
                 const socket = new WebSocket(`/recalculate_route/${this.getAttribute('route')}/${position.coords.longitude}/${position.coords.latitude}/${this.routeCoordinates[this.routeCoordinates.length - 1][0]}/${this.routeCoordinates[this.routeCoordinates.length - 1][1]}?allow_ferry=true`);
@@ -178,7 +178,7 @@ class FollowPanel extends HTMLElement {
                 coordinates);
 
             // bearing between current position and 100 meter away
-            // Find the first coordinate that is at least 100 meters away from current position (functional style)
+            // Find the first coordinate that is at least 50 meters away from current position (functional style)
             let { latitude, longitude } = position.coords;
             let hundredMeterAwayIndex = coordinates
                 .slice(closestCoordinate)
@@ -188,7 +188,7 @@ class FollowPanel extends HTMLElement {
                         longitude,
                         coord[1],
                         coord[0]
-                    ) >= 0.15 // 150 meters
+                    ) >= 0.05 // 50 meters
                 );
             hundredMeterAwayIndex = hundredMeterAwayIndex === -1
                 ? coordinates.length - 1
