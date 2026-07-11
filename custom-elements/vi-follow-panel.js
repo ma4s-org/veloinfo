@@ -11,6 +11,7 @@ class FollowPanel extends HTMLElement {
         this.lastPassedVertex = null;
         // Track the last announced turn to avoid repetition
         this.lastSpokenTurnIndex = -1;
+        this.spokenTurnIndices = new Set();
     }
 
     set routeNames(value) {
@@ -155,7 +156,9 @@ class FollowPanel extends HTMLElement {
                         this.routeCoordinates = data.coordinates;
                         this.lastPassedVertex = null;
                         this.lastSpokenTurnIndex = -1;
+                        this.spokenTurnIndices = new Set();
                         this.routeNames = data.names || [];
+                        getViMain().clearDistanceCache();
                         this.updating = false;
                         // Rejoue updatePosition avec la nouvelle route.
                         this.updatePosition();
@@ -233,27 +236,61 @@ class FollowPanel extends HTMLElement {
             let arrow = this.getTurnArrow(turnDirection);
             let distanceMeters = Math.round(distanceToTurn * 1000);
             nextStreetEl.innerHTML = `${currentName} <span style="font-size: 2.5em; line-height: 0; vertical-align: middle;">${arrow}</span> ${nextName} (${distanceMeters} m)`;
-            // Annoncer vocalement la direction du virage 50 m avant l'intersection
-            this.announceTurn(turnIndex, turnDirection, distanceToTurn, nextName);
+
+            // Collecter tous les virages à moins de 100 m pour l'annonce vocale
+            let pendingTurns = [{
+                turnIndex,
+                direction: turnDirection,
+                distanceToTurn,
+                nextName,
+            }];
+            let searchFromIndex = turnIndex;
+            let searchFromName = this.routeNames[turnIndex];
+            for (let i = turnIndex + 1; i < this.routeNames.length; i++) {
+                let name = this.routeNames[i];
+                if (name !== searchFromName) {
+                    let dist = this.calculateDistance(
+                        currentLat, currentLng,
+                        this.routeCoordinates[i - 1][1], this.routeCoordinates[i - 1][0]
+                    );
+                    if (dist > 0.1) {
+                        break;
+                    }
+                    let dir = this.getTurnDirection(coords, i);
+                    let nm = name || 'route inconnue';
+                    pendingTurns.push({
+                        turnIndex: i,
+                        direction: dir,
+                        distanceToTurn: dist,
+                        nextName: nm,
+                    });
+                    searchFromIndex = i;
+                    searchFromName = name;
+                }
+            }
+            this.announceTurns(pendingTurns);
         } else {
             nextStreetEl.innerText = currentName;
         }
     }
 
-    announceTurn(turnIndex, direction, distanceToTurn, nextName) {
-        // Ne prononcer qu'une seule fois par virage
-        if (turnIndex === this.lastSpokenTurnIndex) {
-            return;
-        }
-        // Seulement à moins de 50 mètres de l'intersection
-        if (distanceToTurn > 0.05) {
+    announceTurns(pendingTurns) {
+        // Filtrer les virages déjà annoncés
+        let newTurns = pendingTurns.filter(t => !this.spokenTurnIndices.has(t.turnIndex));
+        if (newTurns.length === 0) {
             return;
         }
         // Respecter le bouton d'activation du son
         if (!getViMain().soundEnabled) {
             return;
         }
-        this.lastSpokenTurnIndex = turnIndex;
+        if (!('speechSynthesis' in window)) {
+            return;
+        }
+        // Marquer tous les virages comme annoncés
+        newTurns.forEach(t => this.spokenTurnIndices.add(t.turnIndex));
+        this.lastSpokenTurnIndex = newTurns[newTurns.length - 1].turnIndex;
+
         let phrases = {
             'left': 'Tournez à gauche',
             'right': 'Tournez à droite',
@@ -261,14 +298,21 @@ class FollowPanel extends HTMLElement {
             'uturn-left': 'Demi-tour à gauche',
             'uturn-right': 'Demi-tour à droite',
         };
-        let phrase = phrases[direction];
-        if (!phrase || !('speechSynthesis' in window)) {
+
+        let parts = newTurns.map(t => {
+            let phrase = phrases[t.direction];
+            if (!phrase) return null;
+            let distanceMeters = Math.round(t.distanceToTurn * 1000);
+            return t.nextName && t.nextName !== 'route inconnue'
+                ? `${phrase} dans ${distanceMeters} mètres sur ${t.nextName}`
+                : `${phrase} dans ${distanceMeters} mètres`;
+        }).filter(p => p !== null);
+
+        if (parts.length === 0) {
             return;
         }
-        let distanceMeters = Math.round(distanceToTurn * 1000);
-        let fullPhrase = nextName && nextName !== 'route inconnue'
-            ? `${phrase} dans ${distanceMeters} mètres sur ${nextName}`
-            : `${phrase} dans ${distanceMeters} mètres`;
+
+        let fullPhrase = parts.join(' et ');
         let utterance = new SpeechSynthesisUtterance(fullPhrase);
         utterance.lang = 'fr-FR';
         speechSynthesis.speak(utterance);
@@ -481,8 +525,30 @@ class FollowPanel extends HTMLElement {
 
         // Find the first coordinate that is at least 50 meters away from current position,
         // en cherchant vers l'avant à partir du point suivant l'index courant.
+        // On ignore les vertices qui sont derrière (bearing opposé au vertex suivant)
+        // pour éviter que le bearing pointe vers l'arrière après un recalcul.
+        let searchStart = startIndex + 1;
+        if (searchStart < coordinates.length - 1) {
+            let nextBearing = getViMain().calculateBearing(
+                currentLng, currentLat,
+                coordinates[searchStart][0], coordinates[searchStart][1]
+            );
+            let followingBearing = getViMain().calculateBearing(
+                coordinates[searchStart][0], coordinates[searchStart][1],
+                coordinates[searchStart + 1][0], coordinates[searchStart + 1][1]
+            );
+            let diff = followingBearing - nextBearing;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            // Si le segment suivant va dans la direction opposée (demi-tour),
+            // le vertex searchStart est derrière : on l'ignore.
+            if (Math.abs(diff) > 135) {
+                searchStart = searchStart + 1;
+            }
+        }
+
         let hundredMeterAwayIndex = coordinates
-            .slice(startIndex + 1)
+            .slice(searchStart)
             .findIndex(coord =>
                 this.calculateDistance(
                     currentLat,
@@ -501,7 +567,7 @@ class FollowPanel extends HTMLElement {
             targetIndex = coordinates.length - 1;
             useSegmentBearing = true;
         } else {
-            targetIndex = hundredMeterAwayIndex + startIndex + 1;
+            targetIndex = hundredMeterAwayIndex + searchStart;
         }
 
         let bearing;
