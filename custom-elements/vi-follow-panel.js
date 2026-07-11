@@ -183,10 +183,12 @@ class FollowPanel extends HTMLElement {
 
         // names[i] = nom de l'edge i (segment [i, i+1]).
         // Le vertex 0 (raccordement) a souvent name = null, on décale alors
-        // au nom du segment suivant.
-        let currentName = this.routeNames[lastPassedVertexIndex]
-            || this.routeNames[lastPassedVertexIndex + 1]
-            || 'route inconnue';
+        // au nom du segment suivant. On garde le nom brut (possiblement null)
+        // pour la comparaison, le fallback 'route inconnue' ne sert qu'à l'affichage.
+        let rawCurrentName = this.routeNames[lastPassedVertexIndex]
+            ?? this.routeNames[lastPassedVertexIndex + 1]
+            ?? null;
+        let currentName = rawCurrentName || 'route inconnue';
 
         // Trouver le prochain index où le nom change (le "turn index")
         // Un nom null est un changement de rue (ruelle sans nom, chemin, etc.)
@@ -194,7 +196,7 @@ class FollowPanel extends HTMLElement {
         let nextName = null;
         for (let i = lastPassedVertexIndex + 1; i < this.routeNames.length; i++) {
             let name = this.routeNames[i];
-            if (name !== currentName) {
+            if (name !== rawCurrentName) {
                 turnIndex = i;
                 nextName = name || 'route inconnue';
                 break;
