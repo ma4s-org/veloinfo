@@ -9,6 +9,8 @@ class FollowPanel extends HTMLElement {
         this._routeNames = null;
         // Track the last returned coordinate index
         this.lastPassedVertex = null;
+        // Track the last announced turn to avoid repetition
+        this.lastSpokenTurnIndex = -1;
     }
 
     set routeNames(value) {
@@ -92,6 +94,10 @@ class FollowPanel extends HTMLElement {
             this.updatePosition();
         }, 5_000);
         this.updatePosition();
+        let soundButton = document.getElementById('sound_button');
+        if (soundButton) {
+            soundButton.style.display = 'flex';
+        }
     }
 
     disconnectedCallback() {
@@ -99,6 +105,10 @@ class FollowPanel extends HTMLElement {
             getViMain().geolocate.trigger();
         }
         clearInterval(this.intervalId);
+        let soundButton = document.getElementById('sound_button');
+        if (soundButton) {
+            soundButton.style.display = 'none';
+        }
     }
 
     updatePosition() {
@@ -144,6 +154,7 @@ class FollowPanel extends HTMLElement {
                         });
                         this.routeCoordinates = data.coordinates;
                         this.lastPassedVertex = null;
+                        this.lastSpokenTurnIndex = -1;
                         this.routeNames = data.names || [];
                         this.updating = false;
                         // Rejoue updatePosition avec la nouvelle route.
@@ -222,9 +233,45 @@ class FollowPanel extends HTMLElement {
             let arrow = this.getTurnArrow(turnDirection);
             let distanceMeters = Math.round(distanceToTurn * 1000);
             nextStreetEl.innerHTML = `${currentName} <span style="font-size: 2.5em; line-height: 0; vertical-align: middle;">${arrow}</span> ${nextName} (${distanceMeters} m)`;
+            // Annoncer vocalement la direction du virage 50 m avant l'intersection
+            this.announceTurn(turnIndex, turnDirection, distanceToTurn, nextName);
         } else {
             nextStreetEl.innerText = currentName;
         }
+    }
+
+    announceTurn(turnIndex, direction, distanceToTurn, nextName) {
+        // Ne prononcer qu'une seule fois par virage
+        if (turnIndex === this.lastSpokenTurnIndex) {
+            return;
+        }
+        // Seulement à moins de 50 mètres de l'intersection
+        if (distanceToTurn > 0.05) {
+            return;
+        }
+        // Respecter le bouton d'activation du son
+        if (!getViMain().soundEnabled) {
+            return;
+        }
+        this.lastSpokenTurnIndex = turnIndex;
+        let phrases = {
+            'left': 'Tournez à gauche',
+            'right': 'Tournez à droite',
+            'straight': 'Continuez tout droit',
+            'uturn-left': 'Demi-tour à gauche',
+            'uturn-right': 'Demi-tour à droite',
+        };
+        let phrase = phrases[direction];
+        if (!phrase || !('speechSynthesis' in window)) {
+            return;
+        }
+        let distanceMeters = Math.round(distanceToTurn * 1000);
+        let fullPhrase = nextName && nextName !== 'route inconnue'
+            ? `${phrase} dans ${distanceMeters} mètres sur ${nextName}`
+            : `${phrase} dans ${distanceMeters} mètres`;
+        let utterance = new SpeechSynthesisUtterance(fullPhrase);
+        utterance.lang = 'fr-FR';
+        speechSynthesis.speak(utterance);
     }
 
     getTurnDirection(coords, turnIndex) {
