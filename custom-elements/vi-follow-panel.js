@@ -95,6 +95,14 @@ class FollowPanel extends HTMLElement {
             this.updatePosition();
         }, 5_000);
         this.updatePosition();
+
+        // Bloquer le recentrage automatique pendant 10 s quand l'utilisateur déplace la carte
+        this.userPannedAt = 0;
+        this._panHandler = () => {
+            this.userPannedAt = Date.now();
+        };
+        map.on('dragstart', this._panHandler);
+
         let soundButton = document.getElementById('sound_button');
         if (soundButton) {
             soundButton.style.display = 'flex';
@@ -106,6 +114,10 @@ class FollowPanel extends HTMLElement {
             getViMain().geolocate.trigger();
         }
         clearInterval(this.intervalId);
+        let map = getViMain().map;
+        if (this._panHandler) {
+            map.off('dragstart', this._panHandler);
+        }
         let soundButton = document.getElementById('sound_button');
         if (soundButton) {
             soundButton.style.display = 'none';
@@ -520,6 +532,11 @@ class FollowPanel extends HTMLElement {
 
     setBearing(coordinates, currentLat, currentLng, startIndex) {
         if (!document.body.contains(this)) {
+            return;
+        }
+
+        // Ne pas recentrer si l'utilisateur a déplacé la carte il y a moins de 10 s
+        if (this.userPannedAt && Date.now() - this.userPannedAt < 10_000) {
             return;
         }
 
