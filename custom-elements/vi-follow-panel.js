@@ -229,46 +229,46 @@ class FollowPanel extends HTMLElement {
             this.routeCoordinates[turnIndex - 1][1], this.routeCoordinates[turnIndex - 1][0]
         );
 
-        // N'afficher la prochaine rue que si le virage est à moins de 300 mètres
-        if (distanceToTurn <= 0.3) {
+        // N'afficher la prochaine rue que si le virage est à moins de 500 mètres
+        if (distanceToTurn <= 0.5) {
             let coords = this.routeCoordinates;
             let turnDirection = this.getTurnDirection(coords, turnIndex);
             let arrow = this.getTurnArrow(turnDirection);
             let distanceMeters = Math.round(distanceToTurn * 1000);
             nextStreetEl.innerHTML = `${currentName} <span style="font-size: 2.5em; line-height: 0; vertical-align: middle;">${arrow}</span> ${nextName} (${distanceMeters} m)`;
 
-            // Collecter tous les virages à moins de 100 m pour l'annonce vocale
-            let pendingTurns = [{
-                turnIndex,
-                direction: turnDirection,
-                distanceToTurn,
-                nextName,
-            }];
-            let searchFromIndex = turnIndex;
-            let searchFromName = this.routeNames[turnIndex];
-            for (let i = turnIndex + 1; i < this.routeNames.length; i++) {
-                let name = this.routeNames[i];
-                if (name !== searchFromName) {
-                    let dist = this.calculateDistance(
-                        currentLat, currentLng,
-                        this.routeCoordinates[i - 1][1], this.routeCoordinates[i - 1][0]
-                    );
-                    if (dist > 0.1) {
-                        break;
+            // Collecter et annoncer les virages à moins de 100 m
+            if (distanceToTurn <= 0.1) {
+                let pendingTurns = [{
+                    turnIndex,
+                    direction: turnDirection,
+                    distanceToTurn,
+                    nextName,
+                }];
+                let searchFromName = this.routeNames[turnIndex];
+                for (let i = turnIndex + 1; i < this.routeNames.length; i++) {
+                    let name = this.routeNames[i];
+                    if (name !== searchFromName) {
+                        let dist = this.calculateDistance(
+                            currentLat, currentLng,
+                            this.routeCoordinates[i - 1][1], this.routeCoordinates[i - 1][0]
+                        );
+                        if (dist > 0.1) {
+                            break;
+                        }
+                        let dir = this.getTurnDirection(coords, i);
+                        let nm = name || 'route inconnue';
+                        pendingTurns.push({
+                            turnIndex: i,
+                            direction: dir,
+                            distanceToTurn: dist,
+                            nextName: nm,
+                        });
+                        searchFromName = name;
                     }
-                    let dir = this.getTurnDirection(coords, i);
-                    let nm = name || 'route inconnue';
-                    pendingTurns.push({
-                        turnIndex: i,
-                        direction: dir,
-                        distanceToTurn: dist,
-                        nextName: nm,
-                    });
-                    searchFromIndex = i;
-                    searchFromName = name;
                 }
+                this.announceTurns(pendingTurns);
             }
-            this.announceTurns(pendingTurns);
         } else {
             nextStreetEl.innerText = currentName;
         }
