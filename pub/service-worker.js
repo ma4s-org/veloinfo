@@ -2,8 +2,8 @@
 // Intercepte /martin/*, /report/*, /bike_path, et ressources statiques
 // Retourne depuis cache immédiatement, refresh en background, 204 en cas d'erreur
 
-const CACHE_NAME = 'veloinfo-v2';
-const STATIC_CACHE = 'veloinfo-static-v2';
+const CACHE_NAME = 'veloinfo-v3';
+const STATIC_CACHE = 'veloinfo-static-v3';
 
 // Ressources à precacher à l'installation
 const PRECACHE_ASSETS = [
@@ -31,7 +31,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
+    // Nettoyer les anciens caches
+    event.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.filter(k => k !== CACHE_NAME && k !== STATIC_CACHE)
+                .map(k => caches.delete(k))
+        )).then(() => self.clients.claim())
+    );
 });
 
 self.addEventListener('fetch', (event) => {

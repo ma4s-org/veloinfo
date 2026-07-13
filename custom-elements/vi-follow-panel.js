@@ -77,7 +77,7 @@ class FollowPanel extends HTMLElement {
                         </div>
                     </div>
                     <div style="display: flex;justify-content: center;">
-                        <md-filled-button id="cancel-follow-btn">annuler</md-filled-button>
+                        <button id="cancel-follow-btn" type="button" style="background-color: rgb(94 234 212); color: rgb(19 105 89); border: none; border-radius: 9999px; padding: 0.5em 1.5em; font-size: 1em; font-weight: bold; text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent;">annuler</button>
                     </div>
                 </div>
             </div>
