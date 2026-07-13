@@ -1477,7 +1477,7 @@
         "visibility": "visible"
       },
       "paint": {
-        "line-color": "hsl(0, 0%, 85%)",
+        "line-color": "hsl(0, 0%, 60%)",
         "line-width": [
           "interpolate",
           [
@@ -1488,9 +1488,9 @@
             "zoom"
           ],
           4,
-          0.5,
+          0.7,
           7,
-          0.5,
+          0.7,
           10,
           [
             "match",
@@ -1509,13 +1509,13 @@
               ],
               1,
               0,
-              2.5
+              3.5
             ],
             [
               "trunk",
               "primary"
             ],
-            2.4,
+            3.4,
             0
           ],
           12,
@@ -1535,26 +1535,26 @@
                 "ramp"
               ],
               1,
-              2,
-              6
+              3,
+              8
             ],
             [
               "trunk",
               "primary"
             ],
-            3,
+            5,
             [
               "secondary",
               "tertiary"
             ],
-            2,
+            3,
             [
               "minor",
               "service",
               "track"
             ],
             0,
-            0.5
+            0.7
           ],
           14,
           [
@@ -1573,32 +1573,32 @@
                 "ramp"
               ],
               1,
-              5,
-              8
+              7,
+              11
             ],
             [
               "trunk"
             ],
-            4,
+            6,
             [
               "primary"
             ],
-            6,
+            8,
             [
               "secondary"
             ],
-            6,
+            8,
             [
               "tertiary"
             ],
-            4,
+            6,
             [
               "minor",
               "service",
               "track"
             ],
-            3,
-            3
+            4,
+            4
           ],
           16,
           [
@@ -1612,22 +1612,22 @@
               "trunk",
               "primary"
             ],
-            10,
+            13,
             [
               "secondary"
             ],
-            9,
+            12,
             [
               "tertiary"
             ],
-            8,
+            11,
             [
               "minor",
               "service",
               "track"
             ],
-            6,
-            6
+            8,
+            8
           ],
           20,
           [
@@ -1641,22 +1641,22 @@
               "trunk",
               "primary"
             ],
-            26,
+            32,
             [
               "secondary"
             ],
-            26,
+            32,
             [
               "tertiary"
             ],
-            26,
+            32,
             [
               "minor",
               "service",
               "track"
             ],
-            18,
-            18
+            22,
+            22
           ]
         ],
         "line-opacity": 1

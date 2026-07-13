@@ -83,14 +83,26 @@ class RoutePanel extends HTMLElement {
                 }
             })
             map.addLayer({
+                "id": "selected_safe_casing",
+                "type": "line",
+                "source": "selected_safe",
+                "paint": {
+                    "line-width": 12,
+                    "line-color": "hsl(205, 100%, 30%)",
+                    "line-blur": 0,
+                    "line-opacity": 0.8
+                }
+            },
+                "Road labels")
+            map.addLayer({
                 "id": "selected_safe",
                 "type": "line",
                 "source": "selected_safe",
                 "paint": {
-                    "line-width": 8,
+                    "line-width": 7,
                     "line-color": "hsl(205, 100%, 50%)",
                     "line-blur": 0,
-                    "line-opacity": 0.50
+                    "line-opacity": 0.85
                 }
             },
                 "Road labels")
