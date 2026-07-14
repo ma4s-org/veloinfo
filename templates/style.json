@@ -1477,7 +1477,18 @@
         "visibility": "visible"
       },
       "paint": {
-        "line-color": "hsl(0, 0%, 60%)",
+        "line-color": [
+          "match",
+          [
+            "get",
+            "highway"
+          ],
+          [
+            "service"
+          ],
+          "hsl(0, 0%, 95%)",
+          "hsl(0, 0%, 60%)"
+        ],
         "line-width": [
           "interpolate",
           [
