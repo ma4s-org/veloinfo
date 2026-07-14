@@ -21,7 +21,6 @@ MAINE_FILE="maine-latest.osm.pbf"
 VERMONT_FILE="vermont-latest.osm.pbf"
 NEWYORK_FILE="new-york-latest.osm.pbf"
 NY_NORTH_FILE="new-york-north.osm.pbf"
-ONT_EAST_FILE="ontario-east.osm.pbf"
 MERGED_FILE="regions.osm.pbf"
 
 echo "--- Étape 1 : Téléchargement des données OSM ---"
@@ -46,25 +45,24 @@ download_if_missing "$VERMONT_URL" "$VERMONT_FILE"
 download_if_missing "$NEWYORK_URL" "$NEWYORK_FILE"
 
 echo "   -> Extractions géographiques ciblées..."
-osmium extract --bbox -76.55,41.0,-74.0,57.0 "$ONTARIO_FILE" -o "$ONT_EAST_FILE" --overwrite
 osmium extract --bbox -79.0,43.0,-71.0,45.5 "$NEWYORK_FILE" -o "$NY_NORTH_FILE" --overwrite
 
 echo "   -> Fusion et tri des données (requis par osm2pgsql)..."
 # Les extractions bbox ne sont plus triées - il faut trier chaque extrait avant merge
-echo "   -> Tri des extraits individuels..."
-for f in "$QUEBEC_FILE" "$ONT_EAST_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE"; do
-    if [ -f "$f" ]; then
-        osmium sort "$f" -o "${f}.sorted.pbf" --overwrite --strategy=multipass
-        mv "${f}.sorted.pbf" "$f"
-    fi
-done
+# echo "   -> Tri des extraits individuels..."
+# for f in "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE"; do
+#     if [ -f "$f" ]; then
+#         osmium sort "$f" -o "${f}.sorted.pbf" --overwrite --strategy=multipass
+#         mv "${f}.sorted.pbf" "$f"
+#     fi
+# done
 
 echo "   -> Merge des extraits (dedup automatique)..."
-osmium merge "$QUEBEC_FILE" "$ONT_EAST_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE" -o "$MERGED_FILE" --overwrite
+osmium merge "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NY_NORTH_FILE" -o "$MERGED_FILE" --overwrite
 
-echo "   -> Tri final..."
-osmium sort "$MERGED_FILE" -o "${MERGED_FILE}.tmp.pbf" --overwrite --strategy=multipass
-mv "${MERGED_FILE}.tmp.pbf" "$MERGED_FILE"
+# echo "   -> Tri final..."
+# osmium sort "$MERGED_FILE" -o "${MERGED_FILE}.tmp.pbf" --overwrite --strategy=multipass
+# mv "${MERGED_FILE}.tmp.pbf" "$MERGED_FILE"
 
 
 # ==============================================================================
@@ -192,16 +190,6 @@ CREATE MATERIALIZED VIEW import.name_query AS
 CREATE INDEX ON import.address_range USING GIN (tsvector);
 CREATE INDEX ON import.name_query USING GIN (tsvector);
 
--- G. Dernier score de cyclabilité par way
-DROP TABLE IF EXISTS import.last_cycleway_score CASCADE;
-CREATE TABLE import.last_cycleway_score AS
-    SELECT * FROM (
-        SELECT c.*, cs.score, cs.created_at,
-               ROW_NUMBER() OVER (PARTITION BY c.way_id ORDER BY cs.created_at DESC) as rn
-        FROM public.report cs 
-        JOIN import.cycleway_way c ON c.way_id = ANY(cs.way_ids)
-    ) t WHERE t.rn = 1;
-CREATE UNIQUE INDEX ON import.last_cycleway_score(way_id);
 EOF
 
 # ==============================================================================
@@ -231,7 +219,7 @@ COMMIT;
 EOF
 
 
-rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NY_NORTH_FILE" "$ONT_EAST_FILE"
+rm -f "$QUEBEC_FILE" "$ONTARIO_FILE" "$NB_FILE" "$MAINE_FILE" "$VERMONT_FILE" "$NEWYORK_FILE" "$NY_NORTH_FILE" 
 rm -f "$MERGED_FILE"
 
 # Import des océans
