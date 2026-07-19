@@ -187,7 +187,7 @@ fn get_local_road_cost(edge: &EdgePoint) -> Option<f64> {
         }
     };
 
-    let mut base = 1.6;
+    let mut base = 2.2;
 
     // Conditions positives : exclusives (une seule s'applique)
     if edge.surface == Some(Surface::Sett)
