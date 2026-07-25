@@ -3,6 +3,7 @@ pub mod info_panel;
 pub mod photo_scroll;
 pub mod point_panel;
 pub mod route_panel;
+pub mod route_verte;
 pub mod score_circle;
 pub mod score_selector;
 pub mod search;

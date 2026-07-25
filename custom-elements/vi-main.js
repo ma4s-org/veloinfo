@@ -294,6 +294,20 @@ class ViMain extends HTMLElement {
                     const visible = !layers || !layers[layer] || layers[layer] !== "none";
                     this.map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none');
                 });
+                const params = new URLSearchParams(window.location.search);
+                if (params.get("rv") === "1") {
+                    // Mode Routes vertes : afficher les routes vertes, cacher les infra cyclables
+                    ["route_verte_with_infra", "route_verte_without_infra"].forEach(layer => {
+                        this.map.setLayoutProperty(layer, 'visibility', 'visible');
+                    });
+                    ["cycleway", "cycleway_crossing", "designated", "shared_lane"].forEach(layer => {
+                        this.map.setLayoutProperty(layer, 'visibility', 'none');
+                    });
+                } else {
+                    ["route_verte_with_infra", "route_verte_without_infra"].forEach(layer => {
+                        this.map.setLayoutProperty(layer, 'visibility', 'none');
+                    });
+                }
             }, 1000);
             const params = new URLSearchParams(window.location.search);
             if (!params.has("start_lng")) {
@@ -335,11 +349,11 @@ class ViMain extends HTMLElement {
                     url.searchParams.set('zoom', map.getZoom());
                     window.history.replaceState({}, '', url);
                 } else {
-                    window.history.replaceState(
-                        {},
-                        '',
-                        `/?lat=${map.getCenter().lat}&lng=${map.getCenter().lng}&zoom=${map.getZoom()}`
-                    );
+                    const url = new URL(window.location);
+                    url.searchParams.set('lat', map.getCenter().lat);
+                    url.searchParams.set('lng', map.getCenter().lng);
+                    url.searchParams.set('zoom', map.getZoom());
+                    window.history.replaceState({}, '', url);
                 }
                 localStorage.setItem("position", JSON.stringify({
                     lng: map.getCenter().lng,

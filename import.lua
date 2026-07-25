@@ -1,4 +1,5 @@
 local bicycle_route_ways = {}
+local route_verte_ways = {}
 
 local cycleway = osm2pgsql.define_way_table("cycleway_way", {
     {
@@ -84,6 +85,11 @@ local all_way = osm2pgsql.define_table({
     },
     {
         column = 'in_bicycle_route',
+        type = 'boolean',
+        not_null = true,
+        default = false
+    },{
+        column = 'in_route_verte',
         type = 'boolean',
         not_null = true,
         default = false
@@ -650,7 +656,8 @@ function osm2pgsql.process_way(way)
             route = way.tags.route,
             tags = way.tags,
             nodes = "{" .. table.concat(way.nodes, ",") .. "}",
-            in_bicycle_route = bicycle_route_ways[way.id] or false
+            in_bicycle_route = bicycle_route_ways[way.id] or false,
+            in_route_verte = route_verte_ways[way.id] or false
         })
     end
 
@@ -792,6 +799,13 @@ function osm2pgsql.select_relation_members(relation)
     if relation.tags.route == "bicycle" then
         for _, way_id in ipairs(osm2pgsql.way_member_ids(relation)) do
             bicycle_route_ways[way_id] = true
+        end
+        -- Réseau officiel Route Verte du Québec (tag cycle_network=CA:QC:RV)
+        local cn = relation.tags.cycle_network
+        if cn and string.lower(cn) == "ca:qc:rv" then
+            for _, way_id in ipairs(osm2pgsql.way_member_ids(relation)) do
+                route_verte_ways[way_id] = true
+            end
         end
         return {
             nodes = {},

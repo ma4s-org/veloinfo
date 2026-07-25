@@ -135,58 +135,98 @@ class FollowPanel extends HTMLElement {
                 position.coords.latitude,
                 this.routeCoordinates
             );
-            let distanceToRoute = this.distanceToRoute(
+            let { distance: distanceToRoute, bestIndex } = this.distanceToRoute(
                 position.coords.longitude,
                 position.coords.latitude,
                 this.routeCoordinates,
                 lastPassedVertexIndex
             );
 
+            // Si un segment en avant du lastPassedVertex est significativement
+            // plus proche (cas où findLastPassedVertex est en retard d'un
+            // vertex à cause du bruit GPS), on avance l'index pour rester
+            // cohérent avec la position réelle.
+            if (bestIndex !== null && bestIndex > lastPassedVertexIndex) {
+                lastPassedVertexIndex = bestIndex;
+                this.lastPassedVertex = bestIndex;
+            }
+
             if (distanceToRoute > 0.05) { // 50 meters
-                // we are too far from the route. We calculate it again.
-                this.updating = true;
-                const socket = new WebSocket(`/recalculate_route/${this.getAttribute('route')}/${position.coords.longitude}/${position.coords.latitude}/${this.routeCoordinates[this.routeCoordinates.length - 1][0]}/${this.routeCoordinates[this.routeCoordinates.length - 1][1]}?allow_ferry=true`);
-                socket.onerror = () => { this.updating = false; };
-                socket.onclose = (event) => {
-                    if (event.code !== 1000 && this.updating) {
-                        this.updating = false;
+                // Garde-fou avant recalcul : la fenêtre étroite (back=2, forward=2)
+                // peut perdre le segment réellement le plus proche (épingle,
+                // demi-tour, segments courts, lastPassedVertex en retard). On
+                // rescrute avec une fenêtre élargie (back=3, forward=10) pour
+                // mesurer la vraie distance à l'itinéraire. Si elle reste sous
+                // 50 m, on continue normalement (auto-avance incluse) sans
+                // recalcul. Sinon, on recalcule vraiment.
+                let wide = this.distanceToRoute(
+                    position.coords.longitude,
+                    position.coords.latitude,
+                    this.routeCoordinates,
+                    lastPassedVertexIndex,
+                    { back: 3, forward: 10 }
+                );
+                if (wide.distance <= 0.05) {
+                    distanceToRoute = wide.distance;
+                    if (wide.bestIndex !== null && wide.bestIndex > lastPassedVertexIndex) {
+                        lastPassedVertexIndex = wide.bestIndex;
+                        this.lastPassedVertex = wide.bestIndex;
                     }
-                };
-                socket.onmessage = async (event) => {
-                    let data = JSON.parse(event.data);
-                    if (data.coordinates) {
-                        socket.close();
-                        let sourceId = this.getAttribute('route') === "safe" ? "selected_safe" : "selected_fast";
-                        getViMain().map.getSource(sourceId).setData({
-                            "type": "Feature",
-                            "properties": {},
-                            "geometry": {
-                                "type": "MultiLineString",
-                                "coordinates": [data.coordinates]
-                            }
-                        });
-                        this.routeCoordinates = data.coordinates;
-                        this.lastPassedVertex = null;
-                        this.lastSpokenTurnIndex = -1;
-                        this.spokenTurnIndices = new Set();
-                        this.routeNames = data.names || [];
-                        getViMain().clearDistanceCache();
-                        this.updating = false;
-                        // Rejoue updatePosition avec la nouvelle route.
-                        this.updatePosition();
-                        return;
-                    } else {
-                        // non-coordinate message; ignore
+                } else {
+                    // we are too far from the route. We calculate it again.
+                    this.updating = true;
+                    const socket = new WebSocket(`/recalculate_route/${this.getAttribute('route')}/${position.coords.longitude}/${position.coords.latitude}/${this.routeCoordinates[this.routeCoordinates.length - 1][0]}/${this.routeCoordinates[this.routeCoordinates.length - 1][1]}?allow_ferry=true`);
+                    socket.onerror = () => { this.updating = false; };
+                    socket.onclose = (event) => {
+                        if (event.code !== 1000 && this.updating) {
+                            this.updating = false;
+                        }
+                    };
+                    socket.onmessage = async (event) => {
+                        let data = JSON.parse(event.data);
+                        if (data.coordinates) {
+                            socket.close();
+                            let sourceId = this.getAttribute('route') === "safe" ? "selected_safe" : "selected_fast";
+                            getViMain().map.getSource(sourceId).setData({
+                                "type": "Feature",
+                                "properties": {},
+                                "geometry": {
+                                    "type": "MultiLineString",
+                                    "coordinates": [data.coordinates]
+                                }
+                            });
+                            this.routeCoordinates = data.coordinates;
+                            this.lastPassedVertex = null;
+                            this.lastSpokenTurnIndex = -1;
+                            this.spokenTurnIndices = new Set();
+                            this.routeNames = data.names || [];
+                            getViMain().clearDistanceCache();
+                            this.updating = false;
+                            // Rejoue updatePosition avec la nouvelle route.
+                            this.updatePosition();
+                            return;
+                        } else {
+                            // non-coordinate message; ignore
+                        }
                     }
+                    return;
                 }
-                return;
             }
             let totalDistance = getViMain().calculateTotalDistance(this.routeCoordinates, lastPassedVertexIndex).toFixed(1);
             if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
             }
-            this.updateNextStreet(lastPassedVertexIndex, position.coords.longitude, position.coords.latitude);
-            this.setBearing(this.routeCoordinates, position.coords.latitude, position.coords.longitude, lastPassedVertexIndex);
+            // Position projetée sur le segment courant pour l'affichage et
+            // le bearing : évite que la carte pointe vers un côté quand le
+            // GPS dérive légèrement hors route.
+            let [snappedLng, snappedLat] = this.projectOnRoute(
+                position.coords.longitude,
+                position.coords.latitude,
+                this.routeCoordinates,
+                lastPassedVertexIndex
+            );
+            this.updateNextStreet(lastPassedVertexIndex, snappedLng, snappedLat);
+            this.setBearing(this.routeCoordinates, snappedLat, snappedLng, lastPassedVertexIndex);
         });
     }
 
@@ -428,48 +468,54 @@ class FollowPanel extends HTMLElement {
     }
 
     /**
-     * Distance perpendiculaire du point (lng, lat) au segment de route le plus
-     * proche (segments autour de lastPassedVertexIndex). On utilise la distance
-     * à la droite portant le segment (non clamped) : pertinente même quand la
-     * projection tombe hors du segment.
+     * Distance à l'itinéraire en scrutant une fenêtre de segments autour de
+     * lastPassedVertexIndex. Par défaut la fenêtre est étroite (back=2, forward=2)
+     * pour le chemin nominal (snap, bearing). Avant de déclencher un recalcul,
+     * on appelle cette fonction avec une fenêtre élargie (back=3, forward=10) pour
+     * mesurer la vraie distance à l'itinéraire et éviter les recalculs injustifiés
+     * quand le segment réellement le plus proche est hors de la fenêtre étroite
+     * (route en épingle, demi-tour, segments courts, lastPassedVertex en retard).
+     *
+     * On utilise la distance au segment clampée (et non à la droite porteuse),
+     * de sorte qu'un utilisateur projeté hors des extrémités du segment soit
+     * mesuré au point le plus proche du segment, pas à la droite infinie.
+     *
+     * Retourne { distance, bestIndex } où bestIndex est l'index du premier
+     * vertex du segment le plus proche (peut être > lastPassedVertexIndex si
+     * un segment en avant est plus proche — utile pour auto-avancer).
      */
-    distanceToRoute(lng, lat, coords, lastPassedVertexIndex) {
-        if (!coords || coords.length === 0) return Infinity;
+    distanceToRoute(lng, lat, coords, lastPassedVertexIndex, window = { back: 2, forward: 2 }) {
+        if (!coords || coords.length === 0) return { distance: Infinity, bestIndex: null };
 
         let minDistance = Infinity;
-        let segments = [];
-        if (lastPassedVertexIndex > 0) {
-            segments.push([lastPassedVertexIndex - 1, lastPassedVertexIndex]);
-        }
-        if (lastPassedVertexIndex < coords.length - 1) {
-            segments.push([lastPassedVertexIndex, lastPassedVertexIndex + 1]);
-        }
+        let bestIndex = null;
+        let startSeg = Math.max(0, lastPassedVertexIndex - window.back);
+        let endSeg = Math.min(coords.length - 2, lastPassedVertexIndex + window.forward);
 
-        for (let [i, j] of segments) {
-            let d = this.perpendicularDistanceToLine(
+        for (let i = startSeg; i <= endSeg; i++) {
+            let d = this.distanceToSegment(
                 lng, lat,
                 coords[i][0], coords[i][1],
-                coords[j][0], coords[j][1]
+                coords[i + 1][0], coords[i + 1][1]
             );
             if (d < minDistance) {
                 minDistance = d;
+                bestIndex = i;
             }
         }
 
-        if (segments.length === 0) {
-            return this.calculateDistance(lat, lng, coords[0][1], coords[0][0]);
+        if (minDistance === Infinity) {
+            return { distance: this.calculateDistance(lat, lng, coords[0][1], coords[0][0]), bestIndex: null };
         }
 
-        return minDistance;
+        return { distance: minDistance, bestIndex };
     }
 
     /**
-     * Hauteur du triangle rectangle formé par le point P et le segment [A, B],
-     * i.e. la distance perpendiculaire de P à la droite portant [A, B].
-     * Formule : h = |AP × AB| / |AB|  (produit vectoriel 2D).
-     * Retourne la distance en km.
+     * Distance du point (lng, lat) au segment [A, B], avec projection clampée
+     * sur le segment (t ∈ [0,1]). Retourne la distance en km.
      */
-    perpendicularDistanceToLine(px, py, ax, ay, bx, by) {
+    distanceToSegment(px, py, ax, ay, bx, by) {
         const latRad = py * Math.PI / 180;
         const cosLat = Math.cos(latRad);
         const kmPerDegLng = 111.32 * cosLat;
@@ -484,21 +530,84 @@ class FollowPanel extends HTMLElement {
 
         let abx = bxk - axk;
         let aby = byk - ayk;
-        let abLen = Math.sqrt(abx * abx + aby * aby);
+        let abLenSq = abx * abx + aby * aby;
 
-        if (abLen === 0) {
-            // A et B confondus : distance au point A
+        if (abLenSq === 0) {
             let dx = pxk - axk;
             let dy = pyk - ayk;
             return Math.sqrt(dx * dx + dy * dy);
         }
 
-        // Produit vectoriel 2D : |AP × AB| = |apx * aby - apy * abx|
         let apx = pxk - axk;
         let apy = pyk - ayk;
-        let cross = Math.abs(apx * aby - apy * abx);
+        let t = (apx * abx + apy * aby) / abLenSq;
+        t = Math.max(0, Math.min(1, t));
 
-        return cross / abLen;
+        let projx = axk + t * abx;
+        let projy = ayk + t * aby;
+
+        let dx = pxk - projx;
+        let dy = pyk - projy;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Projection clamped du point (lng, lat) sur le segment de l'itinéraire
+     * autour de lastPassedVertexIndex. Retourne [lng, lat] projeté en degrés,
+     * prêt à être utilisé pour le bearing et l'affichage (snap visuel).
+     * Choisit le segment le plus proche parmi les segments voisins (±1) pour
+     * rester cohérent avec la position réelle.
+     */
+    projectOnRoute(lng, lat, coords, lastPassedVertexIndex) {
+        if (!coords || coords.length === 0) return [lng, lat];
+
+        let bestSeg = lastPassedVertexIndex;
+        let minDist = Infinity;
+        let startSeg = Math.max(0, lastPassedVertexIndex - 1);
+        let endSeg = Math.min(coords.length - 2, lastPassedVertexIndex + 1);
+
+        for (let i = startSeg; i <= endSeg; i++) {
+            let d = this.distanceToSegment(
+                lng, lat,
+                coords[i][0], coords[i][1],
+                coords[i + 1][0], coords[i + 1][1]
+            );
+            if (d < minDist) {
+                minDist = d;
+                bestSeg = i;
+            }
+        }
+
+        let a = coords[bestSeg];
+        let b = coords[bestSeg + 1];
+
+        const latRad = lat * Math.PI / 180;
+        const cosLat = Math.cos(latRad);
+        const kmPerDegLng = 111.32 * cosLat;
+        const kmPerDegLat = 110.574;
+
+        let pxk = lng * kmPerDegLng;
+        let pyk = lat * kmPerDegLat;
+        let axk = a[0] * kmPerDegLng;
+        let ayk = a[1] * kmPerDegLat;
+        let bxk = b[0] * kmPerDegLng;
+        let byk = b[1] * kmPerDegLat;
+
+        let abx = bxk - axk;
+        let aby = byk - ayk;
+        let abLenSq = abx * abx + aby * aby;
+
+        if (abLenSq === 0) return [a[0], a[1]];
+
+        let apx = pxk - axk;
+        let apy = pyk - ayk;
+        let t = (apx * abx + apy * aby) / abLenSq;
+        t = Math.max(0, Math.min(1, t));
+
+        let projLngK = axk + t * abx;
+        let projLatK = ayk + t * aby;
+
+        return [projLngK / kmPerDegLng, projLatK / kmPerDegLat];
     }
 
     /**

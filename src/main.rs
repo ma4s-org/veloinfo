@@ -7,6 +7,8 @@ use crate::component::info_panel::info_panel_up;
 use crate::component::photo_scroll::photo_scroll;
 use crate::component::point_panel::point_panel_lng_lat;
 use crate::component::route_panel::recalculate_route;
+use crate::component::route_verte::route_verte;
+use crate::component::route_verte::route_verte_mvt;
 use crate::component::search;
 use crate::component::segment_panel::segment_between;
 use crate::component::segment_panel::segment_panel_edit_post;
@@ -178,6 +180,9 @@ async fn main() {
         // Pistes cyclables et tuiles vectorielles (MVT)
         .route("/bike_path", get(bike_path))
         .route("/bike_path/{z}/{x}/{y}", get(bike_path_mvt))
+        // Routes vertes (réseau officiel Route Verte du Québec)
+        .route("/route_verte", get(route_verte))
+        .route("/route_verte/{z}/{x}/{y}", get(route_verte_mvt))
         // Recherche et calcul d'itinéraires
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))
         .route("/search", post(search::post))

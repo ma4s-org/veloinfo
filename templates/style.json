@@ -8,6 +8,11 @@
       "url": "{{veloinfo_url}}/bike_path",
       "minzoom": 7
     },
+    "route_verte": {
+      "type": "vector",
+      "url": "{{veloinfo_url}}/route_verte",
+      "minzoom": 5
+    },
     "city_snow": {
       "type": "vector",
       "url": "{{veloinfo_url}}/city_snow"
@@ -2861,6 +2866,70 @@
           "kind"
         ],
         "shared_lane"
+      ]
+    },
+    {
+      "id": "route_verte_with_infra",
+      "source": "route_verte",
+      "source-layer": "route_verte",
+      "minzoom": 5,
+      "type": "line",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round",
+        "visibility": "none"
+      },
+      "paint": {
+        "line-color": "#1a9850",
+        "line-width": [
+          "interpolate",
+          ["exponential", 1.5],
+          ["zoom"],
+          5, 1.5,
+          10, 2.5,
+          14, 4,
+          18, 6
+        ]
+      },
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "with_infra"
+      ]
+    },
+    {
+      "id": "route_verte_without_infra",
+      "source": "route_verte",
+      "source-layer": "route_verte",
+      "minzoom": 5,
+      "type": "line",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round",
+        "visibility": "none"
+      },
+      "paint": {
+        "line-color": "#d7191c",
+        "line-width": [
+          "interpolate",
+          ["exponential", 1.5],
+          ["zoom"],
+          5, 3,
+          10, 5,
+          14, 8,
+          18, 12
+        ]
+      },
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "without_infra"
       ]
     },
     {
