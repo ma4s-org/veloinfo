@@ -101,6 +101,14 @@ local all_way = osm2pgsql.define_table({
         }, {
             column = 'tags',
             method = 'gin'
+        }, {
+            column = 'geom',
+            method = 'gist',
+            where = 'in_route_verte = true'
+        }, {
+            column = 'geom',
+            method = 'gist',
+            where = "tags->>'highway' = 'cycleway' OR tags->>'cycleway' = 'track' OR tags->>'cycleway:left' = 'track' OR tags->>'cycleway:right' = 'track' OR tags->>'cycleway:both' = 'track' OR tags->>'cyclestreet' = 'yes' OR tags->>'cycleway:left' = 'share_busway' OR tags->>'cycleway:right' = 'share_busway' OR tags->>'cycleway:both' = 'share_busway' OR tags->>'cycleway:right' = 'lane' OR tags->>'cycleway:left' = 'lane' OR tags->>'cycleway:both' = 'lane' OR tags->>'cycleway' = 'lane' OR tags->>'cycleway' = 'shared_lane' OR tags->>'cycleway:left' = 'shared_lane' OR tags->>'cycleway:left' = 'opposite_lane' OR tags->>'cycleway:right' = 'shared_lane' OR tags->>'cycleway:right' = 'opposite_lane' OR tags->>'cycleway:both' = 'shared_lane' OR (tags->>'highway' = 'footway' AND tags->>'bicycle' = 'yes')"
         }
     }
 })

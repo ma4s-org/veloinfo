@@ -67,6 +67,8 @@ pub async fn route_verte_mvt(
                     THEN 'with_infra'
                     -- Ferry de la Route Verte : considéré comme avec infrastructure
                     WHEN aw.tags->>'route' = 'ferry' THEN 'with_infra'
+                    -- highway=service : voie de service à faible circulation, considérée sécuritaire
+                    WHEN aw.tags->>'highway' = 'service' THEN 'with_infra'
                     -- Aucune infrastructure cyclable marquée
                     ELSE 'without_infra'
                 END AS kind
