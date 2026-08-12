@@ -13,6 +13,7 @@ import '/custom-elements/vi-change-start.js';
 import '/custom-elements/vi-info.js';
 import ViLayers from './vi-layers.js';
 import ViInfo from './vi-info.js';
+import ViRouteVerteSummary from './vi-route-verte-summary.js';
 import { registerViMain } from '/custom-elements/vi-context.js';
 
 const html = String.raw;
@@ -303,6 +304,11 @@ class ViMain extends HTMLElement {
                     ["cycleway", "cycleway_crossing", "designated", "shared_lane"].forEach(layer => {
                         this.map.setLayoutProperty(layer, 'visibility', 'none');
                     });
+                    // Résumé du kilométrage des routes vertes (visible + total)
+                    const mapDiv = this.querySelector('#map');
+                    if (mapDiv && !mapDiv.querySelector('vi-route-verte-summary')) {
+                        mapDiv.appendChild(new ViRouteVerteSummary());
+                    }
                 } else {
                     ["route_verte_with_infra", "route_verte_without_infra"].forEach(layer => {
                         this.map.setLayoutProperty(layer, 'visibility', 'none');

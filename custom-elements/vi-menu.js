@@ -67,6 +67,15 @@ class ViMenu extends HTMLElement {
                         </div>
                     </div>
                 </md-menu-item>
+                <md-menu-item id="route-verte">
+                    <div style="display: flex; align-items: center;">
+                        <span class="material-icons" id="rv-icon" style="font-size: 1.5rem; margin-right: 0.5em;">eco</span>
+                        <div style="font-size: 1.125rem; flex: 1;">
+                            Route verte
+                        </div>
+                        <span class="material-icons" id="rv-check" style="font-size: 1.25rem; color: #16a34a; display: none;">check</span>
+                    </div>
+                </md-menu-item>
                     <a href="https://openstreetmap.org/copyright" target="_blank">
                         <div style="font-size: 0.75em; color: gray; margin-top: 0.5em;">
                             Les données cartographiques sont fournies par OpenStreetMap
@@ -113,6 +122,22 @@ class ViMenu extends HTMLElement {
     }
 
     this.querySelector('#osm-edit').addEventListener('click', () => this.clickOSMEdit());
+
+    // Route verte : bascule le mode rv=1 (recharge la page)
+    const rvCheck = this.querySelector('#rv-check');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('rv') === '1') {
+      rvCheck.style.display = 'inline';
+    }
+    this.querySelector('#route-verte').addEventListener('click', () => {
+      const url = new URL(window.location);
+      if (url.searchParams.get('rv') === '1') {
+        url.searchParams.delete('rv');
+      } else {
+        url.searchParams.set('rv', '1');
+      }
+      window.location.assign(url);
+    });
   }
 
   clickOSMEdit() {

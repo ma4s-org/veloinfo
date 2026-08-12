@@ -129,6 +129,123 @@ pub async fn route_verte_mvt(
     }
 }
 
+/// Résumé du kilométrage des routes vertes : total du réseau et portion visible
+/// dans l'emprise passée en paramètre, ventilé by `kind` (with_infra / without_infra).
+#[axum::debug_handler]
+pub async fn route_verte_stats(
+    Path((min_lng, min_lat, max_lng, max_lat)): Path<(f64, f64, f64, f64)>,
+    State(state): State<VeloinfoState>,
+) -> impl IntoResponse {
+    let conn = &state.conn;
+
+    // Requête unique : calcule en parallèle le kilométrage total (hors emprise)
+    // et le kilométrage visible (intersecté avec l'emprise).
+    // On réutilise le même bloc CASE que route_verte_mvt pour rester cohérent
+    // avec les couches affichées sur la carte.
+    // NB: aw.geom est stocké en SRID 3857 (Web Mercator, voir import.sh),
+    // donc on transforme l'emprise 4326 reçue du client vers 3857, et on
+    // passe en 4326::geography pour ST_Length (qui attend du 4326).
+    let query = r#"
+        WITH
+        bounds AS (
+            SELECT ST_Transform(ST_MakeEnvelope($1, $2, $3, $4, 4326), 3857) AS geom
+        ),
+        classified AS (
+            SELECT
+                CASE
+                    WHEN
+                        aw.tags->>'highway' = 'cycleway' OR
+                        aw.tags->>'cyclestreet' = 'yes' OR
+                        aw.tags->>'cycleway' = 'track' OR
+                        aw.tags->>'cycleway:left' = 'track' OR
+                        aw.tags->>'cycleway:right' = 'track' OR
+                        aw.tags->>'cycleway:both' = 'track'
+                    THEN 'with_infra'
+                    WHEN
+                        aw.tags->>'cycleway:left' = 'share_busway' OR
+                        aw.tags->>'cycleway:right' = 'share_busway' OR
+                        aw.tags->>'cycleway:both' = 'share_busway' OR
+                        aw.tags->>'cycleway:right' = 'lane' OR
+                        aw.tags->>'cycleway:left' = 'lane' OR
+                        aw.tags->>'cycleway:both' = 'lane' OR
+                        aw.tags->>'cycleway' = 'lane'
+                    THEN 'with_infra'
+                    WHEN
+                        aw.tags->>'cycleway' = 'shared_lane' OR
+                        aw.tags->>'cycleway:left' = 'shared_lane' OR
+                        aw.tags->>'cycleway:left' = 'opposite_lane' OR
+                        aw.tags->>'cycleway:right' = 'shared_lane' OR
+                        aw.tags->>'cycleway:right' = 'opposite_lane' OR
+                        aw.tags->>'cycleway:both' = 'shared_lane' OR
+                        (aw.tags->>'highway' = 'footway' AND aw.tags->>'bicycle' = 'yes')
+                    THEN 'with_infra'
+                    WHEN aw.tags->>'route' = 'ferry' THEN 'with_infra'
+                    WHEN aw.tags->>'highway' = 'service' THEN 'with_infra'
+                    ELSE 'without_infra'
+                END AS kind,
+                aw.geom AS geom
+            FROM all_way aw
+            WHERE
+                aw.in_route_verte = true
+                AND COALESCE(aw.tags->>'bicycle', 'yes') <> 'no'
+        ),
+        total AS (
+            SELECT
+                kind,
+                SUM(ST_Length(ST_Transform(geom, 4326)::geography)) AS length
+            FROM classified
+            GROUP BY kind
+        ),
+        visible AS (
+            SELECT
+                c.kind,
+                SUM(ST_Length(ST_Transform(ST_Intersection(c.geom, b.geom), 4326)::geography)) AS length
+            FROM classified c, bounds b
+            WHERE c.geom && b.geom
+            GROUP BY c.kind
+        )
+        SELECT
+            COALESCE((SELECT length FROM total WHERE kind = 'with_infra'), 0),
+            COALESCE((SELECT length FROM total WHERE kind = 'without_infra'), 0),
+            COALESCE((SELECT length FROM visible WHERE kind = 'with_infra'), 0),
+            COALESCE((SELECT length FROM visible WHERE kind = 'without_infra'), 0)
+        "#;
+
+    let result = sqlx::query(query)
+        .bind(min_lng)
+        .bind(min_lat)
+        .bind(max_lng)
+        .bind(max_lat)
+        .fetch_one(conn)
+        .await;
+
+    match result {
+        Ok(row) => {
+            let total_with_infra: f64 = row.try_get(0).unwrap_or(0.0);
+            let total_without_infra: f64 = row.try_get(1).unwrap_or(0.0);
+            let visible_with_infra: f64 = row.try_get(2).unwrap_or(0.0);
+            let visible_without_infra: f64 = row.try_get(3).unwrap_or(0.0);
+
+            // Convertir les mètres en kilomètres (1 décimale)
+            let stats = serde_json::json!({
+                "total": {
+                    "with_infra": (total_with_infra / 1000.0 * 10.0).round() / 10.0,
+                    "without_infra": (total_without_infra / 1000.0 * 10.0).round() / 10.0
+                },
+                "visible": {
+                    "with_infra": (visible_with_infra / 1000.0 * 10.0).round() / 10.0,
+                    "without_infra": (visible_without_infra / 1000.0 * 10.0).round() / 10.0
+                }
+            });
+            Json(stats).into_response()
+        }
+        Err(e) => {
+            eprintln!("SQL error (route_verte_stats): {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "SQL error").into_response()
+        }
+    }
+}
+
 pub async fn route_verte() -> Json<JsonValue> {
     let tilejson = serde_json::json!({
         "tilejson": "3.0.0",

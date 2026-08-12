@@ -9,6 +9,7 @@ use crate::component::point_panel::point_panel_lng_lat;
 use crate::component::route_panel::recalculate_route;
 use crate::component::route_verte::route_verte;
 use crate::component::route_verte::route_verte_mvt;
+use crate::component::route_verte::route_verte_stats;
 use crate::component::search;
 use crate::component::segment_panel::segment_between;
 use crate::component::segment_panel::segment_panel_edit_post;
@@ -183,6 +184,10 @@ async fn main() {
         // Routes vertes (réseau officiel Route Verte du Québec)
         .route("/route_verte", get(route_verte))
         .route("/route_verte/{z}/{x}/{y}", get(route_verte_mvt))
+        .route(
+            "/route_verte/stats/{min_lng}/{min_lat}/{max_lng}/{max_lat}",
+            get(route_verte_stats),
+        )
         // Recherche et calcul d'itinéraires
         .route("/point_panel_lng_lat/{lng}/{lat}", get(point_panel_lng_lat))
         .route("/search", post(search::post))
