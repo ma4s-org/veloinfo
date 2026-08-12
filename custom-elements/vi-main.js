@@ -867,6 +867,19 @@ class ViMain extends HTMLElement {
         let viInfo = new ViInfo(null);
         this.querySelector("#info").innerHTML = ``;
         this.querySelector('#info').appendChild(viInfo);
+
+        // Nettoie les paramètres d'itinéraire et de point dans l'URL
+        const url = new URL(window.location);
+        let urlChanged = false;
+        ["point_lng", "point_lat", "start_lng", "start_lat", "end_lng", "end_lat"].forEach(p => {
+            if (url.searchParams.has(p)) {
+                url.searchParams.delete(p);
+                urlChanged = true;
+            }
+        });
+        if (urlChanged) {
+            window.history.replaceState({}, '', url);
+        }
     }
 
     async route() {
