@@ -1,6 +1,6 @@
 {
   "dependencies": {
     "@material/web": "^2.2.0",
-    "maplibre-gl": "5.24"
+    "maplibre-gl": "6.7"
   }
 }
