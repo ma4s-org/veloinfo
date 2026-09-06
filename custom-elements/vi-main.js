@@ -253,7 +253,9 @@ class ViMain extends HTMLElement {
     });
 
     this.map.on('style.load', () => {
-      this.map.setProjection({ type: 'globe' });
+      if (!new URLSearchParams(window.location.search).has("mercator")) {
+        this.map.setProjection({ type: 'globe' });
+      }
     });
 
     // Fournir les images manquantes à la demande pour éviter les warnings

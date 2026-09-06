@@ -2,8 +2,8 @@
 // Intercepte /martin/*, /report/*, /bike_path, et ressources statiques
 // Retourne depuis cache immédiatement, refresh en background, 204 en cas d'erreur
 
-const CACHE_NAME = 'veloinfo-v3';
-const STATIC_CACHE = 'veloinfo-static-v3';
+const CACHE_NAME = 'veloinfo-v4';
+const STATIC_CACHE = 'veloinfo-static-v4';
 
 // Ressources à precacher à l'installation
 const PRECACHE_ASSETS = [
@@ -11,7 +11,7 @@ const PRECACHE_ASSETS = [
     '/index.html',
     '/custom-elements/vi-main.js',
     '/pub/veloinfo.css',
-    '/node_modules/maplibre-gl/dist/maplibre-gl.js',
+    '/node_modules/maplibre-gl/dist/maplibre-gl.mjs',
     '/node_modules/maplibre-gl/dist/maplibre-gl.css',
     '/pub/webmanifest.json',
     '/style.json'

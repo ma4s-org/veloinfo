@@ -27,6 +27,10 @@
         document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
     </script>
     <link href="/node_modules/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+    <script type="module">
+        import * as maplibregl from '/node_modules/maplibre-gl/dist/maplibre-gl.mjs';
+        window.maplibregl = maplibregl;
+    </script>
     <script src="/custom-elements/vi-main.js" type="module"></script>
     <link href="/pub/veloinfo.css" rel="stylesheet" />
     <link href="/pub/webmanifest.json" rel="manifest" />
