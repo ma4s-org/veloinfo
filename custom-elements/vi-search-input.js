@@ -38,7 +38,7 @@ class SearchInput extends HTMLElement {
                     <input type="hidden" name="lng" value="{{lng}}">
                     <input type="hidden" name="lat" value="{{lat}}">
                 </form>
-                <div id="search_results" style="background-color: rgb(255 255 255); display: flex; flex-direction: column; justify-content: center;">
+                <div id="search_results" style="background-color: var(--vi-surface,rgb(255 255 255)); display: flex; flex-direction: column; justify-content: center;">
                 </div>
             </div>
 

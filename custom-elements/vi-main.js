@@ -52,6 +52,9 @@ class ViMain extends HTMLElement {
     this._reportingSegment = null;  // Segment en cours de signalement
     this._segmentStart = null;  // Point de départ du segment actuel (pour modifier la fin)
     this.soundEnabled = document.cookie.includes('sound_enabled=1');  // Annonces vocales depuis le cookie
+    // Thème : suivre automatiquement le mode clair/sombre du navigateur
+    this.theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', this.theme);
     this.innerHTML = html`
             <div id="map">
                 <a rel="me" href="https://mastodon.social/@MartinNHamel"></a>
@@ -62,17 +65,17 @@ class ViMain extends HTMLElement {
                     style="position: absolute; top:142px; right:6px; padding: 4px; z-index: 10">
                     <div id="layers_button"
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); cursor: pointer;">
-                        <img style="width: 29px; height: 29px; background-color: rgb(255 255 255); border-radius: 0.375rem; align-self: center;" src="/pub/layers.png">
+                        <img style="width: 29px; height: 29px; background-color: var(--vi-surface,rgb(255 255 255)); border-radius: 0.375rem; align-self: center;" src="/pub/layers.png">
                     </div>
                     <div id="snow_button"
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;
-                               display: flex; justify-content: center; align-items: center; background-color: white;
+                               display: flex; justify-content: center; align-items: center; background-color: var(--vi-surface,white);
                                width: 31px; height: 31px; cursor: pointer;">
                         <img style="width: 24px; height: 24px;" src="/pub/snow.png">
                     </div>
                     <div id="sound_button"
                         style="border-radius: 0.375rem; border-width: 1px; border-color: rgb(209 213 219); margin-top: 4px;
-                               display: none; justify-content: center; align-items: center; background-color: white;
+                               display: none; justify-content: center; align-items: center; background-color: var(--vi-surface,white);
                                width: 31px; height: 31px; cursor: pointer;">
                         <span id="sound_icon" style="font-size: 18px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +87,7 @@ class ViMain extends HTMLElement {
                     </div>
                     <div id="speed_container"
                         style="justify-content: center; align-items: center; width: 31px; height: 31px;
-                                background-color: white; margin-top: 4px; padding: 4px; border-radius: 0.375rem;
+                                background-color: var(--vi-surface,white); margin-top: 4px; padding: 4px; border-radius: 0.375rem;
                                 border-width: 1px; border-color: rgb(209 213 219); display: none;">
                         <div id="speed_value"
                             style="font-size: 1.2em; font-weight: bold; justify-content: center; align-items: center;">
@@ -110,6 +113,14 @@ class ViMain extends HTMLElement {
   connectedCallback() {
     registerViMain(this);
     this.addMap();
+
+    // Suivre le réglage du navigateur en direct et recharger le thème automatiquement
+    const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq) {
+      mq.addEventListener('change', (e) => {
+        this.setTheme(e.matches ? 'dark' : 'light');
+      });
+    }
 
     // Mettre à jour l'icône son selon l'état du cookie
     if (this.soundEnabled) {
@@ -258,6 +269,8 @@ class ViMain extends HTMLElement {
       }
     });
 
+    this.map.on("moveend", () => this.applyMapTheme());
+
     // Fournir les images manquantes à la demande pour éviter les warnings
     this.map.on('styleimagemissing', async (e) => {
       const id = e.id;
@@ -296,7 +309,9 @@ class ViMain extends HTMLElement {
     }));
 
     this.map.on("load", () => {
+      this.applyMapTheme();
       setTimeout(() => {
+        this.applyMapTheme();
         const layers = JSON.parse(localStorage.getItem("layers"));
         ["bixi", "bike_parking", "bike_shop", "drinking_water", "bicycle_repair_station"].forEach(layer => {
           const visible = !layers || !layers[layer] || layers[layer] !== "none";
@@ -995,6 +1010,73 @@ class ViMain extends HTMLElement {
       navigator.geolocation.clearWatch(this._geoWatchId);
       this._geoWatchId = null;
     }
+  }
+
+  setTheme(theme) {
+    this.theme = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', this.theme);
+    this.applyMapTheme();
+  }
+
+  // Recoloure le fond de carte (fond, eau, routes, bâtiments, labels) selon le thème.
+  // Les calques de données (pistes cyclables, reports, etc.) gardent leurs couleurs.
+  applyMapTheme() {
+    if (!this.map || !this.map.isStyleLoaded()) return;
+    const dark = this.theme === 'dark';
+    const set = (layer, prop, light, darkVal) => {
+      if (!this.map.getLayer(layer)) return;
+      try {
+        this.map.setPaintProperty(layer, prop, dark ? darkVal : light);
+      } catch (_) { /* propriété inapplicable au calque */ }
+    };
+
+    // Fond
+    set('Background', 'background-color', 'hsl(30,25%,98%)', '#14171c');
+    // Eau et rivières
+    set('Ocean', 'fill-color', '#aad3df', '#1b2631');
+    ['Water', 'Water_far', 'River', 'River_way', 'River_far', 'Waterway_other'].forEach(l => {
+      set(l, 'fill-color', 'hsl(187, 36%, 87%)', '#223545');
+      set(l, 'line-color', 'hsl(187,37%,87%)', '#2a4152');
+    });
+    // Végétation et terrains
+    set('Residential', 'fill-color', 'hsl(0, 0%, 94%)', '#1b1f26');
+    set('Landcover', 'fill-color', 'hsl(96, 44%, 79%)', '#1d2620');
+    set('Landcover_far', 'fill-color', 'hsl(96, 44%, 79%)', '#1d2620');
+    set('Forest', 'fill-color', 'hsla(96, 44%, 79%, 0.15)', 'rgba(46, 66, 52, 0.35)');
+    set('Forest_far', 'fill-color', 'hsla(96, 44%, 79%, 0.15)', 'rgba(46, 66, 52, 0.35)');
+    set('Stadium', 'fill-color', 'hsl(86,57%,88%)', '#232a21');
+    set('Stadium', 'fill-outline-color', 'hsl(85,26%,77%)', '#39442f');
+    // Bâtiments
+    set('Building', 'fill-color', 'hsl(0,0%,92%)', '#13161c');
+    set('Building top', 'fill-color', 'hsl(0, 0%, 92%)', '#16191f');
+    set('Building top', 'fill-outline-color', 'hsl(0, 0%, 92%)', '#333d47');
+    // Routes
+    set('Road network', 'line-color', 'hsl(0, 0%, 100%)', '#2a3039');
+    set('Road network outline', 'line-color', 'hsl(0, 0%, 60%)', '#0a0c0f');
+    set('Path', 'line-color', 'hsl(0, 0%, 80%)', '#1f242b');
+    set('Path outline', 'line-color', 'hsl(0, 0%, 100%)', '#1a1f26');
+    set('Footway', 'line-color', 'hsl(0, 0%, 80%)', '#1f242b');
+    set('Tunnel', 'line-color', 'hsl(0, 0%, 97%)', '#1a1f26');
+    set('Tunnel path', 'line-color', 'hsl(0, 0%, 90%)', '#1f242b');
+    set('Tunnel outline', 'line-color', 'hsl(0, 0%, 85%)', '#151920');
+    set('Aeroway', 'line-color', 'hsl(0, 0%, 87%)', '#29303a');
+    // Chemins de fer
+    set('Railway', 'line-color', 'hsl(0, 0%, 80%)', '#2a3038');
+    set('Railway dash', 'line-color', 'hsl(0, 0%, 100%)', '#454c55');
+    set('Railway tunnel', 'line-color', 'hsl(0, 0%, 80%)', '#1b2027');
+    set('Railway tunnel dash', 'line-color', 'hsl(0, 0%, 95%)', '#2b323c');
+    set('Ferry', 'line-color', 'hsl(187,37%,66%)', '#324b5c');
+    // Frontières
+    set('Country border', 'line-color', 'hsl(354, 33%, 88%)', '#8a8487');
+    set('Other border', 'line-color', 'hsl(356, 32%, 83%)', '#6a6466');
+    set('Other border dash', 'line-color', 'hsl(356, 32%, 83%)', '#6a6466');
+    set('Disputed border', 'line-color', 'hsl(354, 33%, 88%)', '#8a8487');
+    // Labels : texte clair sur halo sombre (ou l'inverse en clair)
+    const labelLayers = ['Ocean labels', 'Sea labels', 'Lakeline labels', 'River_name labels', 'Road labels', 'Village labels', 'Town labels', 'State labels', 'City labels', 'name'];
+    labelLayers.forEach(l => {
+      set(l, 'text-color', 'hsl(204, 11%, 47%)', '#c9d0d6');
+      set(l, 'text-halo-color', 'hsl(0,0%,100%)', '#12151a');
+    });
   }
 }
 

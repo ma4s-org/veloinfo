@@ -51,7 +51,7 @@ export default class ViInfo extends HTMLElement {
     const allDisabled = data?.contributions?.length > 0 && data.contributions.every(c => c.enabled === false || c.enabled === "false");
     const showUp = data?.arrow === "▼" && (!allDisabled || data?.forceUp);
     this.innerHTML = showUp ?
-      html`<div id="info_panel_up" style="position: absolute; width: 100%; height: 40%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem; display: flex; flex-direction: column;">
+      html`<div id="info_panel_up" style="position: absolute; width: 100%; height: 40%; max-width: 500px; background-color: var(--vi-surface,white); z-index: 10; bottom: 0; border-radius: 0.5rem; display: flex; flex-direction: column;">
         <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0; display: none;" src="/pub/bars.svg">
         <div id="info_panel_up_header" style="width: 100%; height: 1.75rem; flex-shrink: 0; display: flex; justify-content: center; cursor: pointer;">
             <div style="text-transform: uppercase; font-weight: bold;">Contributions dans cette zone</div>
@@ -85,7 +85,7 @@ export default class ViInfo extends HTMLElement {
 
         </div>
       </div>` :
-      html`<div id="info_panel_down" style="position: absolute; height: 3rem; width: 100%; max-width: 500px; background-color: white; z-index: 10; bottom: 0; border-radius: 0.5rem;">     
+      html`<div id="info_panel_down" style="position: absolute; height: 3rem; width: 100%; max-width: 500px; background-color: var(--vi-surface,white); z-index: 10; bottom: 0; border-radius: 0.5rem;">     
         <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0; display: none;" src="/pub/bars.svg">
         <div id="info_panel_down_header" style="width: 100%; height: 1.75rem; display: flex; justify-content: center; cursor: pointer;">
             <div style="text-transform: uppercase; font-weight: bold;">Contributions dans cette zone</div>

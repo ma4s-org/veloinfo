@@ -77,9 +77,9 @@ class ViRouteVerteSummary extends HTMLElement {
     render() {
         this.innerHTML = html`
             <div style="position: absolute; top: 250px; right: 6px; z-index: 10;
-                        background-color: white; border: 1px solid rgb(209 213 219);
+                        background-color: var(--vi-surface,white); border: 1px solid var(--vi-border,rgb(209 213 219));
                         border-radius: 0.375rem; padding: 0.4rem 0.5rem;
-                        font-size: small; line-height: 1.3; color: #111827;
+                        font-size: small; line-height: 1.3; color: var(--vi-text,#111827);
                         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                         min-width: 10rem; max-width: 14rem;">
                 <div style="font-weight: bold; margin-bottom: 0.15rem;">

@@ -6,7 +6,7 @@ export default class ViLayers extends HTMLElement {
         super();
         this.viMain = viMain;
         let innerHTML = html`
-            <div id="layers" style="position:absolute;width:500px;max-height:50%;overflow:auto;background:white;z-index:20;bottom:0;border-radius:0.5rem;">
+            <div id="layers" style="position:absolute;width:500px;max-height:50%;overflow:auto;background:var(--vi-surface,white);z-index:20;bottom:0;border-radius:0.5rem;">
                 <div style="display:flex;flex-direction:column;margin:0.5rem;">
                     <div style="display:flex;flex-direction:row;align-items:center;">
                         <md-checkbox style="margin-right:0.5rem;" data-layer="bike_shop"></md-checkbox>

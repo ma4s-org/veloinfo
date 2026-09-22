@@ -65,7 +65,7 @@ class SegmentPanel extends HTMLElement {
         `;
 
         let innerHTML = html`
-            <div id="segment_panel" style="position: absolute; width: 100%; max-height: 50%; overflow: auto; max-width: 500px; background-color: white; z-index: 20; bottom: 0; border-radius: 0.5rem;">
+            <div id="segment_panel" style="position: absolute; width: 100%; max-height: 50%; overflow: auto; max-width: 500px; background-color: var(--vi-surface,white); z-index: 20; bottom: 0; border-radius: 0.5rem;">
                 <img id="spinner" style="z-index: 30; bottom: 2rem; margin-left: auto; margin-right: auto; left: 0; right: 0; display: none;" src="/pub/bars.svg" />
                 <div  style="padding: 0.5rem; margin: 0.25rem;">
                     ${inner}

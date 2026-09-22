@@ -25,6 +25,40 @@ body {
     --md-sys-color-on-primary: rgb(19 105 89);
 }
 
+/* Dark theme */
+:root[data-theme="dark"] {
+    --vi-bg: rgb(18 18 24);
+    --vi-surface: rgb(30 30 38);
+    --vi-surface-2: rgb(38 38 48);
+    --vi-text: rgb(229 229 234);
+    --vi-text-muted: rgb(161 161 170);
+    --vi-border: rgb(63 63 70);
+    color-scheme: dark;
+
+    --md-sys-color-surface: rgb(30 30 38);
+    --md-sys-color-surface-dim: rgb(24 24 30);
+    --md-sys-color-surface-bright: rgb(45 45 55);
+    --md-sys-color-on-surface: rgb(229 229 234);
+    --md-sys-color-surface-container: rgb(38 38 48);
+    --md-sys-color-surface-container-high: rgb(45 45 55);
+    --md-sys-color-surface-container-highest: rgb(52 52 63);
+    --md-sys-color-on-surface-variant: rgb(180 180 190);
+    --md-sys-color-surface-variant: rgb(55 55 65);
+    --md-sys-color-outline: rgb(90 90 100);
+    --md-sys-color-on-surface-tint: rgb(94 234 212);
+    --md-sys-color-on-surface-container: rgb(229 229 234);
+    --md-sys-color-on-primary-container: rgb(0 20 15);
+}
+
+body {
+    background-color: rgb(255 255 255);
+}
+
+:root[data-theme="dark"] body {
+    background-color: var(--vi-bg);
+    color: var(--vi-text);
+}
+
 #info md-filled-button {
     text-transform: uppercase;
     margin-left: 0.5em;
@@ -52,6 +86,11 @@ h3 {
     z-index: 20;
     bottom: 0;
     border-radius: 0.5rem;
+}
+
+:root[data-theme="dark"] .vi-panel {
+    background-color: var(--vi-surface);
+    color: var(--vi-text);
 }
 
 @media (min-width: 768px) {
@@ -214,6 +253,10 @@ h3 {
 /* Background Color Utilities */
 .bg-white {
     background-color: rgb(255 255 255);
+}
+
+:root[data-theme="dark"] .bg-white {
+    background-color: var(--vi-surface-2);
 }
 
 .bg-green-800 {
