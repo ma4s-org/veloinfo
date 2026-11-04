@@ -24,6 +24,7 @@ use crate::component::segment_panel::report_reply_post;
 use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::report_bounds_controler;
 use crate::utils::mtl;
+use crate::utils::westmount;
 use crate::utils::proxy::martin_proxy;
 use askama::Template;
 use askama_web::WebTemplate;
@@ -138,6 +139,7 @@ async fn main() {
                         let conn_clone = conn.clone();
                         tokio::spawn(async move {
                             mtl::fetch_montreal_data(&conn_clone).await;
+                            westmount::fetch_westmount_data(&conn_clone).await;
                             Edge::clear_cache_and_reload(&conn_clone).await;
                         });
                     },

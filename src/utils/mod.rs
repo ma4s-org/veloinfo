@@ -3,3 +3,4 @@ pub mod elevation;
 pub mod import;
 pub mod mtl;
 pub mod proxy;
+pub mod westmount;

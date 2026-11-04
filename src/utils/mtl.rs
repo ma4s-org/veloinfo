@@ -17,7 +17,7 @@ pub struct SphericalMercator {
 }
 
 pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
-    Roadwork::remove_all(conn).await;
+    Roadwork::remove_source(conn, "montreal").await;
     match std::fs::create_dir("tiles") {
         Ok(_) => {}
         Err(_) => {}
@@ -104,6 +104,7 @@ pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
             if let Some(geometry) = feature.geometry {
                 let road_work = road_work::Roadwork {
                     geom: geometry,
+                    source: "montreal".to_string(),
                     start_date: match Date::from_calendar_date(2024, time::Month::April, 1) {
                         Ok(d) => d,
                         Err(e) => {
