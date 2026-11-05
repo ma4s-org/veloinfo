@@ -10,65 +10,145 @@ use time::OffsetDateTime;
 //
 // Attention : cette couche ne contient souvent qu'une ligne droite entre le
 // début et la fin de la rue (ex. Mountain n'a que deux points et coupe les
-// îlots). On la recale donc sur RoutesLabels, le centreline officiel des rues.
+// îlots). On la recale sur le réseau routier OSM (table transportation), qui
+// est aussi celui du fond de carte, pour que la ligne reste alignée avec la
+// chaussée.
 const ROAD_WORK_URL: &str = "https://cartes.westmount.org/server/rest/services/InfoTravauxPublic2026/FeatureServer/7/query";
-const ROUTES_URL: &str = "https://cartes.westmount.org/server/rest/services/RoutesLabels/FeatureServer/0/query";
 
 // Etat : 1 = à venir, 2 = en cours, 3 = terminé.
 const ACTIVE_WORKS_FILTER: &str = "Etat IN (1,2)";
 const SOURCE: &str = "westmount";
 
-/// Insère les lignes de travaux recalées sur le réseau routier officiel.
+/// Insère les lignes de travaux recalées sur le réseau routier OSM.
 ///
-/// Chaque ligne de travaux est associée à la rue de RoutesLabels la plus proche
-/// (début + milieu + fin), puis on garde la portion de cette rue comprise entre
-/// les extrémités de la ligne. Si le recalage couvre moins de 60 % de la ligne
-/// d'origine, on conserve la géométrie brute pour ne pas perdre de tronçon.
+/// Pour chaque ligne de travaux, on considère les rues OSM les plus proches du
+/// début, du milieu et de la fin. On garde ensuite, pour chaque rue, la portion
+/// effectivement à proximité de la ligne (buffer de 30 m), puis on assemble les
+/// morceaux. Si le recalage couvre moins de 60 % de la ligne d'origine, on
+/// conserve la géométrie brute pour ne pas perdre de tronçon.
 const INSERT_SNAPPED_SQL: &str = r#"
 WITH work_raw AS (
-    SELECT ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(feature->'geometry'), 4326), 3857) AS geom
+    SELECT
+        row_number() OVER () AS oid,
+        ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(feature->'geometry'), 4326), 3857) AS geom
     FROM json_array_elements(($1::json)->'features') AS feature
 ),
 work AS (
-    SELECT (ST_Dump(ST_LineMerge(geom))).geom AS geom FROM work_raw
+    SELECT oid, (ST_Dump(ST_LineMerge(geom))).geom AS geom
+    FROM work_raw
+),
+work_extent AS (
+    SELECT ST_Expand(ST_Extent(geom), 200) AS geom FROM work
 ),
 route AS (
-    SELECT (ST_Dump(ST_LineMerge(geom))).geom AS geom
+    SELECT rid, (ST_Dump(ST_LineMerge(ST_Collect(geom)))).geom AS geom
     FROM (
-        SELECT ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(feature->'geometry'), 4326), 3857) AS geom
-        FROM json_array_elements(($2::json)->'features') AS feature
-    ) AS routes
+        SELECT
+            DENSE_RANK() OVER (ORDER BY COALESCE(t.name, t.way_id::text)) AS rid,
+            COALESCE(t.name, t.way_id::text) AS name,
+            t.geom
+        FROM transportation AS t, work_extent AS e
+        WHERE t.highway IN (
+            'residential', 'tertiary', 'secondary', 'primary', 'unclassified',
+            'service', 'living_street', 'pedestrian', 'trunk', 'motorway',
+            'trunk_link', 'motorway_link', 'primary_link', 'secondary_link',
+            'tertiary_link'
+        )
+          AND t.geom && e.geom
+    ) AS roads
+    GROUP BY rid, name
 ),
-matched AS (
-    SELECT
-        w.geom AS work_geom,
-        r.geom AS route_geom,
-        ST_LineLocatePoint(r.geom, ST_StartPoint(w.geom)) AS start_fraction,
-        ST_LineLocatePoint(r.geom, ST_EndPoint(w.geom)) AS end_fraction
-    FROM work AS w
+points AS (
+    SELECT oid, geom, ST_StartPoint(geom) AS pt FROM work
+    UNION ALL
+    SELECT oid, geom, ST_LineInterpolatePoint(geom, 0.5) FROM work
+    UNION ALL
+    SELECT oid, geom, ST_EndPoint(geom) FROM work
+),
+nearest AS (
+    SELECT DISTINCT ON (p.oid, p.geom, r.geom)
+        p.oid,
+        p.geom AS work_geom,
+        r.geom AS route_geom
+    FROM points AS p
     CROSS JOIN LATERAL (
-        SELECT route.geom
-        FROM route
-        WHERE GeometryType(route.geom) = 'LINESTRING'
-        ORDER BY
-            ST_Distance(route.geom, ST_StartPoint(w.geom))
-          + ST_Distance(route.geom, ST_EndPoint(w.geom))
-          + ST_Distance(route.geom, ST_LineInterpolatePoint(w.geom, 0.5))
+        SELECT r.rid, r.geom
+        FROM route AS r
+        WHERE GeometryType(r.geom) = 'LINESTRING'
+        ORDER BY ST_Distance(r.geom, p.pt)
         LIMIT 1
     ) AS r
+    ORDER BY p.oid, p.geom, r.geom, ST_Distance(r.geom, p.pt)
 ),
-snapped AS (
+near AS (
     SELECT
-        CASE
-            WHEN ST_Length(ST_LineSubstring(route_geom, LEAST(start_fraction, end_fraction), GREATEST(start_fraction, end_fraction))) >= 0.6 * ST_Length(work_geom)
-            THEN ST_LineSubstring(route_geom, LEAST(start_fraction, end_fraction), GREATEST(start_fraction, end_fraction))
-            ELSE work_geom
-        END AS geom
-    FROM matched
+        n.oid,
+        n.work_geom,
+        n.route_geom,
+        (ST_Dump(ST_Intersection(n.work_geom, ST_Buffer(n.route_geom, 30)))).geom AS near_geom
+    FROM nearest AS n
+),
+near_lines AS (
+    SELECT *
+    FROM near
+    WHERE GeometryType(near_geom) = 'LINESTRING'
+      AND ST_Length(near_geom) > 1
+),
+fractions AS (
+    SELECT
+        oid,
+        work_geom,
+        route_geom,
+        MIN(LEAST(f1, f2)) AS fmin,
+        MAX(GREATEST(f1, f2)) AS fmax
+    FROM (
+        SELECT
+            oid,
+            work_geom,
+            route_geom,
+            ST_LineLocatePoint(route_geom, ST_StartPoint(near_geom)) AS f1,
+            ST_LineLocatePoint(route_geom, ST_EndPoint(near_geom)) AS f2
+        FROM near_lines
+    ) AS projected
+    GROUP BY oid, work_geom, route_geom
+),
+clips AS (
+    SELECT
+        oid,
+        work_geom,
+        ST_LineSubstring(route_geom, fmin, fmax) AS clip
+    FROM fractions
+),
+filtered AS (
+    SELECT *
+    FROM clips
+    WHERE ST_Length(clip) >= GREATEST(10, 0.1 * ST_Length(work_geom))
+),
+unioned AS (
+    SELECT oid, work_geom, ST_LineMerge(ST_Union(clip)) AS geom
+    FROM filtered
+    GROUP BY oid, work_geom
+),
+final AS (
+    SELECT
+        w.oid,
+        w.geom AS work_geom,
+        u.geom AS snapped_geom
+    FROM work AS w
+    LEFT JOIN unioned AS u
+        ON u.oid = w.oid AND ST_Equals(u.work_geom, w.geom)
 )
 INSERT INTO road_work (geom, start_date, end_date, source)
-SELECT geom, $3::date, $3::date, $4
-FROM snapped
+SELECT
+    CASE
+        WHEN snapped_geom IS NULL OR ST_Length(snapped_geom) < 0.6 * ST_Length(work_geom)
+        THEN work_geom
+        ELSE snapped_geom
+    END,
+    $2::date,
+    $2::date,
+    $3
+FROM final
 "#;
 
 /// Télécharge une FeatureCollection GeoJSON et renvoie le corps brut ainsi que
@@ -113,8 +193,8 @@ async fn fetch_feature_collection(
 }
 
 /// Télécharge les rues en chantier actives de Westmount, les recale sur le
-/// réseau routier officiel et remplace les travaux précédemment importés pour
-/// cette source.
+/// réseau routier OSM et remplace les travaux précédemment importés pour cette
+/// source.
 pub async fn fetch_westmount_data(conn: &sqlx::Pool<Postgres>) {
     let client = match reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
@@ -143,29 +223,6 @@ pub async fn fetch_westmount_data(conn: &sqlx::Pool<Postgres>) {
         None => return,
     };
 
-    let (routes_json, routes_count) = match fetch_feature_collection(
-        &client,
-        ROUTES_URL,
-        &[
-            ("where", "1=1"),
-            ("outFields", "OBJECTID"),
-            ("returnGeometry", "true"),
-            ("f", "geojson"),
-        ],
-    )
-    .await
-    {
-        Some(result) => result,
-        None => return,
-    };
-
-    // Sans réseau routier, le recalage ne produirait rien : on garde les
-    // données existantes plutôt que de vider la table.
-    if routes_count == 0 {
-        println!("Westmount road network is empty, keeping existing road works");
-        return;
-    }
-
     // Les lignes de la couche 7 n'ont pas de dates : on utilise la date du jour,
     // comme l'import de Montréal qui renseigne des dates fixes.
     let today = OffsetDateTime::now_utc().date();
@@ -189,7 +246,6 @@ pub async fn fetch_westmount_data(conn: &sqlx::Pool<Postgres>) {
 
     match sqlx::query(INSERT_SNAPPED_SQL)
         .bind(&works_json)
-        .bind(&routes_json)
         .bind(today)
         .bind(SOURCE)
         .execute(&mut *transaction)

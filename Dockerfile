@@ -5,12 +5,17 @@ RUN apt-get update && apt-get install -y \
     fish hx \
     rustfmt \
     osm2pgsql osmium-tool pyosmium \
-    nodejs \
-    npm \
+    curl ca-certificates gnupg \
     gdal-bin \
     unzip \
     libheif-dev \
     cmake make libclang-dev libssl-dev pkg-config 
+
+# maplibre-gl 6.7 tire une dépendance qui exige Node >= 22.
+# Debian trixie ne fournit que Node 20 : on installe Node 22 via NodeSource.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 FROM base as dev
 

@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@material/web": "^2.2.0",
     "maplibre-gl": "6.7"
