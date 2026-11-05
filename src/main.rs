@@ -45,7 +45,6 @@ use std::process::exit;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-use tower_livereload::LiveReloadLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use utils::import::import;
@@ -152,7 +151,7 @@ async fn main() {
     }
 
     // Définition du routeur Axum
-    let mut app = Router::new()
+    let app = Router::new()
         // Routes principales
         .route("/", get(index))
         .route("/auth", get(auth))
@@ -227,12 +226,6 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 10)); // Limite de 10Mo pour l'upload d'images
 
-    // Activation du rechargement à chaud en mode dev
-    if dev {
-        let livereload = LiveReloadLayer::new();
-        app = app.layer(livereload);
-    }
-
     // Lancement du serveur sur le port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -243,19 +236,13 @@ async fn main() {
 #[template(path = "index.html", escape = "none")]
 pub struct IndexTemplate {
     pub matomo_server: String,
-    pub dev: bool,
 }
 
 /// Handler pour la page d'accueil
 #[axum::debug_handler]
 pub async fn index() -> (HeaderMap, IndexTemplate) {
-    let dev = env::var("ENV")
-        .unwrap_or_else(|_| "prod".into())
-        .as_str()
-        .contains("dev");
     let template = IndexTemplate {
         matomo_server: MATOMO_SERVER.clone(),
-        dev,
     };
     let mut headers = HeaderMap::new();
     headers.insert(

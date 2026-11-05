@@ -28,13 +28,12 @@ regex = "1.11.1"
 reqwest = { version = "0.12.22", features = ["json"] }
 serde = "1.0.219"
 serde_json = "1.0.141"
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono", "uuid", "time"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["postgres", "runtime-tokio", "chrono", "uuid", "time", "macros", "migrate"] }
 time = { version = "0.3.41", features = ["formatting"] }
 timeago = "0.4.2"
 tokio = { version = "1.47.0", features = ["full"] }
 tokio-cron-scheduler = "0.10.2"
 tower-http = { version = "0.5.2", features = ["fs", "trace", "cors"] }
-tower-livereload = "0.9.6"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
