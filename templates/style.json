@@ -3555,6 +3555,7 @@
       "type": "fill",
       "source": "road_work",
       "source-layer": "road_work",
+      "filter": ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
       "maxzoom": 24,
       "minzoom": 0,
       "layout": {
@@ -3563,6 +3564,23 @@
       "paint": {
         "fill-color": "hsl(0, 100%, 58%)",
         "fill-opacity": 0.3
+      }
+    },
+    {
+      "id": "road_work_line",
+      "type": "line",
+      "source": "road_work",
+      "source-layer": "road_work",
+      "filter": ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false],
+      "maxzoom": 24,
+      "minzoom": 0,
+      "layout": {
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-color": "hsl(0, 100%, 58%)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2, 14, 4, 18, 8],
+        "line-opacity": 0.85
       }
     },
     {

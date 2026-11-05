@@ -17,15 +17,6 @@ pub struct Roadwork {
 impl Roadwork {
     /// Insère une géométrie déjà exprimée en Web Mercator (3857).
     pub async fn insert(&self, conn: &PgPool) {
-        self.insert_with_srid(conn, 3857).await;
-    }
-
-    /// Insère une géométrie exprimée en WGS84 (4326) et la reprojette en 3857.
-    pub async fn insert_wgs84(&self, conn: &PgPool) {
-        self.insert_with_srid(conn, 4326).await;
-    }
-
-    async fn insert_with_srid(&self, conn: &PgPool, srid: i32) {
         let geo_geometry: GeoGeometry<f64> = match convert_geojson_to_geo(&self.geom) {
             Ok(geo) => geo,
             Err(e) => {
@@ -34,26 +25,18 @@ impl Roadwork {
             }
         };
 
-        let geom_sql = if srid == 4326 {
-            "ST_Transform(ST_SetSRID($1::geometry, 4326), 3857)"
-        } else {
-            "$1"
-        };
-        let query = format!(
+        match sqlx::query(
             r#"
         INSERT INTO road_work (geom, start_date, end_date, source)
-        VALUES ({}, $2, $3, $4)
+        VALUES ($1, $2, $3, $4)
         "#,
-            geom_sql
-        );
-
-        match sqlx::query(&query)
-            .bind(wkb::Encode(geo_geometry))
-            .bind(&self.start_date)
-            .bind(&self.end_date)
-            .bind(&self.source)
-            .execute(conn)
-            .await
+        )
+        .bind(wkb::Encode(geo_geometry))
+        .bind(&self.start_date)
+        .bind(&self.end_date)
+        .bind(&self.source)
+        .execute(conn)
+        .await
         {
             Ok(_) => (),
             Err(e) => {

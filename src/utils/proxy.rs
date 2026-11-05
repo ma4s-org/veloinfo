@@ -7,7 +7,10 @@ pub async fn martin_proxy(
 ) -> impl axum::response::IntoResponse {
     let martin_url = env::var("MARTIN_URL").unwrap();
     let url = format!("{}/{}", martin_url, path);
-    let is_road_work = path.starts_with("road_work");
+    // Les travaux ne doivent jamais être mis en cache :
+    // - Martin a `cache: disable` pour la source road_work (martin/config.yaml)
+    // - ici on empêche aussi le cache navigateur/CDN avec `no-store`.
+    let is_road_work = path == "road_work" || path.starts_with("road_work/");
     let max_age = 604800; // 7 jours
 
     match reqwest::get(&url).await {

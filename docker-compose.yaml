@@ -29,6 +29,7 @@ services:
     image: ghcr.io/maplibre/martin:1.6.0
     volumes:
       - ./martin/fonts:/fonts/:z
+      - ./martin/config.yaml:/config.yaml:ro,z
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/carte
     ports:
@@ -36,7 +37,7 @@ services:
     depends_on:
       - db
       - veloinfo
-    entrypoint: martin --font /fonts
+    entrypoint: martin --config /config.yaml --font /fonts
   db:
     build:
       context: ./db
