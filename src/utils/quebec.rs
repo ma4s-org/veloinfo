@@ -30,9 +30,9 @@ fn local_date(properties: &serde_json::Map<String, Value>, key: &str) -> Option<
     )
 }
 
-/// Télécharge les entraves actives et à venir de la Ville de Québec, les recale
-/// sur le réseau routier OSM et remplace les travaux précédemment importés pour
-/// cette source.
+/// Télécharge les entraves en cours de la Ville de Québec, les recale sur le
+/// réseau routier OSM et remplace les travaux précédemment importés pour cette
+/// source.
 pub async fn fetch_quebec_data(conn: &sqlx::Pool<Postgres>) {
     let client = match reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
@@ -91,9 +91,8 @@ pub async fn fetch_quebec_data(conn: &sqlx::Pool<Postgres>) {
         }
     };
 
-    // On ne garde que les entraves qui ont une géométrie. Les statuts
-    // "active", "planned" et "pending" sont tous conservés : le flux les
-    // publie tous et la page de la Ville les affiche aussi.
+    // On ne garde que les travaux en cours (`event_status = "active"`). Les
+    // travaux à venir (`planned`) et en attente (`pending`) sont ignorés.
     features.retain(|feature| {
         feature
             .get("geometry")
@@ -103,6 +102,10 @@ pub async fn fetch_quebec_data(conn: &sqlx::Pool<Postgres>) {
                 .pointer("/properties/event_type")
                 .and_then(Value::as_str)
                 == Some("work-zone")
+            && feature
+                .pointer("/properties/event_status")
+                .and_then(Value::as_str)
+                == Some("active")
     });
 
     for feature in features.iter_mut() {
