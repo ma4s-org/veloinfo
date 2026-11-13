@@ -24,6 +24,7 @@ use crate::component::segment_panel::report_reply_post;
 use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::report_bounds_controler;
 use crate::utils::mtl;
+use crate::utils::quebec;
 use crate::utils::westmount;
 use crate::utils::proxy::martin_proxy;
 use askama::Template;
@@ -95,6 +96,24 @@ async fn main() {
     // Exécution des migrations SQL au démarrage
     sqlx::migrate!().run(&conn).await.unwrap();
 
+    // Import ponctuel des travaux routiers, utile en développement où le
+    // planificateur de production n'est pas actif :
+    //   cargo run -- --fetch-road-work [quebec|westmount|montreal]
+    // Sans argument de source, les trois sources sont importées.
+    if let Some(position) = env::args().position(|arg| arg == "--fetch-road-work") {
+        match env::args().nth(position + 1).as_deref() {
+            Some("quebec") => quebec::fetch_quebec_data(&conn).await,
+            Some("westmount") => westmount::fetch_westmount_data(&conn).await,
+            Some("montreal") => mtl::fetch_montreal_data(&conn).await,
+            _ => {
+                mtl::fetch_montreal_data(&conn).await;
+                westmount::fetch_westmount_data(&conn).await;
+                quebec::fetch_quebec_data(&conn).await;
+            }
+        }
+        return;
+    }
+
     // Configuration du planificateur de tâches (cron)
     println!("Starting cron scheduler");
 
@@ -139,6 +158,7 @@ async fn main() {
                         tokio::spawn(async move {
                             mtl::fetch_montreal_data(&conn_clone).await;
                             westmount::fetch_westmount_data(&conn_clone).await;
+                            quebec::fetch_quebec_data(&conn_clone).await;
                             Edge::clear_cache_and_reload(&conn_clone).await;
                         });
                     },

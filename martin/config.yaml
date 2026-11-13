@@ -13,6 +13,12 @@ postgres:
       srid: 3857
       geometry_column: geom
       geometry_type: GEOMETRY
+      # Bornes explicites : Martin calcule sinon les bornes au démarrage à
+      # partir du contenu de la table. Comme les travaux sont remplacés tous
+      # les jours sans redémarrer Martin, une nouvelle ville importée resterait
+      # invisible tant que le serveur de tuiles n'aurait pas été redémarré.
+      # Ces bornes couvrent le sud du Québec (Montréal, Westmount, Québec).
+      bounds: [-79.8, 44.0, -63.0, 51.0]
       properties:
         id: int4
         start_date: date
