@@ -17,8 +17,8 @@ use super::road_work_import::replace_road_works;
 // chaussée.
 const ROAD_WORK_URL: &str = "https://cartes.westmount.org/server/rest/services/InfoTravauxPublic2026/FeatureServer/7/query";
 
-// Etat : 1 = à venir, 2 = en cours, 3 = terminé.
-const ACTIVE_WORKS_FILTER: &str = "Etat IN (1,2)";
+// Etat : 1 = à venir, 2 = en cours, 3 = terminé. On ne garde que l'état 2.
+const ACTIVE_WORKS_FILTER: &str = "Etat = 2";
 const SOURCE: &str = "westmount";
 
 /// Télécharge une FeatureCollection GeoJSON et renvoie le corps brut ainsi que
