@@ -19,6 +19,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 FROM base as dev
 
+# Chromium sert à générer les vignettes cartographiques des messages
+# ActivityPub en mode headless.
+RUN apt-get update && apt-get install -y \
+    chromium \
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN chsh -s $(which fish)
 
 RUN rustup component add rust-analyzer
@@ -60,7 +67,11 @@ RUN apt-get update && apt-get install -y \
     osmium-tool \
     gdal-bin \
     libheif-dev \
-    wget unzip
+    wget unzip \
+    ca-certificates \
+    chromium \
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=build /app/target/release/veloinfo /app/veloinfo

@@ -1,3 +1,4 @@
+pub mod activity_pub;
 pub mod city_snow;
 pub mod cycleway;
 pub mod edge;

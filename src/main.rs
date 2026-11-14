@@ -51,6 +51,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use utils::import::import;
 
 // Définition des modules internes
+mod activity_pub;
 mod auth;
 mod component;
 mod db;
@@ -95,6 +96,9 @@ async fn main() {
 
     // Exécution des migrations SQL au démarrage
     sqlx::migrate!().run(&conn).await.unwrap();
+
+    // Livraison des activités ActivityPub en arrière-plan
+    tokio::spawn(activity_pub::run_delivery_worker(conn.clone()));
 
     // Import ponctuel des travaux routiers, utile en développement où le
     // planificateur de production n'est pas actif :
@@ -234,6 +238,19 @@ async fn main() {
         .route("/pub/service-worker.js", get(service_worker_js))
         .route("/health-check", get(|| async { "ok" }))
         .route("/version", get(version))
+        // ActivityPub / Fédivers
+        .route("/.well-known/webfinger", get(activity_pub::webfinger))
+        .route("/ap/actor", get(activity_pub::actor))
+        .route("/ap/actor/inbox", post(activity_pub::inbox))
+        .route("/ap/actor/followers", get(activity_pub::followers))
+        .route("/ap/actor/outbox", get(activity_pub::outbox))
+        .route("/ap/inbox", post(activity_pub::inbox))
+        .route("/ap/comment/{id}", get(activity_pub::note))
+        .route("/ap/report/{id}", get(activity_pub::report_context))
+        .route("/report/{id}", get(activity_pub::report_redirect))
+        .route("/report/{id}/map.png", get(activity_pub::report_map))
+        .route("/report/{id}/map-render", get(activity_pub::report_render_page))
+        .route("/fediverse", get(activity_pub::fediverse_page))
         // Services de fichiers statiques
         .nest_service("/.well-known/", ServeDir::new("well-known"))
         .nest_service("/dist/", ServeDir::new("dist"))

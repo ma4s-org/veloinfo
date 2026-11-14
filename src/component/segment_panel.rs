@@ -173,9 +173,11 @@ pub async fn segment_panel_post(
     };
 
     // Insert comment separately if provided
+    let mut federated_comment_id = None;
     if !comment.is_empty() {
-        if let Err(e) = Report::insert_comment(id, &comment, None, user_id.as_ref(), &state.conn).await {
-            eprintln!("Error while inserting comment: {}", e);
+        match Report::insert_comment(id, &comment, None, user_id.as_ref(), &state.conn).await {
+            Ok(comment_id) => federated_comment_id = Some(comment_id),
+            Err(e) => eprintln!("Error while inserting comment: {}", e),
         }
     }
     // Traiter la photo seulement si elle a du contenu (pas vide)
@@ -273,6 +275,13 @@ pub async fn segment_panel_post(
             .await
     {
         eprintln!("Error updating photo paths: {}", e);
+    }
+
+    // Publie le commentaire sur le Fédivers, une fois la photo enregistrée.
+    if let Some(comment_id) = federated_comment_id {
+        if let Err(e) = crate::activity_pub::publish_comment(&state.conn, comment_id).await {
+            eprintln!("Error while publishing comment to ActivityPub: {:#}", e);
+        }
     }
 
     // Vider le cache des EdgePoint pour les nodes intersectant ce report
@@ -780,7 +789,7 @@ pub async fn report_reply_post(
             );
         }
     };
-    
+
     // Traiter la photo si présente (optionnel pour les réponses)
     let photo_path_thumbnail = if let Some(photo_bytes) = photo {
         match process_and_save_photo(new_comment_id, &photo_bytes) {
@@ -800,8 +809,12 @@ pub async fn report_reply_post(
             eprintln!("Error updating comment photo: {}", e);
         }
     }
-    
-    
+
+    // Publie la réponse sur le Fédivers, une fois la photo enregistrée.
+    if let Err(e) = crate::activity_pub::publish_comment(&state.conn, new_comment_id).await {
+        eprintln!("Error while publishing reply to ActivityPub: {:#}", e);
+    }
+
     (
         jar,
         Json(json!({

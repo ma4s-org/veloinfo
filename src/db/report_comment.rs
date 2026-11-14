@@ -37,7 +37,7 @@ impl ReportComment {
                 rc.parent_comment_id,
                 rc.created_at,
                 rc.user_id,
-                u.name AS user_name,
+                COALESCE(NULLIF(u.name, ''), rc.ap_remote_actor_name) AS user_name,
                 rc.photo_path_thumbnail
             FROM report_comment rc
             LEFT JOIN users u ON rc.user_id = u.id

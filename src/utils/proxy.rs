@@ -1,8 +1,10 @@
 use std::env;
 
+use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 
 pub async fn martin_proxy(
+    headers: HeaderMap,
     axum::extract::Path(path): axum::extract::Path<String>,
 ) -> impl axum::response::IntoResponse {
     let martin_url = env::var("MARTIN_URL").unwrap();
@@ -24,10 +26,20 @@ pub async fn martin_proxy(
                 .unwrap_or("application/octet-stream")
                 .to_string();
             let body_bytes = response.bytes().await.unwrap_or_default();
-            let veloinfo_url = env::var("VELOINFO_URL").unwrap();
+            // Les requêtes internes (Chromium headless) doivent rester sur
+            // 127.0.0.1. Les requêtes publiques gardent l'URL publique.
+            let public_url = env::var("VELOINFO_URL").unwrap();
+            let origin = headers
+                .get("host")
+                .and_then(|value| value.to_str().ok())
+                .filter(|host| {
+                    host.starts_with("127.0.0.1") || host.starts_with("localhost")
+                })
+                .map(|host| format!("http://{}", host))
+                .unwrap_or(public_url);
             let body = if content_type.contains("application/json") {
                 String::from_utf8_lossy(&body_bytes)
-                    .replace(&martin_url, &format!("{}/martin", veloinfo_url))
+                    .replace(&martin_url, &format!("{}/martin", origin))
                     .into_bytes()
                     .into()
             } else {

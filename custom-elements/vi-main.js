@@ -230,6 +230,48 @@ class ViMain extends HTMLElement {
       } else {
         this.map.once('load', () => loadPointPanel());
       }
+    } else if (params.has("report")) {
+      // Lien profond vers une contribution, utilisé notamment par les
+      // messages publiés sur le Fédivers.
+      const reportId = parseInt(params.get("report"));
+      if (!Number.isFinite(reportId)) return;
+
+      const loadReport = async () => {
+        const response = await fetch(`/segment_panel/id/${reportId}`, { credentials: 'same-origin' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data.geom_json || data.geom_json.trim() === "") {
+          this.infoPanelUp();
+          return;
+        }
+
+        const geom = JSON.parse(data.geom_json);
+        let coords = [];
+        if (Array.isArray(geom)) {
+          geom.forEach(line => coords.push(...line));
+        } else if (geom.type === "Polygon") {
+          coords = geom.coordinates[0];
+        } else if (geom.type === "MultiPolygon") {
+          coords = geom.coordinates[0][0];
+        } else if (geom.type === "LineString") {
+          coords = geom.coordinates;
+        }
+        if (coords.length === 0) {
+          this.infoPanelUp();
+          return;
+        }
+
+        const bounds = new maplibregl.LngLatBounds();
+        coords.forEach(coord => bounds.extend(coord));
+        this.map.once('moveend', () => this.infoPanelUp());
+        this.map.fitBounds(bounds, { padding: 80, maxZoom: 17 });
+      };
+
+      if (this.map.loaded()) {
+        loadReport();
+      } else {
+        this.map.once('load', loadReport);
+      }
     }
   }
 

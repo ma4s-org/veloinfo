@@ -59,6 +59,14 @@ class ViMenu extends HTMLElement {
                         </div>
                     </a>
                 </md-menu-item>
+                <md-menu-item>
+                    <a href="/fediverse" style="display: flex; align-items: center;">
+                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">public</span>
+                        <div style="font-size: 1.125rem;">
+                            Commentaires sur le Fédivers
+                        </div>
+                    </a>
+                </md-menu-item>
                 <md-menu-item id="osm-edit">
                     <div style="display: flex;">
                         <img src="/pub/osm.svg">
