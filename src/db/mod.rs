@@ -4,7 +4,6 @@ pub mod cycleway;
 pub mod edge;
 pub mod report;
 pub mod report_comment;
-pub mod road_work;
 pub mod search_db;
 pub mod user;
 pub mod utils;

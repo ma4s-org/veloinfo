@@ -1,141 +1,162 @@
-use futures::{stream, StreamExt};
-use geojson::GeoJson;
-use reqwest;
+use chrono::{DateTime, NaiveDate};
+use chrono_tz::America::Montreal;
+use serde_json::{json, Value};
 use sqlx::postgres::Postgres;
-use std::fs::File;
-use std::io::Write;
-use std::process::Command;
-use std::str::FromStr;
-use time::Date;
+use std::time::Duration;
 
-use crate::db::road_work::{self, Roadwork};
+use super::road_work_import::{
+    local_today, replace_polygon_road_works, to_time_date,
+};
 
-pub struct SphericalMercator {
-    zoom: u32,
-    x: i32,
-    y: i32,
+// Carte des entraves et travaux de la Ville de Montréal :
+// https://services.montreal.ca/cartes/entraves
+//
+// Le WFS public expose la couche `entraves-polygonales` en GeoJSON. Une seule
+// requête remplace l'ancien parcours de 27 000 tuiles vectorielles à z17.
+const WFS_URL: &str = "https://api.montreal.ca/api/it-platforms/geomatic/wfs-maps/montreal/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=montreal:entraves-polygonales&outputFormat=application/json";
+
+const SOURCE: &str = "montreal";
+
+fn montreal_date(value: &Value) -> Option<NaiveDate> {
+    let value = value.as_str()?;
+    DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|datetime| datetime.with_timezone(&Montreal).date_naive())
 }
 
+/// Télécharge les zones de travaux en cours de la Ville de Montréal, les
+/// découpe sur le réseau routier OSM et remplace les travaux précédemment
+/// importés pour cette source.
 pub async fn fetch_montreal_data(conn: &sqlx::Pool<Postgres>) {
-    Roadwork::remove_source(conn, "montreal").await;
-    match std::fs::create_dir("tiles") {
-        Ok(_) => {}
-        Err(_) => {}
-    }
-    let x_range = 38611..38784;
-    let y_range = 46786..46945;
-
-    let sms: Vec<SphericalMercator> = x_range
-        .flat_map(|x| {
-            y_range
-                .clone()
-                .map(move |y| SphericalMercator { zoom: 17, x, y })
-        })
-        .collect();
-
-    // Process tiles in parallel (limit concurrency to avoid resource exhaustion)
-    stream::iter(sms)
-        .for_each_concurrent(16, |sm| async move {
-            read_tile(&sm, conn).await;
-        })
-        .await;
-
-    println!("Done fetching montreal data");
-
-    match std::fs::remove_dir_all("tiles") {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Error removing tiles directory: {}", e);
-        }
-    }
-}
-
-pub async fn read_tile(sm: &SphericalMercator, conn: &sqlx::Pool<Postgres>) {
-    let response = match reqwest::get(
-            format!("https://api.montreal.ca/api/it-platforms/geomatic/vector-tiles/maps/v1/entraves-polygonales/{}/{}/{}.pbf", 
-            sm.zoom, 
-            sm.x, 
-            sm.y)).await {
-        Ok(r) => r,
-        Err(e) => {
-            println!("Error fetching tile: {}", e);
-            return;
-    }};
-    if response.status() == 404 {
-        return;
-    }
-    let bytes = response.bytes().await.unwrap();
-    if bytes.len() == 0 {
-        return;
-    }
-    let mut file = File::create(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y)).unwrap();
-    file.write_all(&bytes).unwrap();
-
-    match Command::new("ogr2ogr")
-        .arg("-f")
-        .arg("GeoJSON")
-        .arg(format!("tiles/{}_{}_{}.geojson", sm.zoom, sm.x, sm.y))
-        .arg(format!("tiles/{}_{}_{}.pbf", sm.zoom, sm.x, sm.y))
-        .output()
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_secs(120))
+        .build()
     {
-        Ok(_) => {}
+        Ok(client) => client,
         Err(e) => {
-            println!("Error executing ogr2ogr: {}", e);
+            println!("Error building montreal http client: {}", e);
+            return;
         }
     };
 
-    let geojson_path = format!("tiles/{}_{}_{}.geojson", sm.zoom, sm.x, sm.y);
-    let geojson_str = match std::fs::read_to_string(&geojson_path) {
-        Ok(s) => s,
+    let response = match client.get(WFS_URL).send().await {
+        Ok(response) => response,
         Err(e) => {
-            println!("Error reading geojson file {:?}: {}", geojson_path, e);
+            println!("Error fetching montreal WFS: {}", e);
             return;
         }
     };
-    let geojson = match GeoJson::from_str(&geojson_str) {
-        Ok(g) => g,
+
+    if !response.status().is_success() {
+        println!(
+            "Request to montreal WFS failed with status {}",
+            response.status()
+        );
+        return;
+    }
+
+    let body: Value = match response.json().await {
+        Ok(body) => body,
         Err(e) => {
-            println!("Error parsing geojson: {}", e);
+            println!("Error parsing json from montreal WFS: {}", e);
             return;
         }
     };
-    if let GeoJson::FeatureCollection(features) = geojson {
-        for feature in features {
-            if let Some(geometry) = feature.geometry {
-                let road_work = road_work::Roadwork {
-                    geom: geometry,
-                    source: "montreal".to_string(),
-                    start_date: match Date::from_calendar_date(2024, time::Month::April, 1) {
-                        Ok(d) => d,
-                        Err(e) => {
-                            println!("Error creating date: {}", e);
-                            return;
-                        }
-                    },
-                    end_date: match Date::from_calendar_date(2024, time::Month::April, 1) {
-                        Ok(d) => d,
-                        Err(e) => {
-                            println!("Error creating date: {}", e);
-                            return;
-                        }
-                    },
-                };
-                road_work.insert(conn).await;
+
+    let raw_features = match body.get("features").and_then(Value::as_array) {
+        Some(features) => features,
+        None => {
+            println!("Unexpected json from montreal WFS: expected a FeatureCollection");
+            return;
+        }
+    };
+
+    let today = local_today();
+    let today_sql = match to_time_date(today) {
+        Some(date) => date,
+        None => {
+            println!("Error converting today's date for montreal");
+            return;
+        }
+    };
+
+    let mut features = Vec::new();
+    let mut skipped = 0usize;
+
+    for feature in raw_features {
+        let properties = match feature.get("properties") {
+            Some(properties) => properties,
+            None => continue,
+        };
+
+        let (Some(start), Some(end)) = (
+            properties.get("durationStartDate").and_then(montreal_date),
+            properties.get("durationEndDate").and_then(montreal_date),
+        ) else {
+            skipped += 1;
+            continue;
+        };
+
+        if start > today || end < today {
+            skipped += 1;
+            continue;
+        }
+
+        let geometry = match feature.get("geometry").cloned() {
+            Some(geometry) if !geometry.is_null() => geometry,
+            _ => {
+                skipped += 1;
+                continue;
             }
-        }
+        };
+
+        features.push(json!({
+            "type": "Feature",
+            "geometry": geometry,
+            "properties": {
+                "veloinfo_start_date": start.format("%Y-%m-%d").to_string(),
+                "veloinfo_end_date": end.format("%Y-%m-%d").to_string(),
+            },
+        }));
+    }
+
+    if features.is_empty() {
+        println!("No current road works from montreal; keeping previous import");
+        super::import_status::mark_success(SOURCE);
+        return;
+    }
+
+    let works_count = features.len();
+    let works_json = json!({
+        "type": "FeatureCollection",
+        "features": features,
+    })
+    .to_string();
+
+    match replace_polygon_road_works(conn, SOURCE, &works_json, today_sql).await {
+        Some(_) => println!(
+            "Done fetching montreal data ({} current zones, {} skipped)",
+            works_count, skipped
+        ),
+        None => println!("Error replacing montreal road works"),
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::env;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[tokio::test]
-//     async fn read_mtl_work() {
-//         let conn = sqlx::Pool::connect(&env::var("DATABASE_URL").unwrap())
-//             .await
-//             .unwrap();
+    #[test]
+    fn convertit_une_date_wfs_en_date_locale() {
+        assert_eq!(
+            montreal_date(&json!("2026-04-24T04:00:00Z")),
+            NaiveDate::from_ymd_opt(2026, 4, 24)
+        );
+    }
 
-//         super::fetch_montreal_data(&conn).await;
-//     }
-// }    
+    #[test]
+    fn ignore_une_date_invalide() {
+        assert_eq!(montreal_date(&json!("pas une date")), None);
+        assert_eq!(montreal_date(&json!(null)), None);
+    }
+}

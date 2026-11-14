@@ -579,7 +579,10 @@ impl EdgePoint {
             e.elevation_start,
             e.elevation_end
         FROM edge e
-            left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            left join road_work rw on (
+                (GeometryType(rw.geom) = 'POINT' AND ST_DWithin(e.geom, rw.geom, 20))
+                OR (GeometryType(rw.geom) <> 'POINT' AND ST_Intersects(e.geom, rw.geom))
+            )
             left join report r on ST_Intersects(e.geom, r.geom) and r.enabled = true
             left join city_snow csnow on csnow.city_name = e.city_name
         WHERE (e.source = $1 or e.target = $1)
@@ -1021,7 +1024,10 @@ impl Edge {
                 e.elevation_start,
                 e.elevation_end
             FROM edge e
-                left join road_work rw on ST_Intersects(e.geom, rw.geom)
+                left join road_work rw on (
+                (GeometryType(rw.geom) = 'POINT' AND ST_DWithin(e.geom, rw.geom, 20))
+                OR (GeometryType(rw.geom) <> 'POINT' AND ST_Intersects(e.geom, rw.geom))
+            )
                 left join report r on ST_Intersects(e.geom, r.geom) and r.enabled = true
                 left join city_snow csnow on csnow.city_name = e.city_name
             WHERE e.source = $1 or e.target = $1"#,
@@ -1067,7 +1073,10 @@ impl Edge {
                 e.elevation_start,
                 e.elevation_end
             FROM edge e
-            left join road_work rw on ST_Intersects(e.geom, rw.geom)
+            left join road_work rw on (
+                (GeometryType(rw.geom) = 'POINT' AND ST_DWithin(e.geom, rw.geom, 20))
+                OR (GeometryType(rw.geom) <> 'POINT' AND ST_Intersects(e.geom, rw.geom))
+            )
             left join report r on ST_Intersects(e.geom, r.geom) and r.enabled = true
             left join city_snow csnow on csnow.city_name = e.city_name
             WHERE e.city_name = $1"#,

@@ -23,8 +23,22 @@ use crate::component::segment_panel::report;
 use crate::component::segment_panel::report_reply_post;
 use crate::db::city_snow::city_snow;
 use crate::score_selector_controler::report_bounds_controler;
+use crate::utils::ddo;
+use crate::utils::dorval;
+use crate::utils::drummondville;
+use crate::utils::gatineau;
+use crate::utils::hampstead;
+use crate::utils::import_status;
+use crate::utils::laval;
+use crate::utils::levis;
+use crate::utils::longueuil;
+use crate::utils::mont_royal;
 use crate::utils::mtl;
 use crate::utils::quebec;
+use crate::utils::repentigny;
+use crate::utils::saguenay;
+use crate::utils::sherbrooke;
+use crate::utils::trois_rivieres;
 use crate::utils::westmount;
 use crate::utils::proxy::martin_proxy;
 use askama::Template;
@@ -71,6 +85,59 @@ struct VeloinfoState {
     conn: PgPool, // Pool de connexion à la base de données PostgreSQL
 }
 
+/// Sources suivies par le rapport d'erreurs d'import.
+const ROAD_WORK_SOURCES: &[&str] = &[
+    "montreal",
+    "westmount",
+    "quebec",
+    "laval",
+    "levis",
+    "dorval",
+    "hampstead",
+    "mont-royal",
+    "ddo",
+    "gatineau",
+    "sherbrooke",
+    "longueuil",
+    "trois-rivieres",
+    "saguenay",
+    "repentigny",
+    "drummondville",
+];
+
+/// Rafraîchit toutes les sources de travaux routiers puis recharge le cache
+/// des segments, qui mémorise l'état « travaux » de chaque rue.
+async fn fetch_all_road_works(conn: &PgPool) {
+    import_status::reset();
+
+    mtl::fetch_montreal_data(conn).await;
+    westmount::fetch_westmount_data(conn).await;
+    quebec::fetch_quebec_data(conn).await;
+    laval::fetch_laval_data(conn).await;
+    levis::fetch_levis_data(conn).await;
+    dorval::fetch_dorval_data(conn).await;
+    hampstead::fetch_hampstead_data(conn).await;
+    mont_royal::fetch_mont_royal_data(conn).await;
+    ddo::fetch_ddo_data(conn).await;
+    gatineau::fetch_gatineau_data(conn).await;
+    sherbrooke::fetch_sherbrooke_data(conn).await;
+    longueuil::fetch_longueuil_data(conn).await;
+    trois_rivieres::fetch_trois_rivieres_data(conn).await;
+    saguenay::fetch_saguenay_data(conn).await;
+    repentigny::fetch_repentigny_data(conn).await;
+    drummondville::fetch_drummondville_data(conn).await;
+
+    let failures = import_status::failures(ROAD_WORK_SOURCES);
+    if !failures.is_empty() {
+        println!("Road work import failures: {}", failures.join(", "));
+        if let Err(error) = activity_pub::publish_import_failures(conn, &failures).await {
+            eprintln!("ActivityPub: publication des erreurs d'import: {:#}", error);
+        }
+    }
+
+    Edge::clear_cache_and_reload(conn).await;
+}
+
 #[tokio::main]
 async fn main() {
     // Détection du mode développement
@@ -102,17 +169,49 @@ async fn main() {
 
     // Import ponctuel des travaux routiers, utile en développement où le
     // planificateur de production n'est pas actif :
-    //   cargo run -- --fetch-road-work [quebec|westmount|montreal]
-    // Sans argument de source, les trois sources sont importées.
+    //   cargo run -- --fetch-road-work [quebec|westmount|montreal|laval|levis|dorval|hampstead|montroyal|ddo|gatineau|sherbrooke|longueuil|trois-rivieres|saguenay|repentigny|drummondville]
+    // Sans argument de source, toutes les sources sont importées.
     if let Some(position) = env::args().position(|arg| arg == "--fetch-road-work") {
         match env::args().nth(position + 1).as_deref() {
             Some("quebec") => quebec::fetch_quebec_data(&conn).await,
             Some("westmount") => westmount::fetch_westmount_data(&conn).await,
             Some("montreal") => mtl::fetch_montreal_data(&conn).await,
+            Some("laval") => laval::fetch_laval_data(&conn).await,
+            Some("levis") => levis::fetch_levis_data(&conn).await,
+            Some("dorval") => dorval::fetch_dorval_data(&conn).await,
+            Some("hampstead") => hampstead::fetch_hampstead_data(&conn).await,
+            Some("montroyal") => mont_royal::fetch_mont_royal_data(&conn).await,
+            Some("ddo") => ddo::fetch_ddo_data(&conn).await,
+            Some("gatineau") => gatineau::fetch_gatineau_data(&conn).await,
+            Some("sherbrooke") => sherbrooke::fetch_sherbrooke_data(&conn).await,
+            Some("longueuil") => longueuil::fetch_longueuil_data(&conn).await,
+            Some("trois-rivieres") => trois_rivieres::fetch_trois_rivieres_data(&conn).await,
+            Some("saguenay") => saguenay::fetch_saguenay_data(&conn).await,
+            Some("repentigny") => repentigny::fetch_repentigny_data(&conn).await,
+            Some("drummondville") => drummondville::fetch_drummondville_data(&conn).await,
             _ => {
+                import_status::reset();
                 mtl::fetch_montreal_data(&conn).await;
                 westmount::fetch_westmount_data(&conn).await;
                 quebec::fetch_quebec_data(&conn).await;
+                laval::fetch_laval_data(&conn).await;
+                levis::fetch_levis_data(&conn).await;
+                dorval::fetch_dorval_data(&conn).await;
+                hampstead::fetch_hampstead_data(&conn).await;
+                mont_royal::fetch_mont_royal_data(&conn).await;
+                ddo::fetch_ddo_data(&conn).await;
+                gatineau::fetch_gatineau_data(&conn).await;
+                sherbrooke::fetch_sherbrooke_data(&conn).await;
+                longueuil::fetch_longueuil_data(&conn).await;
+                trois_rivieres::fetch_trois_rivieres_data(&conn).await;
+                saguenay::fetch_saguenay_data(&conn).await;
+                repentigny::fetch_repentigny_data(&conn).await;
+                drummondville::fetch_drummondville_data(&conn).await;
+
+                let failures = import_status::failures(ROAD_WORK_SOURCES);
+                if !failures.is_empty() {
+                    println!("Sources en échec : {}", failures.join(", "));
+                }
             }
         }
         return;
@@ -121,19 +220,11 @@ async fn main() {
     // Configuration du planificateur de tâches (cron)
     println!("Starting cron scheduler");
 
+    // Copie conservée pour le rafraîchissement des travaux au démarrage.
+    let conn_startup = conn.clone();
+
     // En production, on gère l'import automatique des données et le cache
     if !dev {
-        let conn_clone = conn.clone();
-        tokio::spawn(async move {
-            // Si un fichier lock existe, on relance l'import
-            if std::path::Path::new("lock/import").exists() {
-                std::fs::remove_file("lock/import").unwrap();
-                import(&conn_clone).await;
-            }
-            // Rechargement du cache des segments (edges)
-            Edge::clear_cache_and_reload(&conn_clone).await;
-        });
-
         let sched_restart = JobScheduler::new().await.unwrap();
         sched_restart
             .add(
@@ -160,10 +251,7 @@ async fn main() {
                     move |_uuid, _lock| {
                         let conn_clone = conn.clone();
                         tokio::spawn(async move {
-                            mtl::fetch_montreal_data(&conn_clone).await;
-                            westmount::fetch_westmount_data(&conn_clone).await;
-                            quebec::fetch_quebec_data(&conn_clone).await;
-                            Edge::clear_cache_and_reload(&conn_clone).await;
+                            fetch_all_road_works(&conn_clone).await;
                         });
                     },
                 )
@@ -173,6 +261,17 @@ async fn main() {
             .unwrap();
         sched_road_work.start().await.unwrap();
     }
+
+    // Rafraîchit les travaux dès le démarrage, sans attendre le cron de 1 h.
+    // En production, si un import OSM est demandé (fichier lock), on attend
+    // qu'il soit terminé avant de recaler les travaux sur le réseau routier.
+    tokio::spawn(async move {
+        if !dev && std::path::Path::new("lock/import").exists() {
+            std::fs::remove_file("lock/import").unwrap();
+            import(&conn_startup).await;
+        }
+        fetch_all_road_works(&conn_startup).await;
+    });
 
     // Définition du routeur Axum
     let app = Router::new()
@@ -244,8 +343,16 @@ async fn main() {
         .route("/ap/actor/inbox", post(activity_pub::inbox))
         .route("/ap/actor/followers", get(activity_pub::followers))
         .route("/ap/actor/outbox", get(activity_pub::outbox))
+        .route("/ap/alert-actor", get(activity_pub::alert_actor))
+        .route("/ap/alert-actor/inbox", post(activity_pub::alert_inbox))
+        .route("/ap/alert-actor/followers", get(activity_pub::alert_followers))
+        .route("/ap/alert-actor/outbox", get(activity_pub::alert_outbox))
         .route("/ap/inbox", post(activity_pub::inbox))
         .route("/ap/comment/{id}", get(activity_pub::note))
+        .route(
+            "/ap/import-error/{id}",
+            get(activity_pub::import_error_note),
+        )
         .route("/ap/report/{id}", get(activity_pub::report_context))
         .route("/report/{id}", get(activity_pub::report_redirect))
         .route("/report/{id}/map.png", get(activity_pub::report_map))

@@ -8,13 +8,13 @@
 pub mod map_image;
 pub mod signature;
 
-use crate::db::activity_pub::{self, CommentFederation, RemoteActor};
+use crate::db::activity_pub::{self, CommentFederation, ImportErrorNote, RemoteActor};
 use crate::VeloinfoState;
 use axum::body::{Body, Bytes};
 use axum::extract::{OriginalUri, Path, Query, State};
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
-use chrono::SecondsFormat;
+use chrono::{SecondsFormat, Utc};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::{json, Value};
@@ -38,6 +38,15 @@ lazy_static! {
          Répondez ici pour participer à la carte collaborative."
             .to_string()
     });
+    static ref ALERT_USERNAME: String =
+        env::var("FEDIVERSE_ALERT_USERNAME").unwrap_or_else(|_| "veloinfo-alertes".to_string());
+    static ref ALERT_NAME: String =
+        env::var("FEDIVERSE_ALERT_NAME").unwrap_or_else(|_| "Alertes Vélo info".to_string());
+    static ref ALERT_SUMMARY: String = env::var("FEDIVERSE_ALERT_SUMMARY")
+        .unwrap_or_else(|_| {
+            "Rapports d'import des travaux routiers et alertes techniques de Vélo info."
+                .to_string()
+        });
     static ref VERIFY_SIGNATURES: bool = env::var("FEDIVERSE_VERIFY_SIGNATURES")
         .map(|value| value != "false" && value != "0")
         .unwrap_or(true);
@@ -53,6 +62,26 @@ pub fn actor_id() -> String {
 
 pub fn key_id() -> String {
     format!("{}#main-key", actor_id())
+}
+
+pub fn alert_actor_id() -> String {
+    format!("{}/ap/alert-actor", *BASE_URL)
+}
+
+pub fn alert_key_id() -> String {
+    format!("{}#main-key", alert_actor_id())
+}
+
+fn alert_followers_url() -> String {
+    format!("{}/followers", alert_actor_id())
+}
+
+fn alert_outbox_url() -> String {
+    format!("{}/outbox", alert_actor_id())
+}
+
+fn alert_inbox_url() -> String {
+    format!("{}/inbox", alert_actor_id())
 }
 
 fn note_id(comment_id: i32) -> String {
@@ -77,6 +106,10 @@ fn followers_url() -> String {
 
 fn outbox_url() -> String {
     format!("{}/outbox", actor_id())
+}
+
+fn import_error_url(id: i32) -> String {
+    format!("{}/ap/import-error/{}", *BASE_URL, id)
 }
 
 fn inbox_url() -> String {
@@ -124,28 +157,48 @@ pub async fn webfinger(Query(query): Query<HashMap<String, String>>) -> Response
         None => return error_response(StatusCode::BAD_REQUEST, "resource manquant"),
     };
 
-    let expected_acct = format!("acct:{}@{}", *ACTOR_USERNAME, host());
-    let matches = resource.eq_ignore_ascii_case(&expected_acct)
-        || resource.eq_ignore_ascii_case(&actor_id())
-        || resource.eq_ignore_ascii_case(&format!("acct:{}@{}", *ACTOR_USERNAME, host().to_lowercase()));
+    let main_acct = format!("acct:{}@{}", *ACTOR_USERNAME, host());
+    let alert_acct = format!("acct:{}@{}", *ALERT_USERNAME, host());
 
-    if !matches {
+    let (subject, profile_actor, profile_page) = if resource.eq_ignore_ascii_case(&main_acct)
+        || resource.eq_ignore_ascii_case(&actor_id())
+        || resource.eq_ignore_ascii_case(&format!(
+            "acct:{}@{}",
+            *ACTOR_USERNAME,
+            host().to_lowercase()
+        ))
+    {
+        (main_acct, actor_id(), BASE_URL.to_string())
+    } else if resource.eq_ignore_ascii_case(&alert_acct)
+        || resource.eq_ignore_ascii_case(&alert_actor_id())
+        || resource.eq_ignore_ascii_case(&format!(
+            "acct:{}@{}",
+            *ALERT_USERNAME,
+            host().to_lowercase()
+        ))
+    {
+        (
+            alert_acct,
+            alert_actor_id(),
+            format!("{}/ap/alert-actor", *BASE_URL),
+        )
+    } else {
         return error_response(StatusCode::NOT_FOUND, "compte inconnu");
-    }
+    };
 
     let jrd = json!({
-        "subject": expected_acct,
-        "aliases": [actor_id(), BASE_URL.to_string()],
+        "subject": subject,
+        "aliases": [profile_actor.clone(), profile_page.clone()],
         "links": [
             {
                 "rel": "self",
                 "type": "application/activity+json",
-                "href": actor_id()
+                "href": profile_actor
             },
             {
                 "rel": "http://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": BASE_URL.to_string()
+                "href": profile_page
             }
         ]
     });
@@ -199,6 +252,87 @@ pub async fn actor(State(state): State<VeloinfoState>) -> Response {
     });
 
     activity_response(actor)
+}
+
+pub async fn alert_actor(State(state): State<VeloinfoState>) -> Response {
+    let keypair = match signature::alert_keypair(&state.conn).await {
+        Ok(keypair) => keypair,
+        Err(error) => {
+            eprintln!(
+                "ActivityPub: chargement de la clé d'alertes impossible: {:#}",
+                error
+            );
+            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "clé indisponible");
+        }
+    };
+
+    let actor = json!({
+        "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security/v1"
+        ],
+        "id": alert_actor_id(),
+        "type": "Service",
+        "preferredUsername": *ALERT_USERNAME,
+        "name": *ALERT_NAME,
+        "summary": *ALERT_SUMMARY,
+        "url": format!("{}/ap/alert-actor", *BASE_URL),
+        "inbox": alert_inbox_url(),
+        "outbox": alert_outbox_url(),
+        "followers": alert_followers_url(),
+        "publicKey": {
+            "id": alert_key_id(),
+            "owner": alert_actor_id(),
+            "publicKeyPem": keypair.public_key_pem
+        },
+        "icon": {
+            "type": "Image",
+            "mediaType": "image/png",
+            "url": format!("{}/pub/logo-big.png", *BASE_URL)
+        },
+        "manuallyApprovesFollowers": false,
+        "discoverable": true,
+        "indexable": true
+    });
+
+    activity_response(actor)
+}
+
+pub async fn alert_followers(State(state): State<VeloinfoState>) -> Response {
+    let total = activity_pub::count_alert_followers(&state.conn)
+        .await
+        .unwrap_or(0);
+    activity_response(json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": alert_followers_url(),
+        "type": "OrderedCollection",
+        "totalItems": total,
+        "orderedItems": []
+    }))
+}
+
+pub async fn alert_outbox(State(state): State<VeloinfoState>) -> Response {
+    // Les notes d'erreur sont peu nombreuses : on les renvoie directement.
+    let notes: Vec<Value> = sqlx::query_as::<_, ImportErrorNote>(
+        "SELECT id, failures, content, created_at
+         FROM ap_import_error
+         ORDER BY created_at DESC, id DESC
+         LIMIT 20",
+    )
+    .fetch_all(&state.conn)
+    .await
+    .unwrap_or_default()
+    .iter()
+    .map(import_error_note_json)
+    .collect();
+
+    activity_response(json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": alert_outbox_url(),
+        "type": "OrderedCollection",
+        "totalItems": notes.len(),
+        "orderedItems": notes
+    }))
 }
 
 pub async fn followers(State(state): State<VeloinfoState>) -> Response {
@@ -471,6 +605,109 @@ pub async fn publish_comment(conn: &PgPool, comment_id: i32) -> anyhow::Result<(
     Ok(())
 }
 
+fn import_error_note_json(note: &ImportErrorNote) -> Value {
+    json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": import_error_url(note.id),
+        "type": "Note",
+        "attributedTo": alert_actor_id(),
+        "content": note.content,
+        "published": note.created_at.to_rfc3339_opts(SecondsFormat::Secs, true),
+        "to": [PUBLIC],
+        "cc": [alert_followers_url()],
+        "url": import_error_url(note.id),
+        "sensitive": false
+    })
+}
+
+/// Publie sur le Fédivers une note listant les sources dont l'import a échoué.
+///
+/// Une même liste de sources n'est pas republiée avant six heures, pour éviter
+/// de spammer les abonnés lorsqu'un service reste indisponible.
+pub async fn publish_import_failures(
+    conn: &PgPool,
+    failures: &[&str],
+) -> anyhow::Result<()> {
+    if failures.is_empty() {
+        return Ok(());
+    }
+
+    let failures_text = failures.join(", ");
+
+    if let Some(last) = ImportErrorNote::last(conn).await? {
+        let age = Utc::now().signed_duration_since(last.created_at);
+        if last.failures == failures_text && age < chrono::Duration::hours(6) {
+            return Ok(());
+        }
+    }
+
+    let sources = failures
+        .iter()
+        .map(|source| format!("<li>{}</li>", escape_html(source)))
+        .collect::<Vec<_>>()
+        .join("");
+    let content = format!(
+        "<p>⚠️ Import des travaux routiers en échec pour :</p><ul>{}</ul><p>Les données précédentes sont conservées. Les détails sont dans les journaux du serveur.</p><p><a href=\"{}/\">Voir la carte</a></p>",
+        sources, *BASE_URL
+    );
+
+    let note = ImportErrorNote::insert(&failures_text, &content, conn).await?;
+    let note_json = import_error_note_json(&note);
+    let activity = json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": format!(
+            "{}/ap/activities/create-alert/import-error-{}",
+            *BASE_URL, note.id
+        ),
+        "type": "Create",
+        "actor": alert_actor_id(),
+        "published": note_json["published"].clone(),
+        "to": note_json["to"].clone(),
+        "cc": note_json["cc"].clone(),
+        "object": note_json
+    });
+    let activity_id = activity
+        .get("id")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default()
+        .to_string();
+    let payload = serde_json::to_string(&activity)?;
+
+    for inbox in activity_pub::alert_follower_inboxes(conn).await? {
+        if let Err(error) = activity_pub::enqueue_delivery_for(
+            "alert",
+            &activity_id,
+            &inbox,
+            &payload,
+            conn,
+        )
+        .await
+        {
+            eprintln!(
+                "ActivityPub: mise en file de l'erreur d'import pour {} impossible: {}",
+                inbox, error
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Note publique décrivant un échec d'import, consultable depuis le Fédivers.
+pub async fn import_error_note(
+    State(state): State<VeloinfoState>,
+    Path(id): Path<i32>,
+) -> Response {
+    match ImportErrorNote::get(id, &state.conn).await {
+        Ok(Some(note)) => activity_response(import_error_note_json(&note)),
+        Ok(None) => error_response(StatusCode::NOT_FOUND, "Note inconnue"),
+        Err(error) => {
+            eprintln!("ActivityPub: lecture de la note d'import: {:#}", error);
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, "Erreur interne")
+        }
+    }
+}
+
 pub async fn run_delivery_worker(conn: PgPool) {
     let client = match signature::remote_client() {
         Ok(client) => client,
@@ -494,9 +731,14 @@ async fn deliver_pending(conn: &PgPool, client: &reqwest::Client) -> anyhow::Res
         return Ok(());
     }
 
-    let keypair = signature::keypair(conn).await?;
     for delivery in deliveries {
-        let result = deliver_one(conn, client, keypair, &delivery).await;
+        let (keypair, key_id) = if delivery.account == "alert" {
+            (signature::alert_keypair(conn).await?, alert_key_id())
+        } else {
+            (signature::keypair(conn).await?, key_id())
+        };
+
+        let result = deliver_one(conn, client, keypair, &key_id, &delivery).await;
         if let Err(error) = result {
             eprintln!(
                 "ActivityPub: livraison vers {} échouée: {:#}",
@@ -518,12 +760,13 @@ async fn deliver_one(
     conn: &PgPool,
     client: &reqwest::Client,
     keypair: &signature::KeyPair,
+    key_id: &str,
     delivery: &activity_pub::Delivery,
 ) -> anyhow::Result<()> {
     let url = signature::validate_remote_url(&delivery.inbox)?;
     let signed = signature::sign_request(
         &keypair.private_key,
-        &key_id(),
+        key_id,
         "post",
         &url,
         delivery.payload.as_bytes(),
@@ -627,6 +870,175 @@ pub async fn inbox(
     }
 
     StatusCode::ACCEPTED.into_response()
+}
+
+/// Boîte de réception du compte d'alertes. Elle n'accepte que les Follow et
+/// Undo ; les autres activités sont ignorées.
+pub async fn alert_inbox(
+    State(state): State<VeloinfoState>,
+    headers: HeaderMap,
+    OriginalUri(uri): OriginalUri,
+    body: Bytes,
+) -> Response {
+    let path_and_query = uri
+        .path_and_query()
+        .map(|value| value.as_str())
+        .unwrap_or("/ap/alert-actor/inbox");
+
+    let activity: Value = match serde_json::from_slice(&body) {
+        Ok(activity) => activity,
+        Err(error) => {
+            eprintln!("ActivityPub alertes: activité JSON invalide: {}", error);
+            return error_response(StatusCode::BAD_REQUEST, "JSON invalide");
+        }
+    };
+
+    let remote_actor_id = match activity.get("actor").and_then(reference_id) {
+        Some(actor_id) => actor_id,
+        None => return error_response(StatusCode::BAD_REQUEST, "acteur manquant"),
+    };
+
+    let mut remote_actor: Option<RemoteActor> = None;
+    if *VERIFY_SIGNATURES {
+        let key_id = match signature::signature_key_id(&headers) {
+            Ok(key_id) => key_id,
+            Err(error) => {
+                eprintln!("ActivityPub alertes: {}", error);
+                return error_response(StatusCode::UNAUTHORIZED, "signature absente");
+            }
+        };
+        let (actor, public_key) =
+            match signature::fetch_public_key(&state.conn, &remote_actor_id, &key_id).await {
+                Ok(result) => result,
+                Err(error) => {
+                    eprintln!(
+                        "ActivityPub alertes: clé de {} introuvable: {:#}",
+                        remote_actor_id, error
+                    );
+                    return error_response(StatusCode::UNAUTHORIZED, "clé introuvable");
+                }
+            };
+        if let Err(error) = signature::verify_signature(
+            &headers,
+            "post",
+            path_and_query,
+            &body,
+            &public_key,
+            &key_id,
+        ) {
+            eprintln!(
+                "ActivityPub alertes: signature invalide de {}: {:#}",
+                remote_actor_id, error
+            );
+            return error_response(StatusCode::UNAUTHORIZED, "signature invalide");
+        }
+        remote_actor = Some(actor);
+    }
+
+    if remote_actor.is_none() {
+        remote_actor = signature::fetch_remote_actor(&state.conn, &remote_actor_id)
+            .await
+            .ok();
+    }
+
+    let result = match activity.get("type").and_then(Value::as_str) {
+        Some("Follow") => handle_alert_follow(
+            &state.conn,
+            &activity,
+            &remote_actor_id,
+            remote_actor,
+        )
+        .await,
+        Some("Undo") => handle_alert_undo(&state.conn, &activity, &remote_actor_id).await,
+        _ => Ok(()),
+    };
+
+    if let Err(error) = result {
+        eprintln!("ActivityPub alertes: traitement de l'activité: {:#}", error);
+        return error_response(StatusCode::BAD_REQUEST, "activité refusée");
+    }
+
+    StatusCode::ACCEPTED.into_response()
+}
+
+async fn handle_alert_follow(
+    conn: &PgPool,
+    activity: &Value,
+    remote_actor_id: &str,
+    remote_actor: Option<RemoteActor>,
+) -> anyhow::Result<()> {
+    if activity.get("object").and_then(reference_id).as_deref()
+        != Some(&alert_actor_id())
+    {
+        return Ok(());
+    }
+
+    let actor = remote_actor.ok_or_else(|| {
+        anyhow::anyhow!(
+            "impossible de récupérer l'acteur {} pour Follow (alertes)",
+            remote_actor_id
+        )
+    })?;
+
+    let follow_activity_id = activity.get("id").and_then(Value::as_str);
+    activity_pub::upsert_alert_follower(
+        remote_actor_id,
+        &actor.inbox,
+        actor.shared_inbox.as_deref(),
+        actor.display_name.as_deref(),
+        follow_activity_id,
+        conn,
+    )
+    .await?;
+
+    let accept = json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": format!("{}/ap/activities/accept-alert/{}", *BASE_URL, Uuid::new_v4()),
+        "type": "Accept",
+        "actor": alert_actor_id(),
+        "object": activity
+    });
+    let payload = serde_json::to_string(&accept)?;
+    activity_pub::enqueue_delivery_for(
+        "alert",
+        accept
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or_default(),
+        &actor.inbox,
+        &payload,
+        conn,
+    )
+    .await?;
+
+    Ok(())
+}
+
+async fn handle_alert_undo(
+    conn: &PgPool,
+    activity: &Value,
+    remote_actor_id: &str,
+) -> anyhow::Result<()> {
+    let Some(object) = activity.get("object") else {
+        return Ok(());
+    };
+
+    if object.get("type").and_then(Value::as_str) != Some("Follow") {
+        return Ok(());
+    }
+
+    if let Some(follow_id) = object.get("id").and_then(Value::as_str) {
+        activity_pub::remove_alert_follower_by_activity(
+            follow_id,
+            remote_actor_id,
+            conn,
+        )
+        .await?;
+    } else {
+        activity_pub::remove_alert_follower(remote_actor_id, conn).await?;
+    }
+
+    Ok(())
 }
 
 async fn process_activity(
@@ -1122,5 +1534,38 @@ mod tests {
             escape_html("<script>alert('x')</script>"),
             "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;"
         );
+    }
+
+    #[tokio::test]
+    #[ignore = "nécessite une base PostgreSQL locale"]
+    async fn publie_une_note_d_erreur_d_import() {
+        let Ok(url) = std::env::var("DATABASE_URL") else {
+            return;
+        };
+        let pool = PgPool::connect(&url).await.unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let keypair = signature::alert_keypair(&pool).await.unwrap();
+        assert!(!keypair.public_key_pem.is_empty());
+
+        publish_import_failures(&pool, &["ville-test"])
+            .await
+            .unwrap();
+
+        let note = ImportErrorNote::last(&pool).await.unwrap().unwrap();
+        assert!(note.failures.contains("ville-test"));
+        let note_json = import_error_note_json(&note);
+        assert_eq!(note_json["type"], "Note");
+        assert_eq!(note_json["attributedTo"], alert_actor_id());
+
+        sqlx::query("DELETE FROM ap_import_error WHERE failures = $1")
+            .bind("ville-test")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("DELETE FROM ap_alert_keys")
+            .execute(&pool)
+            .await
+            .unwrap();
     }
 }

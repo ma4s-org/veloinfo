@@ -37,6 +37,56 @@ pub struct Delivery {
     pub inbox: String,
     pub payload: String,
     pub attempts: i32,
+    pub account: String,
+}
+
+/// Note ActivityPub publiée lorsqu'un import de travaux échoue.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ImportErrorNote {
+    pub id: i32,
+    pub failures: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+}
+
+impl ImportErrorNote {
+    pub async fn last(conn: &PgPool) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as(
+            "SELECT id, failures, content, created_at
+             FROM ap_import_error
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1",
+        )
+        .fetch_optional(conn)
+        .await
+    }
+
+    pub async fn get(id: i32, conn: &PgPool) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as(
+            "SELECT id, failures, content, created_at
+             FROM ap_import_error
+             WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(conn)
+        .await
+    }
+
+    pub async fn insert(
+        failures: &str,
+        content: &str,
+        conn: &PgPool,
+    ) -> Result<Self, sqlx::Error> {
+        sqlx::query_as(
+            "INSERT INTO ap_import_error (failures, content)
+             VALUES ($1, $2)
+             RETURNING id, failures, content, created_at",
+        )
+        .bind(failures)
+        .bind(content)
+        .fetch_one(conn)
+        .await
+    }
 }
 
 const COMMENT_FEDERATION_SELECT: &str = r#"
@@ -285,6 +335,76 @@ pub async fn count_followers(conn: &PgPool) -> Result<i64, sqlx::Error> {
         .await
 }
 
+pub async fn upsert_alert_follower(
+    actor_id: &str,
+    inbox: &str,
+    shared_inbox: Option<&str>,
+    display_name: Option<&str>,
+    follow_activity_id: Option<&str>,
+    conn: &PgPool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO ap_alert_followers
+               (actor_id, inbox, shared_inbox, display_name, follow_activity_id)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (actor_id) DO UPDATE SET
+               inbox = EXCLUDED.inbox,
+               shared_inbox = EXCLUDED.shared_inbox,
+               display_name = EXCLUDED.display_name,
+               follow_activity_id = EXCLUDED.follow_activity_id"#,
+    )
+    .bind(actor_id)
+    .bind(inbox)
+    .bind(shared_inbox)
+    .bind(display_name)
+    .bind(follow_activity_id)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+pub async fn remove_alert_follower(
+    actor_id: &str,
+    conn: &PgPool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM ap_alert_followers WHERE actor_id = $1")
+        .bind(actor_id)
+        .execute(conn)
+        .await?;
+    Ok(())
+}
+
+pub async fn remove_alert_follower_by_activity(
+    follow_activity_id: &str,
+    actor_id: &str,
+    conn: &PgPool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM ap_alert_followers
+         WHERE actor_id = $1 AND follow_activity_id = $2",
+    )
+    .bind(actor_id)
+    .bind(follow_activity_id)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+pub async fn alert_follower_inboxes(conn: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let rows: Vec<(String,)> = sqlx::query_as(
+        "SELECT COALESCE(shared_inbox, inbox) FROM ap_alert_followers ORDER BY actor_id",
+    )
+    .fetch_all(conn)
+    .await?;
+    Ok(rows.into_iter().map(|(inbox,)| inbox).collect())
+}
+
+pub async fn count_alert_followers(conn: &PgPool) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar("SELECT COUNT(*) FROM ap_alert_followers")
+        .fetch_one(conn)
+        .await
+}
+
 pub async fn get_keypair(
     conn: &PgPool,
 ) -> Result<Option<(String, String)>, sqlx::Error> {
@@ -312,17 +432,55 @@ pub async fn insert_keypair(
     Ok(())
 }
 
+pub async fn get_alert_keypair(
+    conn: &PgPool,
+) -> Result<Option<(String, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT private_key_pem, public_key_pem FROM ap_alert_keys WHERE id = 1",
+    )
+    .fetch_optional(conn)
+    .await
+}
+
+pub async fn insert_alert_keypair(
+    private_key_pem: &str,
+    public_key_pem: &str,
+    conn: &PgPool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO ap_alert_keys (id, private_key_pem, public_key_pem)
+           VALUES (1, $1, $2)
+           ON CONFLICT (id) DO NOTHING"#,
+    )
+    .bind(private_key_pem)
+    .bind(public_key_pem)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
 pub async fn enqueue_delivery(
     activity_id: &str,
     inbox: &str,
     payload: &str,
     conn: &PgPool,
 ) -> Result<(), sqlx::Error> {
+    enqueue_delivery_for("main", activity_id, inbox, payload, conn).await
+}
+
+pub async fn enqueue_delivery_for(
+    account: &str,
+    activity_id: &str,
+    inbox: &str,
+    payload: &str,
+    conn: &PgPool,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
-        r#"INSERT INTO ap_delivery_queue (activity_id, inbox, payload)
-           VALUES ($1, $2, $3)
+        r#"INSERT INTO ap_delivery_queue (account, activity_id, inbox, payload)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT (activity_id, inbox) DO NOTHING"#,
     )
+    .bind(account)
     .bind(activity_id)
     .bind(inbox)
     .bind(payload)
@@ -336,7 +494,7 @@ pub async fn due_deliveries(
     conn: &PgPool,
 ) -> Result<Vec<Delivery>, sqlx::Error> {
     sqlx::query_as(
-        r#"SELECT id, inbox, payload, attempts
+        r#"SELECT id, inbox, payload, attempts, account
            FROM ap_delivery_queue
            WHERE next_attempt_at <= NOW()
            ORDER BY id

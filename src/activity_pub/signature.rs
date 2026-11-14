@@ -22,12 +22,20 @@ pub struct KeyPair {
 }
 
 static KEYPAIR: OnceCell<KeyPair> = OnceCell::const_new();
+static ALERT_KEYPAIR: OnceCell<KeyPair> = OnceCell::const_new();
 
 /// Charge la clé RSA du compte ActivityPub, ou en génère une au premier
 /// démarrage. La clé est conservée en base de données pour rester stable.
 pub async fn keypair(conn: &PgPool) -> Result<&'static KeyPair> {
     KEYPAIR
         .get_or_try_init(|| async { load_or_create_keypair(conn).await })
+        .await
+}
+
+/// Clé RSA du compte séparé qui publie les alertes et erreurs d'import.
+pub async fn alert_keypair(conn: &PgPool) -> Result<&'static KeyPair> {
+    ALERT_KEYPAIR
+        .get_or_try_init(|| async { load_or_create_alert_keypair(conn).await })
         .await
 }
 
@@ -61,6 +69,42 @@ async fn load_or_create_keypair(conn: &PgPool) -> Result<KeyPair> {
         .ok_or_else(|| anyhow!("impossible d'enregistrer la clé ActivityPub"))?;
     let private_key = RsaPrivateKey::from_pkcs8_pem(&private_pem)
         .context("clé privée ActivityPub invalide")?;
+    Ok(KeyPair {
+        private_key,
+        public_key_pem: public_pem,
+    })
+}
+
+async fn load_or_create_alert_keypair(conn: &PgPool) -> Result<KeyPair> {
+    if let Some((private_pem, public_pem)) =
+        activity_pub::get_alert_keypair(conn).await?
+    {
+        let private_key = RsaPrivateKey::from_pkcs8_pem(&private_pem)
+            .context("clé privée du compte d'alertes invalide")?;
+        return Ok(KeyPair {
+            private_key,
+            public_key_pem: public_pem,
+        });
+    }
+
+    let private_key = RsaPrivateKey::new(&mut OsRng, 2048)
+        .context("génération de la clé RSA du compte d'alertes")?;
+    let private_pem = private_key
+        .to_pkcs8_pem(LineEnding::LF)
+        .context("encodage de la clé privée du compte d'alertes")?
+        .to_string();
+    let public_pem = private_key
+        .to_public_key()
+        .to_public_key_pem(LineEnding::LF)
+        .context("encodage de la clé publique du compte d'alertes")?;
+
+    activity_pub::insert_alert_keypair(&private_pem, &public_pem, conn).await?;
+
+    let (private_pem, public_pem) = activity_pub::get_alert_keypair(conn)
+        .await?
+        .ok_or_else(|| anyhow!("impossible d'enregistrer la clé du compte d'alertes"))?;
+    let private_key = RsaPrivateKey::from_pkcs8_pem(&private_pem)
+        .context("clé privée du compte d'alertes invalide")?;
     Ok(KeyPair {
         private_key,
         public_key_pem: public_pem,
