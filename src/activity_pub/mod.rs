@@ -1497,6 +1497,22 @@ pub async fn fediverse_page() -> Response {
     Répondez directement à un message pour l'ajouter aux commentaires de la
     contribution correspondante sur <a href="{base}">la carte Vélo info</a>.
   </p>
+  <h2>Publier sur votre propre compte</h2>
+  <p>
+    Vous pouvez aussi relier votre compte Mastodon, GoToSocial, Pleroma ou
+    Akkoma depuis le menu de la carte (« Se connecter avec le Fédivers »).
+    Vos nouveaux signalements seront alors publiés sur votre compte, avec la
+    carte et la photo éventuelle.
+  </p>
+  <form method="post" action="/fediverse/connect"
+        style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0;">
+    <input type="text" name="instance" placeholder="mastodon.social" required
+           style="flex: 1 1 14rem; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+    <button type="submit"
+            style="padding: 0.5rem 1rem; border: 0; border-radius: 0.375rem; background: #1d4ed8; color: white; cursor: pointer;">
+      Se connecter
+    </button>
+  </form>
   <p>
     <a href="{base}">Retour à la carte</a> ·
     <a href="{actor}">Profil ActivityPub</a>

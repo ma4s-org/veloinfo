@@ -1,7 +1,9 @@
+use crate::db::user::User;
 use axum::{extract::Query, response::Redirect};
-use axum_extra::extract::cookie::{Cookie, CookieJar};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 lazy_static! {
@@ -119,6 +121,37 @@ pub fn get_user_id_from_jar(jar: &CookieJar) -> Option<Uuid> {
             .ok()
             .and_then(|info| Uuid::parse_str(&info.sub).ok())
     })
+}
+
+/// Identifiant de l'utilisateur courant : compte Keycloak s'il est connecté,
+/// sinon UUID anonyme conservé dans le cookie `uuid`.
+pub fn get_any_user_id_from_jar(jar: &CookieJar) -> Option<Uuid> {
+    get_user_id_from_jar(jar).or_else(|| {
+        jar.get("uuid")
+            .and_then(|cookie| Uuid::parse_str(cookie.value()).ok())
+    })
+}
+
+/// Retourne l'utilisateur courant, ou en crée un nouveau si aucun cookie
+/// d'identité n'est présent. Le cookie `uuid` est conservé entre les visites,
+/// ce qui permet de relier un compte Fédivers à ses signalements.
+pub async fn current_or_new_user(jar: CookieJar, conn: &PgPool) -> (Uuid, CookieJar) {
+    if let Some(uuid) = get_any_user_id_from_jar(&jar) {
+        if User::get(&uuid, conn).await.is_none() {
+            User::insert(&uuid, &String::new(), conn).await;
+        }
+        return (uuid, jar);
+    }
+
+    let new_uuid = Uuid::new_v4();
+    User::insert(&new_uuid, &String::new(), conn).await;
+    let cookie = Cookie::build(("uuid", new_uuid.to_string()))
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .secure(VELOINFO_URL.starts_with("https://"))
+        .build();
+    (new_uuid, jar.add(cookie))
 }
 
 pub async fn logout(jar: CookieJar) -> (CookieJar, Redirect) {

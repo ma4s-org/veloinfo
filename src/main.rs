@@ -69,6 +69,7 @@ mod activity_pub;
 mod auth;
 mod component;
 mod db;
+mod fediverse;
 mod score_selector_controler;
 mod utils;
 
@@ -166,6 +167,10 @@ async fn main() {
 
     // Livraison des activités ActivityPub en arrière-plan
     tokio::spawn(activity_pub::run_delivery_worker(conn.clone()));
+
+    // Relance des publications de signalements sur les comptes Fédivers
+    // personnels (échecs réseau temporaires, instances indisponibles…).
+    tokio::spawn(fediverse::run_publication_worker(conn.clone()));
 
     // Import ponctuel des travaux routiers, utile en développement où le
     // planificateur de production n'est pas actif :
@@ -358,6 +363,11 @@ async fn main() {
         .route("/report/{id}/map.png", get(activity_pub::report_map))
         .route("/report/{id}/map-render", get(activity_pub::report_render_page))
         .route("/fediverse", get(activity_pub::fediverse_page))
+        // Connexion des utilisateurs à leur propre compte Fédivers
+        .route("/fediverse/connect", post(fediverse::connect))
+        .route("/fediverse/callback", get(fediverse::callback))
+        .route("/fediverse/me", get(fediverse::me))
+        .route("/fediverse/disconnect", post(fediverse::disconnect))
         // Services de fichiers statiques
         .nest_service("/.well-known/", ServeDir::new("well-known"))
         .nest_service("/dist/", ServeDir::new("dist"))

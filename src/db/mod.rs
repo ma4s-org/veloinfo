@@ -2,6 +2,7 @@ pub mod activity_pub;
 pub mod city_snow;
 pub mod cycleway;
 pub mod edge;
+pub mod fediverse;
 pub mod report;
 pub mod report_comment;
 pub mod search_db;

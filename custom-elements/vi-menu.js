@@ -67,6 +67,14 @@ class ViMenu extends HTMLElement {
                         </div>
                     </a>
                 </md-menu-item>
+                <md-menu-item id="fediverse-login">
+                    <div style="display: flex; align-items: center;">
+                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">account_circle</span>
+                        <div id="fediverse-label" style="font-size: 1.125rem;">
+                            Se connecter avec le Fédivers
+                        </div>
+                    </div>
+                </md-menu-item>
                 <md-menu-item id="osm-edit">
                     <div style="display: flex;">
                         <img src="/pub/osm.svg">
@@ -90,6 +98,16 @@ class ViMenu extends HTMLElement {
                         </div>
                     </a>
             </md-menu>
+
+            <md-dialog id="fediverse-dialog" style="max-width: 32rem;">
+                <div slot="headline">Mon compte Fédivers</div>
+                <div slot="content" id="fediverse-content">
+                    <img src="/pub/bars.svg" alt="Chargement" style="display: block; margin: 1rem auto;">
+                </div>
+                <div slot="actions">
+                    <md-button id="fediverse-close">Fermer</md-button>
+                </div>
+            </md-dialog>
 
             <vi-install-android id="android-install"></vi-install-android>
             <vi-install-ios id="ios-install"></vi-install-ios>
@@ -146,6 +164,117 @@ class ViMenu extends HTMLElement {
       }
       window.location.assign(url);
     });
+
+    // Connexion au compte Fédivers de l'utilisateur
+    this.fediverseDialog = this.querySelector('#fediverse-dialog');
+    this.querySelector('#fediverse-close').addEventListener('click', () => {
+      this.fediverseDialog.close();
+    });
+    this.querySelector('#fediverse-login').addEventListener('click', async () => {
+      await this.refreshFediverse();
+      this.fediverseDialog.show();
+    });
+
+    // État initial dans le menu (sans bloquer le chargement de la carte).
+    this.refreshFediverse();
+
+    // Retour du parcours OAuth : ouvre le dialogue et nettoie l'URL.
+    const fediverseStatus = params.get('fediverse');
+    if (fediverseStatus) {
+      this.refreshFediverse().then(() => {
+        if (fediverseStatus === 'error') {
+          this.fediverseDialog.querySelector('#fediverse-content').insertAdjacentHTML(
+            'afterbegin',
+            '<p style="color: #b91c1c; margin: 0 0 1rem;">La connexion a échoué. Vérifiez le domaine de votre instance et réessayez.</p>'
+          );
+        }
+        this.fediverseDialog.show();
+      });
+      params.delete('fediverse');
+      const query = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+    }
+  }
+
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[character]);
+  }
+
+  safeUrl(value) {
+    try {
+      const url = new URL(value);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return url.href;
+      }
+    } catch (error) {
+      // URL invalide : on retombe sur la carte.
+    }
+    return '/';
+  }
+
+  async refreshFediverse() {
+    const label = this.querySelector('#fediverse-label');
+    const content = this.querySelector('#fediverse-content');
+    if (!label || !content) {
+      return;
+    }
+
+    let data = { connected: false };
+    try {
+      const response = await fetch('/fediverse/me', { credentials: 'same-origin' });
+      if (response.ok) {
+        data = await response.json();
+      }
+    } catch (error) {
+      // Le menu reste utilisable même si l'état est indisponible.
+    }
+
+    if (data.connected) {
+      const account = data.account || {};
+      const acct = this.escapeHtml(account.acct || '');
+      const profileUrl = this.safeUrl(account.profile_url || account.instance || '/');
+      label.textContent = `Fédivers : @${account.acct || ''}`;
+      content.innerHTML = `
+        <p>Vos nouveaux signalements sont publiés automatiquement sur
+          <a href="${profileUrl}" target="_blank" rel="noopener noreferrer">@${acct}</a>.</p>
+        <p style="color: #6b7280; font-size: small;">
+          Les commentaires et réponses restent fédérés par le compte Vélo info.
+        </p>
+        <md-outlined-button id="fediverse-disconnect">Se déconnecter</md-outlined-button>
+      `;
+      content.querySelector('#fediverse-disconnect').addEventListener('click', async () => {
+        try {
+          await fetch('/fediverse/disconnect', {
+            method: 'POST',
+            credentials: 'same-origin'
+          });
+        } finally {
+          window.location.assign('/?fediverse=disconnected');
+        }
+      });
+    } else {
+      label.textContent = 'Se connecter avec le Fédivers';
+      content.innerHTML = `
+        <p>Connectez votre compte Mastodon, GoToSocial, Pleroma ou Akkoma.
+          Vos signalements seront publiés sur votre compte.</p>
+        <form method="post" action="/fediverse/connect"
+              style="display: flex; flex-direction: column; gap: 0.75rem; margin: 1rem 0;">
+          <md-outlined-text-field name="instance" label="Instance"
+              placeholder="mastodon.social, masto.bike…" required></md-outlined-text-field>
+          <md-filled-button type="submit">Continuer vers mon instance</md-filled-button>
+        </form>
+        <p style="color: #6b7280; font-size: small;">
+          Vélo info ne reçoit jamais votre mot de passe : vous autorisez
+          l'application directement sur votre instance.
+        </p>
+      `;
+    }
   }
 
   clickOSMEdit() {

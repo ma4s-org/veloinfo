@@ -49,6 +49,11 @@ machine est publiée.
 La couche des travaux n'est affichée qu'à partir du zoom 11 pour éviter de
 surcharger la carte de loin.
 
+En production, le service Martin doit démarrer avec le fichier
+`martin/config.yaml` (`--config /config.yaml`). Ce fichier désactive le cache
+interne de Martin pour la source `road_work` ; sans lui, Martin peut continuer
+à servir les tuiles d'avant l'import même si la base est à jour.
+
 En cas d'échec d'import d'une source, une Note est publiée sur le Fédivers
 (au plus une fois par six heures pour la même liste de sources). Elle reste
 consultable à `/ap/import-error/{id}`.
@@ -79,6 +84,8 @@ sur le Fédivers (Mastodon, GoToSocial, Pleroma, etc.).
 * Outbox : `/ap/actor/outbox`
 * Outbox des alertes : `/ap/alert-actor/outbox`
 * Page d'explication : `/fediverse`
+* Connexion personnelle : formulaire POST `/fediverse/connect`, retour sur `/fediverse/callback`
+* État de connexion : `/fediverse/me`, déconnexion : `/fediverse/disconnect`
 
 Chaque commentaire local est publié comme une `Note` ActivityPub. Les abonnés
 reçoivent les nouveaux commentaires, et les réponses envoyées depuis le
@@ -104,6 +111,24 @@ Un rendu Rust simplifié sert de repli si Chromium n'est pas disponible.
 L'image générée est mise en cache dans `MAP_CACHE_DIR` pour éviter de
 relancer Chromium à chaque requête.
 
+## Connexion avec son propre compte Fédivers
+
+En plus du compte principal, chaque utilisateur peut relier son propre compte
+Mastodon, GoToSocial, Pleroma ou Akkoma. Le menu de la carte propose
+« Se connecter avec le Fédivers » : l'utilisateur saisit le domaine de son
+instance, autorise Vélo info sur celle-ci, puis les nouveaux signalements sont
+publiés automatiquement sur son compte (texte, lien, vignette de la carte et
+photo éventuelle).
+
+La connexion utilise l'API Mastodon-compatible en OAuth 2.0. Vélo info ne
+reçoit jamais le mot de passe : il conserve seulement un jeton d'accès, stocké
+dans `fediverse_accounts`. Ce jeton est sensible : l'accès à PostgreSQL doit
+être restreint. Les signalements déjà publiés sont suivis dans
+`fediverse_publications` ; en cas d'échec réseau, un worker retente la
+publication jusqu'à cinq fois. Les commentaires et réponses continuent d'être
+fédérés par le compte principal `@veloinfo@<domaine>` afin que les réponses
+envoyées depuis le Fédivers restent visibles sur la carte.
+
 ## Configuration
 
 Les variables suivantes sont optionnelles :
@@ -118,6 +143,7 @@ Les variables suivantes sont optionnelles :
 | `FEDIVERSE_ALERT_NAME` | `Alertes Vélo info` | Nom affiché du compte d'alertes. |
 | `FEDIVERSE_ALERT_SUMMARY` | présentation par défaut | Biographie du compte d'alertes. |
 | `FEDIVERSE_VERIFY_SIGNATURES` | `true` | Vérifie les signatures HTTP des activités entrantes. À ne désactiver qu'en développement local. |
+| `FEDIVERSE_VISIBILITY` | `public` | Visibilité des statuts publiés sur les comptes personnels (`public`, `unlisted`, `private`). |
 | `FEDIVERSE_RENDER_URL` | `http://127.0.0.1:3000` | URL interne utilisée par Chromium pour charger la page de rendu de la carte. |
 | `CHROMIUM_BIN` | détection automatique | Chemin explicite vers le binaire Chromium/Chrome. |
 | `MAP_CACHE_DIR` | `$TMPDIR/veloinfo-maps` | Répertoire de cache des vignettes générées. |
@@ -127,11 +153,14 @@ dans `ap_keys`. Le compte d'alertes a sa propre clé (`ap_alert_keys`) et ses
 propres abonnés (`ap_alert_followers`). Les acteurs distants sont dans
 `ap_remote_actors` et les livraisons en attente dans `ap_delivery_queue`
 (avec relances automatiques et signature par la clé du compte concerné).
+Les applications OAuth enregistrées sur les instances sont dans
+`fediverse_apps`, les comptes personnels reliés dans `fediverse_accounts` et
+les publications de signalements dans `fediverse_publications`.
 
 En production, le site doit être joignable publiquement en HTTPS et le
-reverse proxy doit transmettre `/.well-known/webfinger` ainsi que `/ap/*` à
-l'application sans réécrire le chemin ni l'en-tête `Host` : les signatures
-HTTP des activités entrantes en dépendent.
+reverse proxy doit transmettre `/.well-known/webfinger` ainsi que `/ap/*` et
+`/fediverse/*` à l'application sans réécrire le chemin ni l'en-tête `Host` :
+les signatures HTTP des activités entrantes en dépendent.
 
 Attention : `veloinfo.ca` redirige actuellement vers `veloinfo.quebec` pour
 la page d'accueil, mais pas pour `/.well-known/webfinger`. Le compte doit

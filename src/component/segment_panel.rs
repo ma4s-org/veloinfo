@@ -12,7 +12,6 @@ use axum::extract::{Path, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use geojson::JsonValue;
 use image::DynamicImage;
@@ -62,22 +61,9 @@ pub async fn segment_panel_post(
     jar: CookieJar,
     mut multipart: Multipart,
 ) -> (CookieJar, Json<JsonValue>) {
-    // Récupérer l'UUID depuis le cookie userinfo (Keycloak) ou en créer un nouveau
-    let (user_id, jar) = match get_user_id_from_jar(&jar) {
-        Some(uuid) => {
-            let user = User::get(&uuid, &state.conn).await;
-            if user.is_none() {
-                User::insert(&uuid, &"".to_string(), &state.conn).await;
-            }
-            (Some(uuid), jar)
-        }
-        None => {
-            // Utilisateur non connecté : créer un UUID anonyme et le stocker dans un cookie
-            let new_uuid = Uuid::new_v4();
-            User::insert(&new_uuid, &"".to_string(), &state.conn).await;
-            (Some(new_uuid), jar.add(Cookie::new("uuid", new_uuid.to_string())))
-        }
-    };
+    // Compte Keycloak s'il est connecté, sinon UUID anonyme conservé dans le
+    // cookie `uuid` (indispensable pour retrouver un compte Fédivers relié).
+    let (user_id, jar) = crate::auth::current_or_new_user(jar, &state.conn).await;
 
     let mut score = -1.;
     let mut comment = "".to_string();
@@ -110,9 +96,7 @@ pub async fn segment_panel_post(
             _ => (),
         }
     }
-    if let Some(user_id) = user_id {
-        User::update(&user_id, &user_name, &state.conn).await;
-    }
+    User::update(&user_id, &user_name, &state.conn).await;
 
     // Convertir GeoJSON en WKT pour PostGIS
     let geom_wkt = match geojson_to_wkt(&geom_json) {
@@ -144,7 +128,7 @@ pub async fn segment_panel_post(
         &geom_wkt,
         &None,
         &None,
-        user_id,
+        Some(user_id),
         &state.conn,
     )
     .await
@@ -175,7 +159,7 @@ pub async fn segment_panel_post(
     // Insert comment separately if provided
     let mut federated_comment_id = None;
     if !comment.is_empty() {
-        match Report::insert_comment(id, &comment, None, user_id.as_ref(), &state.conn).await {
+        match Report::insert_comment(id, &comment, None, Some(&user_id), &state.conn).await {
             Ok(comment_id) => federated_comment_id = Some(comment_id),
             Err(e) => eprintln!("Error while inserting comment: {}", e),
         }
@@ -283,6 +267,20 @@ pub async fn segment_panel_post(
             eprintln!("Error while publishing comment to ActivityPub: {:#}", e);
         }
     }
+
+    // Publie aussi le signalement complet sur le compte Fédivers personnel de
+    // l'utilisateur, s'il en a relié un. La génération de la vignette
+    // cartographique est relativement lente : on la fait en arrière-plan pour
+    // ne pas retarder la réponse au navigateur.
+    let conn = state.conn.clone();
+    tokio::spawn(async move {
+        if let Err(e) = crate::fediverse::publish_report(&conn, id, user_id).await {
+            eprintln!(
+                "Fediverse: publication du signalement {} sur le compte personnel: {:#}",
+                id, e
+            );
+        }
+    });
 
     // Vider le cache des EdgePoint pour les nodes intersectant ce report
     let nodes = Report::get_intersecting_nodes(id, &state.conn).await.unwrap_or_default();
@@ -726,22 +724,9 @@ pub async fn report_reply_post(
     mut multipart: Multipart,
 ) -> (CookieJar, Json<JsonValue>) {
     
-    // Récupérer l'UUID depuis le cookie userinfo (Keycloak) ou en créer un nouveau
-    let (user_id, jar) = match get_user_id_from_jar(&jar) {
-        Some(uuid) => {
-            let user = User::get(&uuid, &state.conn).await;
-            if user.is_none() {
-                User::insert(&uuid, &"".to_string(), &state.conn).await;
-            }
-            (Some(uuid), jar)
-        }
-        None => {
-            // Utilisateur non connecté : créer un UUID anonyme et le stocker dans un cookie
-            let new_uuid = Uuid::new_v4();
-            User::insert(&new_uuid, &"".to_string(), &state.conn).await;
-            (Some(new_uuid), jar.add(Cookie::new("uuid", new_uuid.to_string())))
-        }
-    };
+    // Compte Keycloak s'il est connecté, sinon UUID anonyme conservé dans le
+    // cookie `uuid`.
+    let (user_id, jar) = crate::auth::current_or_new_user(jar, &state.conn).await;
 
     let mut report_id = 0;
     let mut parent_comment_id: Option<i32> = None;
@@ -771,12 +756,10 @@ pub async fn report_reply_post(
         }
     }
     
-    if let Some(user_id) = user_id {
-        User::update(&user_id, &user_name, &state.conn).await;
-    }
-    
+    User::update(&user_id, &user_name, &state.conn).await;
+
     // Insérer le commentaire de réponse
-    let new_comment_id = match Report::insert_comment(report_id, &comment, parent_comment_id, user_id.as_ref(), &state.conn).await {
+    let new_comment_id = match Report::insert_comment(report_id, &comment, parent_comment_id, Some(&user_id), &state.conn).await {
         Ok(id) => id,
         Err(e) => {
             eprintln!("Error inserting reply comment: {}", e);
