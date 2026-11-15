@@ -44,6 +44,7 @@ pub async fn bike_path_mvt(
                      aw.tags->>'cycleway' = 'track' OR
                      aw.tags->>'cycleway:left' = 'track' OR
                      aw.tags->>'cycleway:right' = 'track' )
+                AND COALESCE(aw.tags->>'access', 'yes') <> 'no'
                 AND aw.geom && b.geom
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
@@ -59,6 +60,7 @@ pub async fn bike_path_mvt(
             SELECT aw.way_id, aw.geom, aw.tags
             FROM all_way aw, bounds b
             WHERE COALESCE(aw.tags->>'bicycle', 'yes') <> 'no'
+              AND COALESCE(aw.tags->>'access', 'yes') <> 'no'
               AND aw.geom && b.geom
         ),
         all_bike_paths AS (

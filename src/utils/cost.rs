@@ -247,7 +247,7 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
         return 10000.0;
     }
 
-    if (edge.access == Some(Access::Private) || edge.access == Some(Access::No) || edge.informal)
+    if (edge.access == Some(Access::Private) || edge.informal)
         && edge.bicycle != Some(Bicycle::Yes)
     {
         return 10000.0;
@@ -320,6 +320,13 @@ fn get_cost(fast_or_safe: FastOrSafe, edge: &EdgePoint, allow_ferry: bool) -> f6
         cost = cost + 5.0;
     }
 
+    // Voie fermée à l'accès (ex. `access:conditional = no @ (Nov 02-Mar 31)`
+    // réécrit en `access=no` lors de l'import) : on ne l'interdit pas totalement,
+    // mais on la pénalise fortement pour que le routage cherche une alternative.
+    if edge.access == Some(Access::No) && edge.bicycle != Some(Bicycle::Yes) {
+        cost *= 100.0;
+    }
+
     if edge.road_work {
         cost *= 10.0;
     }
@@ -355,6 +362,28 @@ mod tests {
         };
         let cost = get_cost(FastOrSafe::Safe, &edge, true);
         assert_eq!(cost, 20.0);
+    }
+
+    #[test]
+    fn test_access_no_is_penalized() {
+        let edge = EdgePoint {
+            access: Some(crate::db::edge::Access::No),
+            highway: Some(crate::db::edge::Highway::Cycleway),
+            ..EdgePoint::default()
+        };
+        let cost = get_cost(FastOrSafe::Safe, &edge, true);
+        assert_eq!(cost, 100.0);
+    }
+
+    #[test]
+    fn test_access_private_is_forbidden() {
+        let edge = EdgePoint {
+            access: Some(crate::db::edge::Access::Private),
+            highway: Some(crate::db::edge::Highway::Cycleway),
+            ..EdgePoint::default()
+        };
+        let cost = get_cost(FastOrSafe::Safe, &edge, true);
+        assert_eq!(cost, 10000.0);
     }
 
     #[test]

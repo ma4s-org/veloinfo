@@ -22,6 +22,22 @@ class ViMenu extends HTMLElement {
                 vi-menu md-menu-item {
                     width: 25em;
                 }
+
+                vi-menu #fediverse-label {
+                    min-width: 0;
+                    overflow-wrap: anywhere;
+                    line-height: 1.25;
+                    font-size: 1.125rem;
+                }
+
+                vi-menu #fediverse-label.is-account {
+                    font-size: 0.875rem;
+                }
+
+                vi-menu #fediverse-login > div {
+                    min-width: 0;
+                    flex: 1;
+                }
             </style>
             <md-icon-button
                 id="vi-menu"
@@ -33,6 +49,14 @@ class ViMenu extends HTMLElement {
             </md-icon-button>
 
             <md-menu anchor="vi-menu">
+                <md-menu-item id="fediverse-login">
+                    <div style="display: flex; align-items: center;">
+                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">account_circle</span>
+                        <div id="fediverse-label">
+                            Se connecter avec le Fédivers
+                        </div>
+                    </div>
+                </md-menu-item>
                 <md-menu-item id="ios" style="display: none;">
                     <div style="display: flex;">
                         <img src="/pub/install/apple.png">
@@ -59,22 +83,6 @@ class ViMenu extends HTMLElement {
                         </div>
                     </a>
                 </md-menu-item>
-                <md-menu-item>
-                    <a href="/fediverse" style="display: flex; align-items: center;">
-                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">public</span>
-                        <div style="font-size: 1.125rem;">
-                            Commentaires sur le Fédivers
-                        </div>
-                    </a>
-                </md-menu-item>
-                <md-menu-item id="fediverse-login">
-                    <div style="display: flex; align-items: center;">
-                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">account_circle</span>
-                        <div id="fediverse-label" style="font-size: 1.125rem;">
-                            Se connecter avec le Fédivers
-                        </div>
-                    </div>
-                </md-menu-item>
                 <md-menu-item id="osm-edit">
                     <div style="display: flex;">
                         <img src="/pub/osm.svg">
@@ -91,6 +99,14 @@ class ViMenu extends HTMLElement {
                         </div>
                         <span class="material-icons" id="rv-check" style="font-size: 1.25rem; color: #16a34a; display: none;">check</span>
                     </div>
+                </md-menu-item>
+                <md-menu-item>
+                    <a href="/fediverse" style="display: flex; align-items: center;">
+                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">public</span>
+                        <div style="font-size: 1.125rem;">
+                            Commentaires sur le Fédivers
+                        </div>
+                    </a>
                 </md-menu-item>
                     <a href="https://openstreetmap.org/copyright" target="_blank">
                         <div style="font-size: 0.75em; color: gray; margin-top: 0.5em;">
@@ -240,6 +256,8 @@ class ViMenu extends HTMLElement {
       const acct = this.escapeHtml(account.acct || '');
       const profileUrl = this.safeUrl(account.profile_url || account.instance || '/');
       label.textContent = `Fédivers : @${account.acct || ''}`;
+      label.title = account.acct ? `@${account.acct}` : '';
+      label.classList.add('is-account');
       content.innerHTML = `
         <p>Vos nouveaux signalements sont publiés automatiquement sur
           <a href="${profileUrl}" target="_blank" rel="noopener noreferrer">@${acct}</a>.</p>
@@ -260,6 +278,8 @@ class ViMenu extends HTMLElement {
       });
     } else {
       label.textContent = 'Se connecter avec le Fédivers';
+      label.title = '';
+      label.classList.remove('is-account');
       content.innerHTML = `
         <p>Connectez votre compte Mastodon, GoToSocial, Pleroma ou Akkoma.
           Vos signalements seront publiés sur votre compte.</p>
