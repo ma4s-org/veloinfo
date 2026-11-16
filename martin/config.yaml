@@ -1,8 +1,17 @@
 # Configuration Martin.
 #
-# La source road_work est exclue du cache interne de Martin : les travaux
-# peuvent changer en cours de journée et doivent toujours être relus depuis
-# PostgreSQL. Les autres sources gardent le cache par défaut.
+# Les tuiles sont gardées en mémoire. Les URL des travaux contiennent une
+# version (`?v=<date>-<max_id>-<count>`) qui change à chaque import : le
+# navigateur et le CDN renouvellent donc leurs tuiles sans qu'on ait à vider
+# un cache. Sans ce cache, chaque déplacement de carte redemandait toutes les
+# tuiles à PostgreSQL.
+cache:
+  size_mb: 1024
+  # Martin 1.6 ne tient pas compte de la query dans sa clé de cache : ce délai
+  # borne donc la fraîcheur côté serveur. Après un import manuel, les tuiles
+  # restent au plus une heure en cache.
+  expiry: 1h
+  idle_timeout: 6h
 postgres:
   connection_string: ${DATABASE_URL}
   auto_publish: true
@@ -24,4 +33,3 @@ postgres:
         start_date: date
         end_date: date
         source: text
-      cache: disable

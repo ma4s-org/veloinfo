@@ -50,9 +50,13 @@ La couche des travaux n'est affichée qu'à partir du zoom 11 pour éviter de
 surcharger la carte de loin.
 
 En production, le service Martin doit démarrer avec le fichier
-`martin/config.yaml` (`--config /config.yaml`). Ce fichier désactive le cache
-interne de Martin pour la source `road_work` ; sans lui, Martin peut continuer
-à servir les tuiles d'avant l'import même si la base est à jour.
+`martin/config.yaml` (`--config /config.yaml`). Ce fichier active le cache des
+tuiles (une heure) et fixe les bornes de la source `road_work`. Les URL des
+tuiles de travaux contiennent une version (`?v=<date>-<max_id>-<count>`) qui
+change à chaque import : le navigateur et le CDN renouvellent donc leurs tuiles
+automatiquement. Martin 1.6 ne tient pas compte de cette version dans sa
+propre clé de cache ; après un import manuel, ses tuiles restent au plus une
+heure en mémoire (ou redémarrer Martin pour les voir immédiatement).
 
 En cas d'échec d'import d'une source, une Note est publiée sur le Fédivers
 (au plus une fois par six heures pour la même liste de sources). Elle reste

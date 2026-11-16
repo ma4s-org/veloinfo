@@ -270,13 +270,21 @@ async fn main() {
     // Rafraîchit les travaux dès le démarrage, sans attendre le cron de 1 h.
     // En production, si un import OSM est demandé (fichier lock), on attend
     // qu'il soit terminé avant de recaler les travaux sur le réseau routier.
-    tokio::spawn(async move {
-        if !dev && std::path::Path::new("lock/import").exists() {
-            std::fs::remove_file("lock/import").unwrap();
-            import(&conn_startup).await;
-        }
-        fetch_all_road_works(&conn_startup).await;
-    });
+    //
+    // En développement, on ne le fait pas : cargo-watch redémarre à chaque
+    // modification, et chaque redémarrage relançait un import complet de toutes
+    // les villes (plusieurs minutes de PostgreSQL) et vidait le cache de
+    // routage. L'import ponctuel reste disponible :
+    //   cargo run -- --fetch-road-work
+    if !dev {
+        tokio::spawn(async move {
+            if std::path::Path::new("lock/import").exists() {
+                std::fs::remove_file("lock/import").unwrap();
+                import(&conn_startup).await;
+            }
+            fetch_all_road_works(&conn_startup).await;
+        });
+    }
 
     // Définition du routeur Axum
     let app = Router::new()
