@@ -71,13 +71,12 @@ mod component;
 mod db;
 mod fediverse;
 mod score_selector_controler;
+mod usage;
 mod utils;
 
 // Variables statiques chargées une seule fois au démarrage depuis l'environnement
 lazy_static! {
     static ref IMAGE_DIR: String = env::var("IMAGE_DIR").expect("IMAGE_DIR must be set");
-    static ref MATOMO_SERVER: String =
-        env::var("MATOMO_SERVER").expect("MATOMO_SERVER must be set");
 }
 
 /// État partagé de l'application (accessible dans les handlers)
@@ -164,6 +163,19 @@ async fn main() {
 
     // Exécution des migrations SQL au démarrage
     sqlx::migrate!().run(&conn).await.unwrap();
+
+    // Import ponctuel de l'historique Matomo. Le fichier TSV est produit par
+    // import_matomo.sh ; `-` lit l'entrée standard.
+    //   cargo run -- --import-matomo sessions.tsv
+    if let Some(position) = env::args().position(|arg| arg == "--import-matomo") {
+        let path = env::args()
+            .nth(position + 1)
+            .unwrap_or_else(|| "-".to_string());
+        if let Err(error) = usage::import_matomo(&conn, &path).await {
+            eprintln!("Import Matomo: {:#}", error);
+        }
+        return;
+    }
 
     // Livraison des activités ActivityPub en arrière-plan
     tokio::spawn(activity_pub::run_delivery_worker(conn.clone()));
@@ -350,6 +362,14 @@ async fn main() {
         .route("/pub/service-worker.js", get(service_worker_js))
         .route("/health-check", get(|| async { "ok" }))
         .route("/version", get(version))
+        // Statistiques d'usage internes (remplace Matomo)
+        .route("/usage", get(usage::usage_page))
+        .route("/usage/track", post(usage::usage_track))
+        .route("/usage/sessions", get(usage::usage_sessions))
+        .route("/usage/traffic", get(usage::usage_traffic))
+        .route("/usage/route", post(usage::usage_route_track))
+        .route("/usage/routes", get(usage::usage_routes))
+        .route("/usage/contributions", get(usage::usage_contributions))
         // ActivityPub / Fédivers
         .route("/.well-known/webfinger", get(activity_pub::webfinger))
         .route("/ap/actor", get(activity_pub::actor))
@@ -396,16 +416,12 @@ async fn main() {
 /// Structure du template pour la page d'accueil (index.html)
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html", escape = "none")]
-pub struct IndexTemplate {
-    pub matomo_server: String,
-}
+pub struct IndexTemplate;
 
 /// Handler pour la page d'accueil
 #[axum::debug_handler]
 pub async fn index() -> (HeaderMap, IndexTemplate) {
-    let template = IndexTemplate {
-        matomo_server: MATOMO_SERVER.clone(),
-    };
+    let template = IndexTemplate;
     let mut headers = HeaderMap::new();
     headers.insert(
         "Content-Type",

@@ -57,8 +57,17 @@ FROM base as build
 
 COPY . .
 RUN mkdir -p /app/dist
-RUN npm i 
-RUN cargo build --release
+
+# Cache npm (les paquets déjà téléchargés sont réutilisés).
+RUN --mount=type=cache,target=/root/.npm,sharing=locked npm i
+
+# Cache Cargo entre les déploiements : les dépendances déjà compilées ne sont
+# pas reconstruites à chaque modification du code. Le binaire est copié hors
+# du cache, car un montage de cache n'est pas conservé dans l'image.
+RUN --mount=type=cache,target=/app/target,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    cargo build --release \
+    && cp target/release/veloinfo /tmp/veloinfo
 
 FROM debian as prod
 
@@ -74,7 +83,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=build /app/target/release/veloinfo /app/veloinfo
+COPY --from=build /tmp/veloinfo /app/veloinfo
 COPY --from=build /app/migrations /app/migrations
 COPY --from=build /app/pub /app/pub
 COPY --from=build /app/node_modules /app/node_modules

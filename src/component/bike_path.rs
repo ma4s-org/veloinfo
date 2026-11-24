@@ -2,13 +2,10 @@ use std::env;
 
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::{Path, RawQuery, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
-    Json,
 };
-use chrono::{Duration, Utc};
-use geojson::JsonValue;
 use sqlx::Row;
 
 use crate::VeloinfoState;
@@ -28,24 +25,51 @@ pub async fn bike_path_mvt(
         bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
+        filtered_ways AS (
+            SELECT aw.way_id, aw.geom, aw.tags
+            FROM all_way aw, bounds b
+            WHERE
+                (aw.tags->>'highway' = 'cycleway' OR
+                 aw.tags->>'cycleway' = 'track' OR
+                 aw.tags->>'cycleway:left' = 'track' OR
+                 aw.tags->>'cycleway:right' = 'track')
+                AND COALESCE(aw.tags->>'access', 'yes') <> 'no'
+                AND aw.geom && b.geom
+        ),
+        all_bike_paths AS (
+            SELECT
+                fw.geom,
+                fw.tags,
+                EXISTS (
+                    SELECT 1
+                    FROM city c
+                    JOIN city_snow cs ON cs.city_name = c.name
+                    WHERE ST_Intersects(fw.geom, c.geom)
+                ) as snow
+            FROM
+                filtered_ways fw
+        ),
         mvtgeom AS (
             SELECT
                 ST_AsMVTGeom(
-                    aw.geom,
+                    abp.geom,
                     b.geom
                 ) AS geom,
-                aw.tags,
+                abp.tags,
                 'cycleway' as kind,
-                false as snow
+                abp.snow
             FROM
-                all_way aw, bounds b
+                all_bike_paths abp, bounds b
             WHERE
-                (aw.tags->>'highway' = 'cycleway' OR
-                     aw.tags->>'cycleway' = 'track' OR
-                     aw.tags->>'cycleway:left' = 'track' OR
-                     aw.tags->>'cycleway:right' = 'track' )
-                AND COALESCE(aw.tags->>'access', 'yes') <> 'no'
-                AND aw.geom && b.geom
+                -- On n'exclut que si c'est explicitement interdit en hiver
+                NOT (
+                    abp.snow = true AND (
+                        COALESCE(abp.tags->>'winter_service', 'yes') = 'no'
+                        OR (LOWER(abp.tags->>'cycleway:conditional') LIKE '%snow%' AND LOWER(abp.tags->>'cycleway:conditional') LIKE '%no%') IS TRUE
+                        OR (LOWER(abp.tags->>'cycleway:left:conditional') LIKE '%snow%' AND LOWER(abp.tags->>'cycleway:left:conditional') LIKE '%no%') IS TRUE
+                        OR (LOWER(abp.tags->>'cycleway:right:conditional') LIKE '%snow%' AND LOWER(abp.tags->>'cycleway:right:conditional') LIKE '%no%') IS TRUE
+                    )
+                )
         )
         SELECT ST_AsMVT(mvtgeom.*, 'bike_path', 4096, 'geom')
         FROM mvtgeom;
@@ -67,7 +91,12 @@ pub async fn bike_path_mvt(
             SELECT
                 fw.geom,
                 fw.tags,
-                cs.city_name IS NOT NULL as snow,
+                EXISTS (
+                    SELECT 1
+                    FROM city c
+                    JOIN city_snow cs ON cs.city_name = c.name
+                    WHERE ST_Intersects(fw.geom, c.geom)
+                ) as snow,
                 CASE
                     -- 1. Ferry
                     WHEN fw.tags->>'route' = 'ferry' THEN 'ferry'
@@ -106,8 +135,6 @@ pub async fn bike_path_mvt(
                 END as kind
             FROM
                 filtered_ways fw
-            LEFT JOIN city ON ST_Intersects(fw.geom, city.geom)
-            LEFT JOIN city_snow cs ON city.name = cs.city_name
         ),
         mvtgeom AS (
         SELECT
@@ -148,18 +175,14 @@ pub async fn bike_path_mvt(
             let mvt: Option<Vec<u8>> = row.try_get(0).ok();
             match mvt {
                 Some(tile) if !tile.is_empty() => {
-                    let expires = Utc::now() + Duration::days(1);
+                    // Les tuiles de pistes dépendent de l'état de la neige
+                    // (`city_snow`), qui peut changer à tout moment. On
+                    // interdit donc tout cache : chaque requête est recalculée
+                    // avec l'état courant, sans risque de tuile périmée.
                     Response::builder()
                         .status(StatusCode::OK)
                         .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
-                        .header(
-                            header::CACHE_CONTROL,
-                            "public, max-age=86400, stale-while-revalidate=15768000",
-                        )
-                        .header(
-                            header::EXPIRES,
-                            expires.format("%a, %d %b %Y %H:%M:%S GMT").to_string(),
-                        )
+                        .header(header::CACHE_CONTROL, "no-store, no-cache, must-revalidate")
                         .body(Body::from(tile))
                         .unwrap()
                         .into_response()
@@ -189,12 +212,27 @@ pub async fn bike_path_mvt(
     }
 }
 
-pub async fn bike_path() -> Json<JsonValue> {
+pub async fn bike_path(RawQuery(query): RawQuery) -> Response {
+    // On versionne toujours l'URL des tuiles (`?v=2`) pour contourner les
+    // tuiles encore en cache navigateur depuis l'ancienne politique 24 h.
+    // On y ajoute la query du front (`?t=...`) quand elle est présente, ce qui
+    // force le rechargement après un changement de neige.
+    let suffix = {
+        let mut params = vec!["v=2".to_string()];
+        if let Some(q) = query.filter(|q| !q.is_empty()) {
+            params.push(q);
+        }
+        format!("?{}", params.join("&"))
+    };
     let tilejson = serde_json::json!({
         "tilejson": "3.0.0",
         "name": "bike_path",
         "tiles": [
-            format!("{}/bike_path/{{z}}/{{x}}/{{y}}", env::var("VELOINFO_URL").unwrap())
+            format!(
+                "{}/bike_path/{{z}}/{{x}}/{{y}}{}",
+                env::var("VELOINFO_URL").unwrap(),
+                suffix
+            )
         ],
         "vector_layers": [
             {
@@ -209,5 +247,13 @@ pub async fn bike_path() -> Json<JsonValue> {
             }
         ]
     });
-    Json(tilejson)
+    // Le TileJSON non plus ne doit pas être mis en cache : il décrit les
+    // tuiles à interroger, et doit rester cohérent avec l'état courant.
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::CACHE_CONTROL, "no-store, no-cache, must-revalidate")
+        .body(Body::from(tilejson.to_string()))
+        .unwrap()
+        .into_response()
 }

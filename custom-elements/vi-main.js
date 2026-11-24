@@ -275,6 +275,20 @@ class ViMain extends HTMLElement {
     }
   }
 
+  // Prévient le tracker d'usage de la zone actuellement consultée.
+  // Seul le centre de la carte est transmis, jamais la position GPS.
+  notifyUsagePosition() {
+    if (!this.map) return;
+    const center = this.map.getCenter();
+    window.dispatchEvent(new CustomEvent('vi-map-position', {
+      detail: {
+        lat: center.lat,
+        lng: center.lng,
+        zoom: this.map.getZoom()
+      }
+    }));
+  }
+
   addMap() {
     const position = JSON.parse(localStorage.getItem("position"));
     let lng = position?.lng ?? -73.39899762303611;
@@ -352,6 +366,7 @@ class ViMain extends HTMLElement {
 
     this.map.on("load", () => {
       this.applyMapTheme();
+      this.notifyUsagePosition();
       setTimeout(() => {
         this.applyMapTheme();
         const layers = JSON.parse(localStorage.getItem("layers"));
@@ -430,6 +445,7 @@ class ViMain extends HTMLElement {
           lat: map.getCenter().lat,
           zoom: map.getZoom()
         }));
+        this.notifyUsagePosition();
         if (this.querySelector('#info_panel_up')) {
           this.infoPanelUp();
         }
@@ -952,6 +968,8 @@ class ViMain extends HTMLElement {
       console.warn("route() : pas de destination (end_marker)");
       return;
     }
+
+    window.viUsage?.track('route');
 
     // Quand on clique "Itinéraire", on utilise TOUJOURS la GPS comme départ
     // On supprime le marqueur de segment (ORANGE) s'il existe

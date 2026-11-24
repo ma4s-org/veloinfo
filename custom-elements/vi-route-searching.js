@@ -196,6 +196,23 @@ export default class RouteSearching extends HTMLElement {
         var bounds = fitBounds([[start.coords.longitude, start.coords.latitude], [end.lng, end.lat]]);
         this.viMain.map.fitBounds(bounds, { pitch: 0, padding: window.innerHeight * .12, duration: 900 });
 
+        // Trace la demande d'itinéraire (coordonnées arrondies côté tracker).
+        // On attend la réponse pour que le panneau puisse relier le suivi à
+        // cette demande, sans bloquer longtemps le calcul.
+        this.usageRouteId = null;
+        try {
+            this.usageRouteId = await window.viUsage?.routeRequest?.({
+                startLat: start.coords.latitude,
+                startLng: start.coords.longitude,
+                endLat: end.lat,
+                endLng: end.lng,
+                allowFerry,
+            }) ?? null;
+        } catch (_) {
+            this.usageRouteId = null;
+        }
+        this.viMain.usageRouteId = this.usageRouteId;
+
         this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat + "?allow_ferry=" + allowFerry);
         let coordinates = [];
         this.socket.onmessage = async (event) => {

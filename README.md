@@ -69,6 +69,70 @@ cargo run -- --fetch-road-work [montreal|westmount|quebec|laval|levis|dorval|ham
 ```
 
 
+# Statistiques d'usage
+
+Matomo n'est plus nécessaire : le suivi est intégré à l'application et le
+tableau de bord est disponible publiquement à `/usage`.
+
+Le navigateur envoie une activité à `/usage/track`. Le suivi reste volontairement
+minimal et sans donnée personnelle :
+
+* identifiant de session aléatoire conservé dans `localStorage`, partagé entre
+  les onglets du même navigateur ; une nouvelle session démarre après 30
+  minutes d'inactivité ;
+* centre et zoom de la carte consultée, jamais la position GPS ;
+* page visitée, langue, taille d'écran et type d'appareil déduit du
+  `User-Agent` (stocké sous forme de libellé, pas en clair).
+
+Ni l'adresse IP, ni un identifiant persistant entre les visites ne sont
+enregistrés. Le suivi est first-party et anonyme : il ne dépose pas de cookie
+publicitaire et n'utilise pas l'en-tête `Do Not Track`.
+
+Le tableau de bord `/usage` se rafraîchit toutes les 15 secondes. Il affiche la
+carte des dernières zones consultées, les sessions en direct (activité dans les
+cinq dernières minutes), les pages vues et les actions des 24 heures, un
+graphique du trafic par jour, semaine ou mois, ainsi que le détail de chaque
+session (durée, appareil, navigateur, langue, zone et référent). Les données sont exposées en JSON à `/usage/sessions` et conservées
+dans les tables `usage_session` et `usage_event`.
+
+## Importer l'historique Matomo
+
+Les visites déjà enregistrées par Matomo peuvent être importées :
+
+```sh
+./import_matomo.sh
+```
+
+Matomo ne fait plus partie de la stack Docker. Le script s'adresse à une base
+MariaDB/MySQL externe via le client `mysql` (variables `MATOMO_DB_*`, préfixe
+`MATOMO_TABLE_PREFIX`, défaut `matomo_`), ou à un export TSV déjà produit avec
+`MATOMO_EXPORT_FILE=sessions.tsv`. On peut limiter la période avec
+`MATOMO_SINCE=AAAA-MM-JJ`.
+
+Différences avec le suivi intégré :
+
+* la position des sessions importées vient du centre de carte présent dans
+  l'URL Matomo (`lat`, `lng`, `zoom`) lorsqu'il existe ; sinon, elle est
+  déduite par Matomo à partir de l'IP (ville approximative) et le zoom est
+  inconnu. Si aucune des deux n'est disponible, la session est importée sans
+  position et n'apparaît pas sur la carte ;
+* les pages vues d'une session sont importées sous forme de total, pas
+  d'événement individuel ;
+* ni l'adresse IP ni l'identifiant visiteur de Matomo ne sont lus.
+
+En production, l'export peut aussi être transmis directement au binaire déjà
+compilé :
+
+```sh
+docker compose exec -T veloinfo /app/veloinfo --import-matomo - < sessions.tsv
+```
+
+Les sessions importées portent `source = 'matomo'` et sont signalées comme
+telles dans le détail. L'import est idempotent : relancer le script ne crée pas
+de doublon. Les conteneurs Matomo ont été retirés de `docker-compose.yaml` ; les
+volumes `matomo` et `matomo-db` peuvent être conservés comme sauvegarde, puis
+supprimés manuellement quand ils ne sont plus nécessaires.
+
 # Fédivers (ActivityPub)
 
 Vélo info expose un compte ActivityPub qui rend les commentaires disponibles

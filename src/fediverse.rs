@@ -43,6 +43,15 @@ lazy_static! {
 const OAUTH_SCOPE: &str = "read write";
 const STATE_COOKIE: &str = "fediverse_state";
 const INSTANCE_COOKIE: &str = "fediverse_instance";
+const RETURN_COOKIE: &str = "fediverse_return_to";
+
+/// N'accepte que les retours vers le tableau de bord d'usage, pour éviter
+/// toute redirection ouverte après l'OAuth.
+fn safe_return_path(value: &str) -> bool {
+    (value == "/usage" || value.starts_with("/usage?"))
+        && !value.starts_with("//")
+        && !value.contains('\\')
+}
 
 fn redirect_uri() -> String {
     format!("{}/fediverse/callback", *BASE_URL)
@@ -748,6 +757,12 @@ pub async fn connect(
         }
     };
 
+    let return_to = form
+        .get("return_to")
+        .map(|value| value.trim())
+        .filter(|value| safe_return_path(value))
+        .map(str::to_string);
+
     let app = match register_app(&state.conn, &instance).await {
         Ok(app) => app,
         Err(error) => {
@@ -774,7 +789,7 @@ pub async fn connect(
     };
 
     let secure = BASE_URL.starts_with("https://");
-    let jar = jar
+    let mut jar = jar
         .add(
             Cookie::build((STATE_COOKIE, state_token))
                 .path("/")
@@ -791,6 +806,17 @@ pub async fn connect(
                 .secure(secure)
                 .build(),
         );
+
+    if let Some(return_to) = return_to {
+        jar = jar.add(
+            Cookie::build((RETURN_COOKIE, return_to))
+                .path("/")
+                .http_only(true)
+                .same_site(SameSite::Lax)
+                .secure(secure)
+                .build(),
+        );
+    }
 
     (jar, Redirect::to(&authorize)).into_response()
 }
@@ -819,6 +845,10 @@ pub async fn callback(
         .get(INSTANCE_COOKIE)
         .map(|cookie| cookie.value().to_string());
     let code = query.get("code").cloned();
+    let return_to = jar
+        .get(RETURN_COOKIE)
+        .map(|cookie| cookie.value().to_string())
+        .filter(|value| safe_return_path(value));
 
     let (Some(expected_state), Some(instance), Some(code)) = (expected_state, instance, code)
     else {
@@ -935,9 +965,11 @@ pub async fn callback(
 
     let jar = jar
         .remove(Cookie::build(STATE_COOKIE))
-        .remove(Cookie::build(INSTANCE_COOKIE));
+        .remove(Cookie::build(INSTANCE_COOKIE))
+        .remove(Cookie::build(RETURN_COOKIE));
 
-    (jar, Redirect::to("/?fediverse=connected")).into_response()
+    let destination = return_to.unwrap_or_else(|| "/?fediverse=connected".to_string());
+    (jar, Redirect::to(&destination)).into_response()
 }
 
 /// État de connexion Fédivers de l'utilisateur courant (sans le jeton).
@@ -1060,5 +1092,16 @@ mod tests {
         assert!(url.contains("state=state-456"));
         assert!(url.contains("response_type=code"));
         assert!(url.contains("redirect_uri="));
+    }
+
+    #[test]
+    fn accepte_uniquement_les_retours_vers_usage() {
+        assert!(safe_return_path("/usage"));
+        assert!(safe_return_path("/usage?window=all"));
+        assert!(!safe_return_path("/"));
+        assert!(!safe_return_path("/fediverse"));
+        assert!(!safe_return_path("https://evil.example/usage"));
+        assert!(!safe_return_path("//evil.example/usage"));
+        assert!(!safe_return_path("/usage\\..\\evil"));
     }
 }

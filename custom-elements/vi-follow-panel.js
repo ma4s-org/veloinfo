@@ -47,6 +47,14 @@ class FollowPanel extends HTMLElement {
         let names = rawNamesAttr ? JSON.parse(rawNamesAttr) : null;
 
         this.routeCoordinates = coordinates[routeIndex];
+        this.usageRouteId = this.getAttribute('usage_route_id') || null;
+        this.usageRouteType = this.getAttribute('usage_route_type') || null;
+        this.usageCompleted = false;
+        this.lastUsageProgressAt = 0;
+        this.lastUsageProgress = 0;
+        this.lastUsageRemaining = null;
+        this._usagePageHide = () => this.sendUsageAbandon();
+        window.addEventListener('pagehide', this._usagePageHide);
         if (rawNamesAttr) {
             this.routeNames = names;
         } else if (this._routeNames) {
@@ -118,10 +126,27 @@ class FollowPanel extends HTMLElement {
         if (this._panHandler) {
             map.off('dragstart', this._panHandler);
         }
+        if (this._usagePageHide) {
+            window.removeEventListener('pagehide', this._usagePageHide);
+        }
+        this.sendUsageAbandon();
         let soundButton = document.getElementById('sound_button');
         if (soundButton) {
             soundButton.style.display = 'none';
         }
+    }
+
+    sendUsageAbandon() {
+        if (!this.usageRouteId || this.usageCompleted) {
+            return;
+        }
+        window.viUsage?.routeUpdate?.('abandon', {
+            routeId: this.usageRouteId,
+            progress: this.lastUsageProgress,
+            remainingKm: this.lastUsageRemaining,
+        });
+        // Évite un second envoi si pagehide puis disconnected se succèdent.
+        this.usageCompleted = true;
     }
 
     updatePosition() {
@@ -212,9 +237,36 @@ class FollowPanel extends HTMLElement {
                     return;
                 }
             }
-            let totalDistance = getViMain().calculateTotalDistance(this.routeCoordinates, lastPassedVertexIndex).toFixed(1);
+            let remainingDistance = getViMain().calculateTotalDistance(this.routeCoordinates, lastPassedVertexIndex);
+            let totalDistance = remainingDistance.toFixed(1);
             if (document.getElementById('total_distance')) {
                 document.getElementById('total_distance').innerText = `${totalDistance} kms`;
+            }
+
+            // Suivi analytique : progression le long de l'itinéraire.
+            const routeDistance = getViMain().calculateTotalDistance(this.routeCoordinates, 0);
+            const progress = routeDistance > 0
+                ? Math.min(1, Math.max(0, 1 - remainingDistance / routeDistance))
+                : 0;
+            this.lastUsageProgress = progress;
+            this.lastUsageRemaining = remainingDistance;
+            if (this.usageRouteId && !this.usageCompleted) {
+                if (remainingDistance <= 0.1
+                    || lastPassedVertexIndex >= this.routeCoordinates.length - 2) {
+                    this.usageCompleted = true;
+                    window.viUsage?.routeUpdate?.('complete', {
+                        routeId: this.usageRouteId,
+                        progress: 1,
+                        remainingKm: 0,
+                    });
+                } else if (Date.now() - this.lastUsageProgressAt >= 15000) {
+                    this.lastUsageProgressAt = Date.now();
+                    window.viUsage?.routeUpdate?.('progress', {
+                        routeId: this.usageRouteId,
+                        progress,
+                        remainingKm: remainingDistance,
+                    });
+                }
             }
             // Position projetée sur le segment courant pour l'affichage et
             // le bearing : évite que la carte pointe vers un côté quand le

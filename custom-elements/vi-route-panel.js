@@ -146,6 +146,13 @@ class RoutePanel extends HTMLElement {
         let totalDistanceSafe = viMain.calculateTotalDistance(safeCoordinates).toFixed(1);
         viMain.clearDistanceCache();
         let totalDistanceFast = fastCoordinates ? viMain.calculateTotalDistance(fastCoordinates).toFixed(1) : null;
+        if (viMain.usageRouteId) {
+            window.viUsage?.routeUpdate?.('result', {
+                routeId: viMain.usageRouteId,
+                safeDistanceKm: Number.parseFloat(totalDistanceSafe),
+                fastDistanceKm: totalDistanceFast ? Number.parseFloat(totalDistanceFast) : null,
+            });
+        }
         let totalDurationSafe = totalDistanceSafe / 15.0
         let totalDurationFast = totalDistanceFast ? totalDistanceFast / 15.0 : null;
         let durationStringSafe = "";
@@ -209,8 +216,17 @@ class RoutePanel extends HTMLElement {
         this.innerHTML = innerHTML;
 
         this.querySelector('#safe-route-btn').addEventListener('click', () => {
+            if (viMain.usageRouteId) {
+                window.viUsage?.routeUpdate?.('follow', {
+                    routeId: viMain.usageRouteId,
+                    chosenRoute: 'safe',
+                    remainingKm: Number.parseFloat(totalDistanceSafe),
+                });
+            }
             const panel = document.createElement('vi-follow-panel');
             panel.setAttribute('route', 'safe');
+            panel.setAttribute('usage_route_id', viMain.usageRouteId || '');
+            panel.setAttribute('usage_route_type', 'safe');
             panel.setAttribute('coordinates', JSON.stringify(coordinates));
             panel.setAttribute('route_names', JSON.stringify(this.routeNames));
             document.getElementById("info").textContent = '';
@@ -218,8 +234,17 @@ class RoutePanel extends HTMLElement {
         });
         if (this.querySelector('#fast-route-btn')) {
             this.querySelector('#fast-route-btn').addEventListener('click', () => {
+                if (viMain.usageRouteId) {
+                    window.viUsage?.routeUpdate?.('follow', {
+                        routeId: viMain.usageRouteId,
+                        chosenRoute: 'fast',
+                        remainingKm: Number.parseFloat(totalDistanceFast),
+                    });
+                }
                 const panel = document.createElement('vi-follow-panel');
                 panel.setAttribute('route', 'fast');
+                panel.setAttribute('usage_route_id', viMain.usageRouteId || '');
+                panel.setAttribute('usage_route_type', 'fast');
                 panel.setAttribute('coordinates', JSON.stringify(coordinates));
                 panel.routeNames = this.routeNames;
                 document.getElementById("info").textContent = '';

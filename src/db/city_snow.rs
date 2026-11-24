@@ -2,7 +2,7 @@ use std::env;
 
 use crate::db::edge::Edge;
 use axum::body::Body;
-use axum::extract::Path;
+use axum::extract::{Path, RawQuery};
 use axum::http::header;
 use axum::http::Response;
 use axum::response::IntoResponse;
@@ -120,6 +120,7 @@ pub async fn city_snow_mvt(
         Ok(Some(mvt)) => Response::builder()
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, "application/vnd.mapbox-vector-tile")
+            .header(header::CACHE_CONTROL, "no-store, no-cache, must-revalidate")
             .body(Body::from(mvt))
             .unwrap()
             .into_response(),
@@ -135,12 +136,26 @@ pub async fn city_snow_mvt(
     }
 }
 
-pub async fn city_snow() -> impl IntoResponse {
+pub async fn city_snow(RawQuery(query): RawQuery) -> impl IntoResponse {
+    // Même logique que `bike_path` : on versionne l'URL des tuiles et on
+    // propage `?t=...` pour que le front puisse invalider le cache quand la
+    // neige change.
+    let suffix = {
+        let mut params = vec!["v=2".to_string()];
+        if let Some(q) = query.filter(|q| !q.is_empty()) {
+            params.push(q);
+        }
+        format!("?{}", params.join("&"))
+    };
     let tilejson = serde_json::json!({
         "tilejson": "3.0.0",
         "name": "city_snow",
         "tiles": [
-            format!("{}/city_snow/{{z}}/{{x}}/{{y}}", env::var("VELOINFO_URL").unwrap())
+            format!(
+                "{}/city_snow/{{z}}/{{x}}/{{y}}{}",
+                env::var("VELOINFO_URL").unwrap(),
+                suffix
+            )
         ],
         "vector_layers": [
             {
@@ -156,5 +171,11 @@ pub async fn city_snow() -> impl IntoResponse {
             }
         ]
     });
-    Json(tilejson)
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::CACHE_CONTROL, "no-store, no-cache, must-revalidate")
+        .body(Body::from(tilejson.to_string()))
+        .unwrap()
+        .into_response()
 }

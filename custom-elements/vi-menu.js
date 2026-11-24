@@ -108,6 +108,14 @@ class ViMenu extends HTMLElement {
                         </div>
                     </a>
                 </md-menu-item>
+                <md-menu-item>
+                    <a href="/usage" style="display: flex; align-items: center;">
+                        <span class="material-icons" style="font-size: 1.5rem; margin-right: 0.5em;">insights</span>
+                        <div style="font-size: 1.125rem;">
+                            Statistiques d'usage
+                        </div>
+                    </a>
+                </md-menu-item>
                     <a href="https://openstreetmap.org/copyright" target="_blank">
                         <div style="font-size: 0.75em; color: gray; margin-top: 0.5em;">
                             Les données cartographiques sont fournies par OpenStreetMap

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Accès réservé — Usage</title>
+    <link rel="icon" href="/pub/favicon.ico">
+    <link href="/pub/veloinfo.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: var(--vi-bg, rgb(244 244 245));
+            color: var(--vi-text, rgb(24 24 27));
+            font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        .login-card {
+            width: min(100%, 440px);
+            padding: 28px;
+            border: 1px solid var(--vi-border, rgb(228 228 231));
+            border-radius: 18px;
+            background: var(--vi-surface, white);
+            box-shadow: 0 12px 40px rgb(0 0 0 / 0.08);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: var(--vi-text-muted, rgb(82 82 91));
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .login-card form {
+            margin: 20px 0 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 18px;
+            border: 0;
+            border-radius: 999px;
+            background: rgb(37 99 235);
+            color: white;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: rgb(29 78 216);
+        }
+
+        .muted {
+            font-size: 0.82rem;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 8px;
+            color: var(--vi-text, rgb(24 24 27));
+            font-size: 0.88rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="login-card">
+        <h1>Statistiques d'usage</h1>
+        <p>
+            Cette page est réservée à l'administrateur. Connecte-toi avec le
+            compte Mastodon autorisé pour consulter les statistiques.
+        </p>
+
+        <form method="post" action="/fediverse/connect">
+            <input type="hidden" name="instance" value="mastodon.social">
+            <input type="hidden" name="return_to" value="/usage">
+            <button type="submit">Se connecter avec Mastodon</button>
+        </form>
+
+        <p class="muted">Compte autorisé : {{ admin_acct }}</p>
+        <a class="back" href="/">← Retour à la carte</a>
+    </main>
+
+    <script>
+        document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light',
+        );
+    </script>
+</body>
+
+</html>
