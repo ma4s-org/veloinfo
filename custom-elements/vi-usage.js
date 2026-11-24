@@ -62,6 +62,10 @@ function positionText(session) {
   return `${session.lat.toFixed(3)}, ${session.lng.toFixed(3)} · zoom ${zoom}`;
 }
 
+function sessionPlace(session) {
+  return session.city || positionText(session);
+}
+
 function referrerText(session) {
   if (!session.referrer) return null;
   try {
@@ -175,7 +179,7 @@ function buildPopupHtml(session) {
       </div>
       <div>${escapeHtml(describeClient(session))}</div>
       <div>${escapeHtml(formatDuration(session.duration_seconds))} · ${numberFormat.format(session.page_views)} page(s)</div>
-      <div>${escapeHtml(positionText(session))}</div>
+      <div>${escapeHtml(sessionPlace(session))}</div>
       ${sourceLabel(session)
         ? `<div class="usage-muted">${escapeHtml(sourceLabel(session))}</div>`
         : ''}
@@ -205,7 +209,7 @@ class ViUsage extends HTMLElement {
     this.routes = null;
     this.routesRequestId = 0;
     this.lastRoutesAt = 0;
-    this.contributionWindow = '24h';
+    this.contributionWindow = 'all';
     this.contributions = null;
     this.contributionsRequestId = 0;
     this.lastContributionsAt = 0;
@@ -1232,9 +1236,9 @@ class ViUsage extends HTMLElement {
               <span class="usage-traffic-total" id="usage-contrib-summary"></span>
             </div>
             <div class="usage-segmented" id="usage-contrib-periods" role="group" aria-label="Période des contributions">
-              <button type="button" data-contrib-window="24h" class="active">24 h</button>
+              <button type="button" data-contrib-window="24h">24 h</button>
               <button type="button" data-contrib-window="7d">7 jours</button>
-              <button type="button" data-contrib-window="all">Tout</button>
+              <button type="button" data-contrib-window="all" class="active">Tout</button>
             </div>
           </div>
           <div class="usage-mini-stats" id="usage-contrib-stats"></div>
@@ -1891,12 +1895,12 @@ class ViUsage extends HTMLElement {
         <span class="usage-session-body">
           <span class="usage-session-top">
             <span class="usage-session-client">${escapeHtml(describeClient(session))}</span>
-            <span class="usage-session-ago">${escapeHtml(relativeTime(session.last_seen))}</span>
+            <span class="usage-session-ago" title="${escapeHtml(dateTimeFormat.format(new Date(session.last_seen)))}">${escapeHtml(relativeTime(session.last_seen))}</span>
           </span>
           <span class="usage-session-meta">
             ${escapeHtml(formatDuration(session.duration_seconds))} ·
             ${numberFormat.format(session.page_views)} page(s) ·
-            ${escapeHtml(positionText(session))}
+            ${escapeHtml(sessionPlace(session))}
           </span>
         </span>
       `;
@@ -1910,6 +1914,9 @@ class ViUsage extends HTMLElement {
   renderSessionDetail(session) {
     const detail = this.querySelector('#usage-detail');
     const referrer = referrerText(session);
+    const lastSeenExact = escapeHtml(
+      dateTimeFormat.format(new Date(session.last_seen)),
+    );
     detail.hidden = false;
     detail.innerHTML = html`
       <div class="usage-detail-head">
@@ -1925,15 +1932,19 @@ class ViUsage extends HTMLElement {
         <dt>Durée</dt>
         <dd>${escapeHtml(formatDuration(session.duration_seconds))}</dd>
         <dt>Dernière activité</dt>
-        <dd>${escapeHtml(relativeTime(session.last_seen))}</dd>
+        <dd title="${lastSeenExact}">${escapeHtml(relativeTime(session.last_seen))}</dd>
         <dt>Pages vues</dt>
         <dd>${numberFormat.format(session.page_views)}</dd>
         <dt>Appareil</dt>
         <dd>${escapeHtml(describeClient(session))}</dd>
         <dt>Langue</dt>
         <dd>${escapeHtml(session.language || 'inconnue')}</dd>
-        <dt>Zone carte</dt>
-        <dd>${escapeHtml(positionText(session))}</dd>
+        <dt>Lieu</dt>
+        <dd>
+          ${session.city
+            ? `${escapeHtml(session.city)} <span class="usage-muted">· ${escapeHtml(positionText(session))}</span>`
+            : escapeHtml(positionText(session))}
+        </dd>
         <dt>Page</dt>
         <dd>${escapeHtml(session.path || 'inconnue')}</dd>
         ${referrer ? `<dt>Référent</dt><dd>${escapeHtml(referrer)}</dd>` : ''}

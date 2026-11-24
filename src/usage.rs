@@ -19,6 +19,7 @@ use chrono::{DateTime, Duration, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
+use std::collections::HashMap;
 use std::env;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, BufReader};
 use uuid::Uuid;
@@ -355,6 +356,13 @@ struct UsageContributionsResponse {
 }
 
 #[derive(Debug, sqlx::FromRow)]
+struct SessionCityRow {
+    id: Uuid,
+    name: Option<String>,
+    distance: Option<f64>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
 struct StatsRow {
     live: i64,
     sessions_24h: i64,
@@ -390,6 +398,8 @@ struct SessionJson {
     language: Option<String>,
     referrer: Option<String>,
     source: String,
+    city: Option<String>,
+    city_distance_km: Option<f64>,
     live: bool,
 }
 
@@ -632,6 +642,16 @@ pub async fn usage_sessions(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    // La ville n'est utile que pour les sessions listées (les 500 plus
+    // récentes), pas pour tous les points de la carte.
+    let cities = match session_cities(&state.conn, &sessions).await {
+        Ok(cities) => cities,
+        Err(error) => {
+            eprintln!("Usage: recherche des villes: {:#}", error);
+            HashMap::new()
+        }
+    };
+
     let stats = load_stats(&state.conn).await.map_err(|error| {
         eprintln!("Usage: lecture des statistiques: {:#}", error);
         StatusCode::INTERNAL_SERVER_ERROR
@@ -643,24 +663,29 @@ pub async fn usage_sessions(
         stats,
         sessions: sessions
             .into_iter()
-            .map(|session| SessionJson {
-                id: session.id.to_string(),
-                started_at: iso(session.started_at),
-                last_seen: iso(session.last_seen),
-                duration_seconds: session.duration_seconds.max(0.0),
-                lat: session.last_lat,
-                lng: session.last_lng,
-                zoom: session.last_zoom,
-                path: session.path,
-                page_views: session.page_views,
-                events: session.events,
-                device: session.device,
-                browser: session.browser,
-                os: session.os,
-                language: session.language,
-                referrer: session.referrer,
-                source: session.source,
-                live: session.live,
+            .map(|session| {
+                let city = cities.get(&session.id);
+                SessionJson {
+                    id: session.id.to_string(),
+                    started_at: iso(session.started_at),
+                    last_seen: iso(session.last_seen),
+                    duration_seconds: session.duration_seconds.max(0.0),
+                    lat: session.last_lat,
+                    lng: session.last_lng,
+                    zoom: session.last_zoom,
+                    path: session.path,
+                    page_views: session.page_views,
+                    events: session.events,
+                    device: session.device,
+                    browser: session.browser,
+                    os: session.os,
+                    language: session.language,
+                    referrer: session.referrer,
+                    source: session.source,
+                    city: city.map(|(name, _)| name.clone()),
+                    city_distance_km: city.map(|(_, distance)| *distance),
+                    live: session.live,
+                }
             })
             .collect(),
     };
@@ -1270,6 +1295,61 @@ pub async fn usage_contributions(
             contributions,
         }),
     ))
+}
+
+/// Trouve la ville la plus proche pour les sessions listées (500 max).
+async fn session_cities(
+    conn: &PgPool,
+    sessions: &[SessionRow],
+) -> Result<HashMap<Uuid, (String, f64)>, sqlx::Error> {
+    let ids: Vec<Uuid> = sessions
+        .iter()
+        .filter(|session| session.last_lat.is_some() && session.last_lng.is_some())
+        .take(500)
+        .map(|session| session.id)
+        .collect();
+
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let rows = sqlx::query_as::<_, SessionCityRow>(
+        r#"
+        with ids as (
+            select unnest($1::uuid[]) as id
+        )
+        select i.id,
+               c.name,
+               c.distance
+        from ids i
+        join usage_session s on s.id = i.id
+        left join lateral (
+            select name,
+                   ST_Distance(
+                       ST_Transform(geom, 4326)::geography,
+                       ST_SetSRID(ST_MakePoint(s.last_lng, s.last_lat), 4326)::geography
+                   ) as distance
+            from city
+            where name is not null and name <> ''
+            order by geom <-> ST_Transform(
+                ST_SetSRID(ST_MakePoint(s.last_lng, s.last_lat), 4326),
+                3857
+            )
+            limit 1
+        ) c on s.last_lat is not null and s.last_lng is not null
+        "#,
+    )
+    .bind(&ids)
+    .fetch_all(conn)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| {
+            row.name
+                .map(|name| (row.id, (name, row.distance.unwrap_or(0.0) / 1000.0)))
+        })
+        .collect())
 }
 
 async fn sessions_since(
