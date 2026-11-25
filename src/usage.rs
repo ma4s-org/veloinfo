@@ -31,6 +31,13 @@ use uuid::Uuid;
 /// Nombre de géométries d'itinéraires conservées en mémoire pour l'aperçu.
 const ROUTE_GEOMETRY_CACHE_LIMIT: usize = 128;
 
+/// Délai maximum accordé au calcul d'une géométrie pour l'aperçu au survol.
+///
+/// Le calcul peut être long sur les longues distances (le tracé n'est pas
+/// conservé en base), d'où une marge confortable. Le résultat est ensuite mis
+/// en cache.
+const ROUTE_GEOMETRY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
 lazy_static! {
     /// Le calcul d'itinéraire est coûteux : on réutilise la géométrie entre
     /// deux survols et entre deux chargements du tableau de bord.
@@ -1315,7 +1322,7 @@ pub async fn usage_route_geometry(
         get_h_moyen()
     };
     let points = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
+        ROUTE_GEOMETRY_TIMEOUT,
         Edge::a_star_bidirectional(
             start.node_id,
             end.node_id,
