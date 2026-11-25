@@ -3,13 +3,16 @@ use askama::Template;
 use axum::{
     debug_handler,
     extract::{ws::WebSocketUpgrade, Path, Query, State},
+    http::{header, HeaderMap},
     response::Response,
 };
 use serde::Deserialize;
 use tokio::join;
+use uuid::Uuid;
 
 use crate::{
     db::edge::{Edge, Point},
+    usage,
     VeloinfoState,
 };
 
@@ -36,18 +39,59 @@ impl RoutePanel {
 #[derive(Deserialize, Debug)]
 pub struct RouteParams {
     allow_ferry: Option<bool>,
+    /// Identifiant déjà créé par le suivi navigateur (`/usage/route`).
+    usage_route_id: Option<String>,
+    /// Session du suivi navigateur, pour rattacher l'itinéraire si la demande
+    /// initiale n'a pas pu être envoyée.
+    session_id: Option<String>,
 }
 
 #[debug_handler]
 pub async fn route(
     ws: WebSocketUpgrade,
     State(state): State<VeloinfoState>,
+    headers: HeaderMap,
     Path((start_lng, start_lat, end_lng, end_lat)): Path<(f64, f64, f64, f64)>,
     route_params: Query<RouteParams>,
 ) -> Response {
     ws.on_upgrade(async move |mut socket| {
         let allow_ferry = route_params.allow_ferry.unwrap_or(true);
         let state = state.clone();
+
+        // Le calcul d'itinéraire est l'endroit le plus fiable pour compter une
+        // demande : il fonctionne même si le JavaScript de suivi est resté en
+        // cache dans le navigateur.
+        let user_agent = headers
+            .get(header::USER_AGENT)
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or_default();
+        let usage_route_id = route_params
+            .usage_route_id
+            .as_deref()
+            .and_then(|value| Uuid::parse_str(value.trim()).ok());
+        let usage_session_id = route_params
+            .session_id
+            .as_deref()
+            .and_then(|value| Uuid::parse_str(value.trim()).ok());
+        if let Err(error) = usage::record_route_request(
+            &state.conn,
+            usage_route_id,
+            usage_session_id,
+            start_lat,
+            start_lng,
+            end_lat,
+            end_lng,
+            route_params.allow_ferry,
+            user_agent,
+        )
+        .await
+        {
+            eprintln!(
+                "Usage: enregistrement de l'itinéraire calculé: {:#}",
+                error
+            );
+        }
+
         let start = match Edge::find_closest_node(&start_lng, &start_lat, &state.conn).await {
             Ok(start) => start,
             Err(e) => {

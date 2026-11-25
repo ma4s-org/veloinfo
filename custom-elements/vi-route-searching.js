@@ -213,7 +213,18 @@ export default class RouteSearching extends HTMLElement {
         }
         this.viMain.usageRouteId = this.usageRouteId;
 
-        this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat + "?allow_ferry=" + allowFerry);
+        // Le calcul transmet l'identifiant de suivi au serveur : si l'appel
+        // `/usage/route` n'a pas abouti (JavaScript en cache, requête
+        // interrompue), le serveur enregistre lui-même la demande.
+        const routeParams = new URLSearchParams({ allow_ferry: String(allowFerry) });
+        if (this.usageRouteId) {
+            routeParams.set('usage_route_id', this.usageRouteId);
+        }
+        const usageSessionId = window.viUsage?.sessionId;
+        if (usageSessionId) {
+            routeParams.set('session_id', usageSessionId);
+        }
+        this.socket = new WebSocket("/route/" + start.coords.longitude + "/" + start.coords.latitude + "/" + end.lng + "/" + end.lat + "?" + routeParams.toString());
         let coordinates = [];
         this.socket.onmessage = async (event) => {
             if (event.data.startsWith("<vi-route-panel")) {

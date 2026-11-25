@@ -95,6 +95,11 @@ graphique du trafic par jour, semaine ou mois, ainsi que le détail de chaque
 session (durée, appareil, navigateur, langue, zone et référent). Les données sont exposées en JSON à `/usage/sessions` et conservées
 dans les tables `usage_session` et `usage_event`.
 
+Les itinéraires demandés sont listés dans le tableau de bord. Au survol d'une
+ligne, leur tracé est recalculé à la demande et affiché dans un aperçu
+cartographique (`/usage/routes/{id}/geometry`). Ce calcul est mis en cache en
+mémoire et ne compte pas comme une nouvelle demande d'itinéraire.
+
 ## Importer l'historique Matomo
 
 Les visites déjà enregistrées par Matomo peuvent être importées :

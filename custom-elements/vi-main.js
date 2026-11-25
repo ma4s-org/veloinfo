@@ -301,6 +301,11 @@ class ViMain extends HTMLElement {
       zoom = parseFloat(params.get("zoom"));
     }
 
+    // Mémorise la zone initiale avant même le chargement des tuiles. Le
+    // tracker d'usage peut ainsi associer la première page vue à une position
+    // (sinon les visites très courtes restent « Position inconnue »).
+    localStorage.setItem("position", JSON.stringify({ lng, lat, zoom }));
+
     // Affichage de la vitesse
     navigator.geolocation.watchPosition((position) => {
       const speed = position.coords.speed ? position.coords.speed * 3.6 : 0;
@@ -318,6 +323,10 @@ class ViMain extends HTMLElement {
       zoom: zoom,
       minZoom: 5
     });
+
+    // Signale immédiatement le centre initial, sans attendre le chargement du
+    // style et des tuiles.
+    this.notifyUsagePosition();
 
     this.map.on('style.load', () => {
       if (!new URLSearchParams(window.location.search).has("mercator")) {

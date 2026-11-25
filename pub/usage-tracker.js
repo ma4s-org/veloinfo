@@ -138,6 +138,12 @@
   };
 
   window.viUsage = {
+    // Utilisé par le calcul d'itinéraire pour rattacher la demande à la bonne
+    // session même si l'appel `/usage/route` échoue.
+    get sessionId() {
+      return sessionId;
+    },
+
     track(action) {
       send('action', { action });
     },

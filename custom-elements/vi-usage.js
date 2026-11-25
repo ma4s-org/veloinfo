@@ -5,6 +5,7 @@ const html = String.raw;
 const REFRESH_MS = 15000;
 const RECENT_SECONDS = 24 * 60 * 60;
 const LIST_LIMIT = 500;
+const ROUTE_PREVIEW_CACHE_LIMIT = 100;
 
 const numberFormat = new Intl.NumberFormat('fr-CA');
 const dateTimeFormat = new Intl.DateTimeFormat('fr-CA', {
@@ -214,6 +215,17 @@ class ViUsage extends HTMLElement {
     this.contributionsRequestId = 0;
     this.lastContributionsAt = 0;
     this.onResize = null;
+    this.routePreview = null;
+    this.routePreviewMap = null;
+    this.routePreviewReady = false;
+    this.routePreviewCoords = null;
+    this.routePreviewFound = false;
+    this.routePreviewRouteId = null;
+    this.routePreviewTimer = null;
+    this.routePreviewHideTimer = null;
+    this.routePreviewToken = 0;
+    this.routePreviewAbort = null;
+    this.routePreviewCache = new Map();
   }
 
   connectedCallback() {
@@ -240,6 +252,7 @@ class ViUsage extends HTMLElement {
 
     this.onResize = () => {
       if (this.traffic) this.renderTraffic();
+      this.hideRoutePreview();
     };
     window.addEventListener('resize', this.onResize);
 
@@ -261,6 +274,14 @@ class ViUsage extends HTMLElement {
   disconnectedCallback() {
     window.clearInterval(this.refreshTimer);
     if (this.onResize) window.removeEventListener('resize', this.onResize);
+    if (this.onPreviewScroll) window.removeEventListener('scroll', this.onPreviewScroll, true);
+    this.cancelRoutePreview();
+    window.clearTimeout(this.routePreviewHideTimer);
+    if (this.routePreviewAbort) this.routePreviewAbort.abort();
+    if (this.routePreviewMap) {
+      this.routePreviewMap.remove();
+      this.routePreviewMap = null;
+    }
   }
 
   render() {
@@ -566,15 +587,78 @@ class ViUsage extends HTMLElement {
           border-bottom: 0;
         }
 
-        vi-usage .usage-route-link {
-          color: var(--vi-text, rgb(24 24 27));
+        vi-usage .usage-route-row {
+          cursor: pointer;
+        }
+
+        vi-usage .usage-route-row:hover,
+        vi-usage .usage-route-row:focus-visible {
+          background: var(--vi-surface-2, rgb(244 244 245));
+        }
+
+        vi-usage .usage-route-row:focus-visible {
+          outline: 2px solid var(--usage-bar, rgb(37 99 235));
+          outline-offset: -2px;
+        }
+
+        vi-usage .usage-route-trajet {
           font-weight: 500;
-          text-decoration: none;
           white-space: nowrap;
         }
 
-        vi-usage .usage-route-link:hover {
-          text-decoration: underline;
+        vi-usage .usage-route-preview {
+          position: fixed;
+          z-index: 70;
+          width: min(340px, calc(100vw - 16px));
+          padding: 10px;
+          border: 1px solid var(--vi-border, rgb(228 228 231));
+          border-radius: 12px;
+          background: var(--vi-surface, white);
+          color: var(--vi-text, rgb(24 24 27));
+          box-shadow: 0 14px 40px rgb(0 0 0 / 0.22);
+          pointer-events: none;
+        }
+
+        vi-usage .usage-route-preview[hidden] {
+          display: none;
+        }
+
+        vi-usage .usage-route-preview-head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 7px;
+          font-size: 0.78rem;
+        }
+
+        vi-usage .usage-route-preview-head strong {
+          font-weight: 600;
+        }
+
+        vi-usage .usage-route-preview-meta {
+          color: var(--vi-text-muted, rgb(113 113 122));
+          font-size: 0.72rem;
+          white-space: nowrap;
+        }
+
+        vi-usage #usage-route-preview-map {
+          height: 170px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--vi-surface-2, rgb(244 244 245));
+        }
+
+        vi-usage .usage-route-preview-note {
+          margin-top: 6px;
+          min-height: 1em;
+          font-size: 0.72rem;
+        }
+
+        @media (hover: none) {
+          vi-usage .usage-route-preview {
+            display: none;
+          }
         }
 
         vi-usage .usage-progress {
@@ -1280,6 +1364,15 @@ class ViUsage extends HTMLElement {
           <div class="usage-sessions-list" id="usage-sessions-list"></div>
         </aside>
       </div>
+
+      <div class="usage-route-preview" id="usage-route-preview" hidden aria-hidden="true">
+        <div class="usage-route-preview-head">
+          <strong id="usage-route-preview-title">Aperçu de l’itinéraire</strong>
+          <span class="usage-route-preview-meta" id="usage-route-preview-meta"></span>
+        </div>
+        <div id="usage-route-preview-map"></div>
+        <div class="usage-route-preview-note usage-muted" id="usage-route-preview-note"></div>
+      </div>
     `;
 
     this.querySelectorAll('[data-window]').forEach((button) => {
@@ -1333,6 +1426,8 @@ class ViUsage extends HTMLElement {
         this.refreshContributions();
       });
     });
+
+    this.initRoutePreview();
   }
 
   updateUrl() {
@@ -1697,6 +1792,336 @@ class ViUsage extends HTMLElement {
     }
   }
 
+  initRoutePreview() {
+    this.routePreview = this.querySelector('#usage-route-preview');
+    const body = this.querySelector('#usage-routes-body');
+    if (!this.routePreview || !body) return;
+
+    const rowFromEvent = (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      return target?.closest('#usage-routes-body tr[data-route-id]') || null;
+    };
+
+    body.addEventListener('mouseover', (event) => {
+      const row = rowFromEvent(event);
+      if (row) this.scheduleRoutePreview(row);
+    });
+
+    body.addEventListener('mouseout', (event) => {
+      const row = rowFromEvent(event);
+      if (!row) return;
+      if (event.relatedTarget instanceof Node && row.contains(event.relatedTarget)) return;
+      this.cancelRoutePreview();
+      this.scheduleRoutePreviewHide();
+    });
+
+    body.addEventListener('focusin', (event) => {
+      const row = rowFromEvent(event);
+      if (row) this.scheduleRoutePreview(row);
+    });
+
+    body.addEventListener('focusout', (event) => {
+      const row = rowFromEvent(event);
+      if (!row) return;
+      if (event.relatedTarget instanceof Node && row.contains(event.relatedTarget)) return;
+      this.cancelRoutePreview();
+      this.scheduleRoutePreviewHide();
+    });
+
+    body.addEventListener('click', (event) => {
+      const row = rowFromEvent(event);
+      if (row) this.openRouteFromRow(row);
+    });
+
+    body.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const row = rowFromEvent(event);
+      if (!row) return;
+      event.preventDefault();
+      this.openRouteFromRow(row);
+    });
+
+    this.onPreviewScroll = () => this.hideRoutePreview();
+    window.addEventListener('scroll', this.onPreviewScroll, true);
+  }
+
+  openRouteFromRow(row) {
+    const link = row.dataset.routeLink;
+    if (!link) return;
+    this.hideRoutePreview();
+    window.open(link, '_blank', 'noopener');
+  }
+
+  scheduleRoutePreview(row) {
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+    this.cancelRoutePreview();
+    window.clearTimeout(this.routePreviewHideTimer);
+    const routeId = row.dataset.routeId;
+    if (this.routePreviewRouteId === routeId && !this.routePreview.hidden) return;
+    this.routePreviewTimer = window.setTimeout(() => {
+      this.showRoutePreview(row);
+    }, 220);
+  }
+
+  cancelRoutePreview() {
+    if (!this.routePreviewTimer) return;
+    window.clearTimeout(this.routePreviewTimer);
+    this.routePreviewTimer = null;
+  }
+
+  scheduleRoutePreviewHide() {
+    window.clearTimeout(this.routePreviewHideTimer);
+    this.routePreviewHideTimer = window.setTimeout(() => {
+      this.hideRoutePreview();
+    }, 120);
+  }
+
+  hideRoutePreview() {
+    this.cancelRoutePreview();
+    window.clearTimeout(this.routePreviewHideTimer);
+    if (!this.routePreview) return;
+    this.routePreview.hidden = true;
+    this.routePreview.setAttribute('aria-hidden', 'true');
+    this.routePreviewRouteId = null;
+    this.routePreviewToken += 1;
+    if (this.routePreviewAbort) {
+      this.routePreviewAbort.abort();
+      this.routePreviewAbort = null;
+    }
+  }
+
+  showRoutePreview(row) {
+    const id = row.dataset.routeId;
+    const route = (this.routes?.routes || []).find((item) => item.id === id);
+    if (!route || !this.routePreview) return;
+
+    this.routePreviewRouteId = id;
+    this.routePreview.hidden = false;
+    this.routePreview.setAttribute('aria-hidden', 'false');
+
+    const fast = route.chosen_route === 'fast';
+    const distance = fast ? route.fast_distance_km : route.safe_distance_km;
+    const title = `${fast ? 'Rapide' : 'Sécurisé'}${distance != null ? ` · ${formatKm(distance)}` : ''}`;
+    this.querySelector('#usage-route-preview-title').textContent = title;
+    this.querySelector('#usage-route-preview-meta').textContent = relativeTime(route.created_at);
+    this.setRoutePreviewNote('Calcul du tracé…');
+    this.positionRoutePreview(row);
+
+    this.ensureRoutePreviewMap();
+    this.loadRoutePreview(route);
+  }
+
+  positionRoutePreview(row) {
+    const preview = this.routePreview;
+    if (!preview) return;
+    const rect = row.getBoundingClientRect();
+    const gap = 12;
+    const width = preview.offsetWidth || 340;
+    const height = preview.offsetHeight || 240;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let left = rect.right + gap;
+    if (left + width > viewportWidth - 8) left = rect.left - width - gap;
+    if (left < 8) {
+      left = Math.min(Math.max(8, rect.left), Math.max(8, viewportWidth - width - 8));
+    }
+    let top = rect.top - 8;
+    if (top + height > viewportHeight - 8) top = viewportHeight - height - 8;
+    top = Math.max(8, top);
+    preview.style.left = `${Math.round(left)}px`;
+    preview.style.top = `${Math.round(top)}px`;
+  }
+
+  setRoutePreviewNote(text) {
+    const note = this.querySelector('#usage-route-preview-note');
+    if (note) note.textContent = text;
+  }
+
+  ensureRoutePreviewMap() {
+    if (this.routePreviewMap) return;
+    const container = this.querySelector('#usage-route-preview-map');
+    if (!container) return;
+
+    const map = new maplibregl.Map({
+      container,
+      style: '/style.json',
+      center: [-73.57, 45.6],
+      zoom: 8,
+      interactive: false,
+      attributionControl: false,
+    });
+    this.routePreviewMap = map;
+
+    map.on('load', () => {
+      if (this.routePreviewMap !== map) return;
+      map.addSource('usage-preview-route', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      map.addLayer({
+        id: 'usage-preview-route-casing',
+        type: 'line',
+        source: 'usage-preview-route',
+        filter: ['==', ['geometry-type'], 'LineString'],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 9,
+          'line-opacity': 0.9,
+        },
+      });
+      map.addLayer({
+        id: 'usage-preview-route-line',
+        type: 'line',
+        source: 'usage-preview-route',
+        filter: ['==', ['geometry-type'], 'LineString'],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#2563eb',
+          'line-width': 5,
+          'line-opacity': 0.95,
+        },
+      });
+      map.addLayer({
+        id: 'usage-preview-route-points',
+        type: 'circle',
+        source: 'usage-preview-route',
+        filter: ['==', ['geometry-type'], 'Point'],
+        paint: {
+          'circle-radius': 6,
+          'circle-color': [
+            'match', ['get', 'role'],
+            'start', '#dc2626',
+            'end', '#2563eb',
+            '#71717a',
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+      this.routePreviewReady = true;
+      this.drawRoutePreview();
+    });
+  }
+
+  routePreviewFeatures() {
+    const coordinates = this.routePreviewCoords || [];
+    const features = [];
+    if (this.routePreviewFound && coordinates.length >= 2) {
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates },
+      });
+    }
+    if (coordinates.length >= 1) {
+      features.push({
+        type: 'Feature',
+        properties: { role: 'start' },
+        geometry: { type: 'Point', coordinates: coordinates[0] },
+      });
+      features.push({
+        type: 'Feature',
+        properties: { role: 'end' },
+        geometry: { type: 'Point', coordinates: coordinates[coordinates.length - 1] },
+      });
+    }
+    return { type: 'FeatureCollection', features };
+  }
+
+  drawRoutePreview() {
+    const map = this.routePreviewMap;
+    if (!map || !this.routePreviewReady) return;
+    const source = map.getSource('usage-preview-route');
+    if (!source) return;
+
+    const coordinates = this.routePreviewCoords;
+    if (!coordinates || coordinates.length === 0) {
+      source.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    source.setData(this.routePreviewFeatures());
+    const bounds = new maplibregl.LngLatBounds(coordinates[0], coordinates[0]);
+    coordinates.forEach((coordinate) => bounds.extend(coordinate));
+    map.fitBounds(bounds, { padding: 26, maxZoom: 14, duration: 0 });
+  }
+
+  async loadRoutePreview(route) {
+    const token = ++this.routePreviewToken;
+    const cacheKey = `${route.id}:${route.chosen_route === 'fast' ? 'fast' : 'safe'}`;
+    const cached = this.routePreviewCache.get(cacheKey);
+    if (cached) {
+      this.routePreviewCoords = cached.coordinates;
+      this.routePreviewFound = cached.found;
+      this.setRoutePreviewNote(cached.found
+        ? 'Cliquez la ligne pour ouvrir l’itinéraire.'
+        : 'Aucun tracé trouvé pour cet itinéraire.');
+      this.drawRoutePreview();
+      return;
+    }
+
+    // On affiche tout de suite départ et arrivée, puis le tracé dès que le
+    // calcul est terminé.
+    this.routePreviewCoords = [
+      [route.start_lng, route.start_lat],
+      [route.end_lng, route.end_lat],
+    ];
+    this.routePreviewFound = false;
+    this.drawRoutePreview();
+    this.setRoutePreviewNote('Calcul du tracé…');
+
+    if (this.routePreviewAbort) this.routePreviewAbort.abort();
+    const controller = new AbortController();
+    this.routePreviewAbort = controller;
+
+    try {
+      const response = await fetch(
+        `/usage/routes/${encodeURIComponent(route.id)}/geometry`,
+        {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+        },
+      );
+      if (response.status === 401 || response.status === 403) {
+        window.location.assign('/usage');
+        return;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      if (token !== this.routePreviewToken) return;
+      const coordinates = Array.isArray(data.coordinates)
+        ? data.coordinates
+          .filter((coordinate) => Array.isArray(coordinate) && coordinate.length >= 2)
+          .map(([lng, lat]) => [Number(lng), Number(lat)])
+          .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat))
+        : [];
+      const result = {
+        coordinates,
+        found: data.found === true && coordinates.length >= 3,
+      };
+      if (this.routePreviewCache.size >= ROUTE_PREVIEW_CACHE_LIMIT) {
+        this.routePreviewCache.delete(this.routePreviewCache.keys().next().value);
+      }
+      this.routePreviewCache.set(cacheKey, result);
+      this.routePreviewCoords = result.coordinates;
+      this.routePreviewFound = result.found;
+      this.setRoutePreviewNote(result.found
+        ? 'Cliquez la ligne pour ouvrir l’itinéraire.'
+        : 'Aucun tracé trouvé pour cet itinéraire.');
+      this.drawRoutePreview();
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      if (token !== this.routePreviewToken) return;
+      console.error('Usage: aperçu de l’itinéraire', error);
+      this.setRoutePreviewNote('Impossible de charger l’aperçu.');
+    } finally {
+      if (this.routePreviewAbort === controller) this.routePreviewAbort = null;
+    }
+  }
+
   renderRoutes() {
     if (!this.routes) return;
     const stats = this.routes.stats || {};
@@ -1717,6 +2142,7 @@ class ViUsage extends HTMLElement {
 
     const body = this.querySelector('#usage-routes-body');
     const empty = this.querySelector('#usage-routes-empty');
+    if (this.routePreview && !this.routePreview.hidden) this.hideRoutePreview();
     if (routes.length === 0) {
       body.innerHTML = '';
       empty.hidden = false;
@@ -1745,10 +2171,10 @@ class ViUsage extends HTMLElement {
       const device = [route.device, route.browser, route.os].filter(Boolean).join(' · ');
       const exactDate = escapeHtml(new Date(route.created_at).toLocaleString('fr-CA'));
       return `
-        <tr>
+        <tr class="usage-route-row" data-route-id="${escapeHtml(route.id)}" data-route-link="${escapeHtml(link)}" tabindex="0">
           <td title="${exactDate}">${escapeHtml(relativeTime(route.created_at))}</td>
           <td>
-            <a class="usage-route-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(start)} → ${escapeHtml(end)}</a>
+            <span class="usage-route-trajet">${escapeHtml(start)} → ${escapeHtml(end)}</span>
             ${device ? `<div class="usage-muted">${escapeHtml(device)}</div>` : ''}
           </td>
           <td>${escapeHtml(distanceLabel)}</td>

@@ -369,6 +369,10 @@ async fn main() {
         .route("/usage/traffic", get(usage::usage_traffic))
         .route("/usage/route", post(usage::usage_route_track))
         .route("/usage/routes", get(usage::usage_routes))
+        .route(
+            "/usage/routes/{id}/geometry",
+            get(usage::usage_route_geometry),
+        )
         .route("/usage/contributions", get(usage::usage_contributions))
         // ActivityPub / Fédivers
         .route("/.well-known/webfinger", get(activity_pub::webfinger))

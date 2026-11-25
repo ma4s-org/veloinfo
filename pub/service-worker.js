@@ -2,8 +2,8 @@
 // Intercepte /martin/*, /report/*, /bike_path, et ressources statiques
 // Retourne depuis cache immédiatement, refresh en background, 204 en cas d'erreur
 
-const CACHE_NAME = 'veloinfo-v4';
-const STATIC_CACHE = 'veloinfo-static-v4';
+const CACHE_NAME = 'veloinfo-v5';
+const STATIC_CACHE = 'veloinfo-static-v5';
 
 // Ressources à precacher à l'installation
 const PRECACHE_ASSETS = [

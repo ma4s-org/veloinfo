@@ -6,23 +6,37 @@
 //! ni un identifiant persistant entre les visites ne sont enregistrés.
 
 use crate::auth;
+use crate::db::edge::Edge;
 use crate::db::fediverse::FediverseAccount;
+use crate::utils::cost::{get_h_moyen, get_h_rapid};
 use crate::VeloinfoState;
 use askama::Template;
 use askama_web::WebTemplate;
-use axum::extract::{Query, State};
+use axum::extract::{Path, Query, State};
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use axum_extra::extract::cookie::CookieJar;
 use chrono::{DateTime, Duration, NaiveDateTime, SecondsFormat, Utc};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::env;
+use std::sync::Mutex;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, BufReader};
 use uuid::Uuid;
+
+/// Nombre de géométries d'itinéraires conservées en mémoire pour l'aperçu.
+const ROUTE_GEOMETRY_CACHE_LIMIT: usize = 128;
+
+lazy_static! {
+    /// Le calcul d'itinéraire est coûteux : on réutilise la géométrie entre
+    /// deux survols et entre deux chargements du tableau de bord.
+    static ref ROUTE_GEOMETRY_CACHE: Mutex<HashMap<(Uuid, bool), (bool, Vec<[f64; 2]>)>> =
+        Mutex::new(HashMap::new());
+}
 
 /// Une session est considérée « en direct » si elle a envoyé une activité
 /// dans les cinq dernières minutes.
@@ -808,6 +822,114 @@ pub async fn usage_traffic(
     ))
 }
 
+/// Enregistre une demande d'itinéraire depuis le calcul WebSocket.
+///
+/// Le navigateur envoie normalement `/usage/route` avant d'ouvrir le
+/// WebSocket. Ce filet de sécurité couvre les clients qui exécutent encore une
+/// version en cache du JavaScript (le service worker peut conserver d'anciens
+/// custom elements) ou qui ouvrent directement un lien d'itinéraire : le
+/// calcul est quand même compté dans `/usage`.
+///
+/// `route_id` et `session_id` proviennent du suivi navigateur lorsqu'il est
+/// disponible. Sans session, l'itinéraire est tout de même conservé. La
+/// fonction est idempotente : si la demande a déjà été enregistrée, l'insertion
+/// est ignorée.
+pub async fn record_route_request(
+    conn: &PgPool,
+    route_id: Option<Uuid>,
+    session_id: Option<Uuid>,
+    start_lat: f64,
+    start_lng: f64,
+    end_lat: f64,
+    end_lng: f64,
+    allow_ferry: Option<bool>,
+    user_agent: &str,
+) -> Result<(), sqlx::Error> {
+    let (Some(start_lat), Some(start_lng), Some(end_lat), Some(end_lng)) = (
+        valid_lat(Some(start_lat)),
+        valid_lng(Some(start_lng)),
+        valid_lat(Some(end_lat)),
+        valid_lng(Some(end_lng)),
+    ) else {
+        return Ok(());
+    };
+
+    // Une version déjà déployée du JavaScript envoie `/usage/route` mais
+    // n'ajoute pas encore l'identifiant au WebSocket. On reconnaît cette
+    // demande grâce aux coordonnées arrondies et à l'heure récente pour ne pas
+    // la compter deux fois. Le filtre de session protège les clients récents.
+    let existing = sqlx::query_scalar::<_, Uuid>(
+        r#"
+        select id
+        from usage_route
+        where created_at > now() - interval '30 seconds'
+          and round(start_lat::numeric, 3) = round($1::numeric, 3)
+          and round(start_lng::numeric, 3) = round($2::numeric, 3)
+          and round(end_lat::numeric, 3) = round($3::numeric, 3)
+          and round(end_lng::numeric, 3) = round($4::numeric, 3)
+          and allow_ferry is not distinct from $5
+          and ($6::uuid is null or session_id = $6)
+        order by created_at desc
+        limit 1
+        "#,
+    )
+    .bind(start_lat)
+    .bind(start_lng)
+    .bind(end_lat)
+    .bind(end_lng)
+    .bind(allow_ferry)
+    .bind(session_id)
+    .fetch_optional(conn)
+    .await?;
+
+    if existing.is_some() {
+        return Ok(());
+    }
+
+    // Un client avec une version en cache du tracker n'envoie pas de
+    // session_id. On enregistre quand même l'itinéraire, sans créer une
+    // session artificielle qui gonflerait les statistiques de visites.
+    if let Some(session_id) = session_id {
+        let (device, browser, os) = detect_client(user_agent);
+        sqlx::query(
+            r#"
+            insert into usage_session (id, device, browser, os)
+            values ($1, $2, $3, $4)
+            on conflict (id) do nothing
+            "#,
+        )
+        .bind(session_id)
+        .bind(&device)
+        .bind(&browser)
+        .bind(&os)
+        .execute(conn)
+        .await?;
+    }
+
+    let route_id = route_id.unwrap_or_else(Uuid::new_v4);
+    sqlx::query(
+        r#"
+        insert into usage_route (
+            id, session_id, start_lat, start_lng, end_lat, end_lng,
+            allow_ferry, status
+        )
+        values ($1, $2, $3, $4, $5, $6, $7, 'requested')
+        on conflict (id) do nothing
+        "#,
+    )
+    .bind(route_id)
+    .bind(session_id)
+    .bind(start_lat)
+    .bind(start_lng)
+    .bind(end_lat)
+    .bind(end_lng)
+    .bind(allow_ferry)
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 /// Enregistre une demande ou un suivi d'itinéraire.
 #[axum::debug_handler]
 pub async fn usage_route_track(
@@ -1111,6 +1233,120 @@ pub async fn usage_routes(
                 completion_rate,
             },
             routes,
+        }),
+    ))
+}
+
+#[derive(Debug, Serialize)]
+struct RouteGeometryJson {
+    route_type: String,
+    /// `false` quand aucun chemin n'a été trouvé entre les deux extrémités.
+    found: bool,
+    coordinates: Vec<[f64; 2]>,
+}
+
+/// Calcule la géométrie d'un itinéraire enregistré pour l'aperçu au survol.
+///
+/// La géométrie n'est pas conservée en base : on la recalcule à la demande à
+/// partir des coordonnées arrondies de la demande. Le calcul reste réservé à
+/// l'administrateur et n'enregistre aucune nouvelle demande d'itinéraire.
+#[axum::debug_handler]
+pub async fn usage_route_geometry(
+    State(state): State<VeloinfoState>,
+    jar: CookieJar,
+    Path(id): Path<String>,
+) -> Result<impl axum::response::IntoResponse, StatusCode> {
+    if !is_usage_admin(&state, &jar).await {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    let id = Uuid::parse_str(id.trim()).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let (start_lat, start_lng, end_lat, end_lng, chosen_route, allow_ferry) =
+        sqlx::query_as::<_, (f64, f64, f64, f64, Option<String>, Option<bool>)>(
+            r#"
+            select start_lat, start_lng, end_lat, end_lng, chosen_route, allow_ferry
+            from usage_route
+            where id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&state.conn)
+        .await
+        .map_err(|error| {
+            eprintln!("Usage: lecture de la géométrie d'itinéraire: {:#}", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let fast = chosen_route.as_deref() == Some("fast");
+    let route_type = if fast { "fast" } else { "safe" }.to_string();
+    let cache_key = (id, fast);
+    if let Some((found, coordinates)) = ROUTE_GEOMETRY_CACHE
+        .lock()
+        .ok()
+        .and_then(|cache| cache.get(&cache_key).cloned())
+    {
+        return Ok((
+            [(header::CACHE_CONTROL, "private, max-age=600")],
+            Json(RouteGeometryJson {
+                route_type,
+                found,
+                coordinates,
+            }),
+        ));
+    }
+
+    let start = Edge::find_closest_node(&start_lng, &start_lat, &state.conn)
+        .await
+        .map_err(|error| {
+            eprintln!("Usage: nœud de départ introuvable: {:#}", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    let end = Edge::find_closest_node(&end_lng, &end_lat, &state.conn)
+        .await
+        .map_err(|error| {
+            eprintln!("Usage: nœud d'arrivée introuvable: {:#}", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let heuristic = if fast {
+        get_h_rapid()
+    } else {
+        get_h_moyen()
+    };
+    let points = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        Edge::a_star_bidirectional(
+            start.node_id,
+            end.node_id,
+            heuristic,
+            &state.conn,
+            None,
+            allow_ferry.unwrap_or(true),
+        ),
+    )
+    .await
+    .map_err(|_| StatusCode::GATEWAY_TIMEOUT)?;
+
+    let found = !points.is_empty();
+    let mut coordinates = Vec::with_capacity(points.len() + 2);
+    coordinates.push([start_lng, start_lat]);
+    coordinates.extend(points.iter().map(|point| [point.lng, point.lat]));
+    coordinates.push([end_lng, end_lat]);
+
+    if let Ok(mut cache) = ROUTE_GEOMETRY_CACHE.lock() {
+        if cache.len() >= ROUTE_GEOMETRY_CACHE_LIMIT {
+            cache.clear();
+        }
+        cache.insert(cache_key, (found, coordinates.clone()));
+    }
+
+    Ok((
+        [(header::CACHE_CONTROL, "private, max-age=600")],
+        Json(RouteGeometryJson {
+            route_type,
+            found,
+            coordinates,
         }),
     ))
 }
