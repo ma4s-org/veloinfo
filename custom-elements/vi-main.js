@@ -291,6 +291,8 @@ class ViMain extends HTMLElement {
 
   addMap() {
     const position = JSON.parse(localStorage.getItem("position"));
+    // Centre par défaut. Si ces valeurs changent, mettre à jour
+    // DEFAULT_MAP_LAT / DEFAULT_MAP_LNG dans src/usage.rs.
     let lng = position?.lng ?? -73.39899762303611;
     let lat = position?.lat ?? 45.921066117828786;
     let zoom = position?.zoom ?? 6;

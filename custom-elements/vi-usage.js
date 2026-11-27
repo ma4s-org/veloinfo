@@ -64,6 +64,7 @@ function positionText(session) {
 }
 
 function sessionPlace(session) {
+  if (session.default_view) return 'Vue par défaut';
   return session.city || positionText(session);
 }
 
@@ -164,6 +165,7 @@ function scoreLabel(score) {
 
 function sourceLabel(session) {
   if (session.source !== 'matomo') return null;
+  if (session.default_view) return 'Import Matomo — centre de carte par défaut';
   return session.zoom != null
     ? 'Import Matomo — centre de carte récupéré de l’URL'
     : 'Import Matomo — position approximative par IP, zoom inconnu';
@@ -2367,9 +2369,11 @@ class ViUsage extends HTMLElement {
         <dd>${escapeHtml(session.language || 'inconnue')}</dd>
         <dt>Lieu</dt>
         <dd>
-          ${session.city
-            ? `${escapeHtml(session.city)} <span class="usage-muted">· ${escapeHtml(positionText(session))}</span>`
-            : escapeHtml(positionText(session))}
+          ${session.default_view
+            ? `Vue par défaut <span class="usage-muted">· ${escapeHtml(positionText(session))}</span>`
+            : session.city
+              ? `${escapeHtml(session.city)} <span class="usage-muted">· ${escapeHtml(positionText(session))}</span>`
+              : escapeHtml(positionText(session))}
         </dd>
         <dt>Page</dt>
         <dd>${escapeHtml(session.path || 'inconnue')}</dd>

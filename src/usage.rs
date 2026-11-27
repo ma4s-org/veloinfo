@@ -53,6 +53,26 @@ const LIVE_WINDOW_MINUTES: i64 = 5;
 /// La liste latérale n'en affiche qu'une partie pour rester fluide.
 const SESSION_LIMIT: i64 = 20000;
 
+/// Centre de la carte utilisé quand aucune position n'a encore été mémorisée.
+///
+/// Doit rester synchronisé avec `custom-elements/vi-main.js`. Ces sessions ne
+/// doivent pas être rattachées à une ville : le centre n'a pas été choisi par
+/// le visiteur.
+const DEFAULT_MAP_LAT: f64 = 45.921066117828786;
+const DEFAULT_MAP_LNG: f64 = -73.39899762303611;
+
+/// Vrai si la session est restée sur le centre de carte par défaut.
+///
+/// Le zoom doit être connu : c'est le cas des sessions web et des positions
+/// récupérées dans l'URL Matomo. Une position Matomo déduite de l'IP n'a pas de
+/// zoom et ne doit pas être confondue avec la vue par défaut.
+fn is_default_map_position(lat: Option<f64>, lng: Option<f64>, zoom: Option<f64>) -> bool {
+    let (Some(lat), Some(lng), Some(_)) = (lat, lng, zoom) else {
+        return false;
+    };
+    (lat - DEFAULT_MAP_LAT).abs() < 1e-9 && (lng - DEFAULT_MAP_LNG).abs() < 1e-9
+}
+
 #[derive(Template, WebTemplate)]
 #[template(path = "usage.html", escape = "none")]
 pub struct UsageTemplate;
@@ -421,6 +441,7 @@ struct SessionJson {
     source: String,
     city: Option<String>,
     city_distance_km: Option<f64>,
+    default_view: bool,
     live: bool,
 }
 
@@ -685,7 +706,13 @@ pub async fn usage_sessions(
         sessions: sessions
             .into_iter()
             .map(|session| {
-                let city = cities.get(&session.id);
+                let default_view =
+                    is_default_map_position(session.last_lat, session.last_lng, session.last_zoom);
+                let city = if default_view {
+                    None
+                } else {
+                    cities.get(&session.id)
+                };
                 SessionJson {
                     id: session.id.to_string(),
                     started_at: iso(session.started_at),
@@ -705,6 +732,7 @@ pub async fn usage_sessions(
                     source: session.source,
                     city: city.map(|(name, _)| name.clone()),
                     city_distance_km: city.map(|(_, distance)| *distance),
+                    default_view,
                     live: session.live,
                 }
             })
@@ -1547,7 +1575,15 @@ async fn session_cities(
 ) -> Result<HashMap<Uuid, (String, f64)>, sqlx::Error> {
     let ids: Vec<Uuid> = sessions
         .iter()
-        .filter(|session| session.last_lat.is_some() && session.last_lng.is_some())
+        .filter(|session| {
+            session.last_lat.is_some()
+                && session.last_lng.is_some()
+                && !is_default_map_position(
+                    session.last_lat,
+                    session.last_lng,
+                    session.last_zoom,
+                )
+        })
         .take(500)
         .map(|session| session.id)
         .collect();
@@ -2100,6 +2136,26 @@ mod tests {
         assert_eq!(valid_lng(Some(-200.0)), None);
         assert_eq!(valid_zoom(Some(30.0)), None);
         assert_eq!(valid_lat(Some(45.5)), Some(45.5));
+    }
+
+    #[test]
+    fn detects_the_default_map_position() {
+        assert!(is_default_map_position(
+            Some(DEFAULT_MAP_LAT),
+            Some(DEFAULT_MAP_LNG),
+            Some(6.0)
+        ));
+        assert!(!is_default_map_position(
+            Some(DEFAULT_MAP_LAT + 0.001),
+            Some(DEFAULT_MAP_LNG),
+            Some(6.0)
+        ));
+        assert!(!is_default_map_position(
+            Some(DEFAULT_MAP_LAT),
+            Some(DEFAULT_MAP_LNG),
+            None
+        ));
+        assert!(!is_default_map_position(None, Some(DEFAULT_MAP_LNG), Some(6.0)));
     }
 
     #[test]
