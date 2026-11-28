@@ -589,10 +589,6 @@ class ViUsage extends HTMLElement {
           border-bottom: 0;
         }
 
-        vi-usage .usage-route-row {
-          cursor: pointer;
-        }
-
         vi-usage .usage-route-row:hover,
         vi-usage .usage-route-row:focus-visible {
           background: var(--vi-surface-2, rgb(244 244 245));
@@ -1830,28 +1826,8 @@ class ViUsage extends HTMLElement {
       this.scheduleRoutePreviewHide();
     });
 
-    body.addEventListener('click', (event) => {
-      const row = rowFromEvent(event);
-      if (row) this.openRouteFromRow(row);
-    });
-
-    body.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      const row = rowFromEvent(event);
-      if (!row) return;
-      event.preventDefault();
-      this.openRouteFromRow(row);
-    });
-
     this.onPreviewScroll = () => this.hideRoutePreview();
     window.addEventListener('scroll', this.onPreviewScroll, true);
-  }
-
-  openRouteFromRow(row) {
-    const link = row.dataset.routeLink;
-    if (!link) return;
-    this.hideRoutePreview();
-    window.open(link, '_blank', 'noopener');
   }
 
   scheduleRoutePreview(row) {
@@ -2057,7 +2033,7 @@ class ViUsage extends HTMLElement {
       this.routePreviewCoords = cached.coordinates;
       this.routePreviewFound = cached.found;
       this.setRoutePreviewNote(cached.found
-        ? 'Cliquez la ligne pour ouvrir l’itinéraire.'
+        ? 'Tracé de l’itinéraire.'
         : 'Aucun tracé trouvé pour cet itinéraire.');
       this.drawRoutePreview();
       return;
@@ -2111,7 +2087,7 @@ class ViUsage extends HTMLElement {
       this.routePreviewCoords = result.coordinates;
       this.routePreviewFound = result.found;
       this.setRoutePreviewNote(result.found
-        ? 'Cliquez la ligne pour ouvrir l’itinéraire.'
+        ? 'Tracé de l’itinéraire.'
         : 'Aucun tracé trouvé pour cet itinéraire.');
       this.drawRoutePreview();
     } catch (error) {
@@ -2156,7 +2132,6 @@ class ViUsage extends HTMLElement {
     body.innerHTML = routes.map((route) => {
       const start = `${route.start_lat.toFixed(3)}, ${route.start_lng.toFixed(3)}`;
       const end = `${route.end_lat.toFixed(3)}, ${route.end_lng.toFixed(3)}`;
-      const link = `/?start_lng=${route.start_lng}&start_lat=${route.start_lat}&end_lng=${route.end_lng}&end_lat=${route.end_lat}`;
       let chosenDistance = null;
       if (route.chosen_route === 'safe') chosenDistance = route.safe_distance_km;
       else if (route.chosen_route === 'fast') chosenDistance = route.fast_distance_km;
@@ -2173,7 +2148,7 @@ class ViUsage extends HTMLElement {
       const device = [route.device, route.browser, route.os].filter(Boolean).join(' · ');
       const exactDate = escapeHtml(new Date(route.created_at).toLocaleString('fr-CA'));
       return `
-        <tr class="usage-route-row" data-route-id="${escapeHtml(route.id)}" data-route-link="${escapeHtml(link)}" tabindex="0">
+        <tr class="usage-route-row" data-route-id="${escapeHtml(route.id)}" tabindex="0">
           <td title="${exactDate}">${escapeHtml(relativeTime(route.created_at))}</td>
           <td>
             <span class="usage-route-trajet">${escapeHtml(start)} → ${escapeHtml(end)}</span>
